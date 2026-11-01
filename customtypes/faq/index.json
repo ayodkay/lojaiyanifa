@@ -1,0 +1,92 @@
+{
+  "id": "faq",
+  "label": "FAQ",
+  "repeatable": false,
+  "status": true,
+  "format": "custom",
+  "json": {
+    "Main": {
+      "title": {
+        "type": "Text",
+        "config": {
+          "label": "Title",
+          "placeholder": "Perguntas frequentes"
+        }
+      },
+      "intro": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro (optional)",
+          "placeholder": "",
+          "single": "paragraph,strong,em,hyperlink",
+          "allowTargetBlank": true
+        }
+      },
+      "items": {
+        "type": "Group",
+        "config": {
+          "label": "Questions",
+          "repeat": true,
+          "fields": {
+            "topic": {
+              "type": "Select",
+              "config": {
+                "label": "Topic",
+                "placeholder": "Choose…",
+                "options": [
+                  "Orders",
+                  "Payment",
+                  "Shipping",
+                  "Returns & refunds",
+                  "Products",
+                  "Account"
+                ],
+                "default_value": "Orders"
+              }
+            },
+            "question": {
+              "type": "Text",
+              "config": {
+                "label": "Question",
+                "placeholder": ""
+              }
+            },
+            "answer": {
+              "type": "StructuredText",
+              "config": {
+                "label": "Answer",
+                "placeholder": "",
+                "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+                "allowTargetBlank": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "SEO": {
+      "meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "SEO title (optional)",
+          "placeholder": "Defaults to the page title; keep under 60 characters"
+        }
+      },
+      "meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "SEO description (optional)",
+          "placeholder": "Keep under 160 characters"
+        }
+      },
+      "meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Social sharing image (optional, 1200×630)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      }
+    }
+  }
+}

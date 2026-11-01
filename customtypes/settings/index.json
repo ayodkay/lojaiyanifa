@@ -1,0 +1,338 @@
+{
+  "id": "settings",
+  "label": "Store settings",
+  "repeatable": false,
+  "status": true,
+  "format": "custom",
+  "json": {
+    "Store": {
+      "store_name": {
+        "type": "Text",
+        "config": {
+          "label": "Store name",
+          "placeholder": "Loja Iyanifa"
+        }
+      },
+      "tagline": {
+        "type": "Text",
+        "config": {
+          "label": "Tagline (optional)",
+          "placeholder": ""
+        }
+      },
+      "logo": {
+        "type": "Image",
+        "config": {
+          "label": "Logo",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "announcement": {
+        "type": "Text",
+        "config": {
+          "label": "Announcement bar text (optional)",
+          "placeholder": ""
+        }
+      },
+      "announcement_link": {
+        "type": "Link",
+        "config": {
+          "label": "Announcement link (optional)",
+          "allowTargetBlank": true
+        }
+      }
+    },
+    "Company": {
+      "legal_name": {
+        "type": "Text",
+        "config": {
+          "label": "Legal name (razão social)",
+          "placeholder": ""
+        }
+      },
+      "tax_id": {
+        "type": "Text",
+        "config": {
+          "label": "CNPJ or CPF",
+          "placeholder": "Shown in the footer, as required for online stores in Brazil"
+        }
+      },
+      "address_line": {
+        "type": "Text",
+        "config": {
+          "label": "Street address",
+          "placeholder": ""
+        }
+      },
+      "city": {
+        "type": "Text",
+        "config": {
+          "label": "City",
+          "placeholder": ""
+        }
+      },
+      "state": {
+        "type": "Text",
+        "config": {
+          "label": "State (UF)",
+          "placeholder": "e.g. SP"
+        }
+      },
+      "postal_code": {
+        "type": "Text",
+        "config": {
+          "label": "CEP",
+          "placeholder": "e.g. 01001-000"
+        }
+      }
+    },
+    "Contact": {
+      "support_email": {
+        "type": "Text",
+        "config": {
+          "label": "Support email",
+          "placeholder": ""
+        }
+      },
+      "phone": {
+        "type": "Text",
+        "config": {
+          "label": "Phone (optional)",
+          "placeholder": ""
+        }
+      },
+      "whatsapp_number": {
+        "type": "Text",
+        "config": {
+          "label": "WhatsApp number",
+          "placeholder": "Country + area code, digits only, e.g. 5511999999999"
+        }
+      },
+      "whatsapp_message": {
+        "type": "Text",
+        "config": {
+          "label": "WhatsApp default message",
+          "placeholder": "e.g. Olá! Vim pelo site da Loja Iyanifa."
+        }
+      },
+      "business_hours": {
+        "type": "Group",
+        "config": {
+          "label": "Business hours",
+          "repeat": true,
+          "fields": {
+            "day": {
+              "type": "Select",
+              "config": {
+                "label": "Day",
+                "placeholder": "Choose…",
+                "options": [
+                  "Monday",
+                  "Tuesday",
+                  "Wednesday",
+                  "Thursday",
+                  "Friday",
+                  "Saturday",
+                  "Sunday"
+                ]
+              }
+            },
+            "opens": {
+              "type": "Text",
+              "config": {
+                "label": "Opens (HH:MM)",
+                "placeholder": "09:00"
+              }
+            },
+            "closes": {
+              "type": "Text",
+              "config": {
+                "label": "Closes (HH:MM)",
+                "placeholder": "18:00"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Navigation": {
+      "menu_categories": {
+        "type": "Group",
+        "config": {
+          "label": "Main menu categories (in order)",
+          "repeat": true,
+          "fields": {
+            "category": {
+              "type": "Link",
+              "config": {
+                "label": "Category",
+                "select": "document",
+                "customtypes": [
+                  "product_category"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "footer_links": {
+        "type": "Group",
+        "config": {
+          "label": "Extra footer links",
+          "repeat": true,
+          "fields": {
+            "label": {
+              "type": "Text",
+              "config": {
+                "label": "Label",
+                "placeholder": ""
+              }
+            },
+            "link": {
+              "type": "Link",
+              "config": {
+                "label": "Link",
+                "allowTargetBlank": true
+              }
+            }
+          }
+        }
+      },
+      "social_links": {
+        "type": "Group",
+        "config": {
+          "label": "Social media",
+          "repeat": true,
+          "fields": {
+            "network": {
+              "type": "Select",
+              "config": {
+                "label": "Network",
+                "placeholder": "Choose…",
+                "options": [
+                  "Instagram",
+                  "Facebook",
+                  "TikTok",
+                  "YouTube",
+                  "WhatsApp",
+                  "X",
+                  "Pinterest"
+                ]
+              }
+            },
+            "url": {
+              "type": "Link",
+              "config": {
+                "label": "Profile URL",
+                "select": "web",
+                "allowTargetBlank": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "Search": {
+      "synonym_groups": {
+        "type": "Group",
+        "config": {
+          "label": "Search synonyms",
+          "repeat": true,
+          "fields": {
+            "terms": {
+              "type": "Text",
+              "config": {
+                "label": "Terms that mean the same thing",
+                "placeholder": "Comma-separated, e.g. búzios, cowrie, dilogun"
+              }
+            }
+          }
+        }
+      },
+      "popular_searches": {
+        "type": "Group",
+        "config": {
+          "label": "Suggested searches",
+          "repeat": true,
+          "fields": {
+            "term": {
+              "type": "Text",
+              "config": {
+                "label": "Search term",
+                "placeholder": ""
+              }
+            }
+          }
+        }
+      }
+    },
+    "Policies": {
+      "return_policy_summary": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Return policy summary (product pages)",
+          "placeholder": "Two or three sentences",
+          "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+          "allowTargetBlank": true
+        }
+      },
+      "warranty_summary": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Warranty summary (product pages)",
+          "placeholder": "Two or three sentences",
+          "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+          "allowTargetBlank": true
+        }
+      },
+      "shipping_summary": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Shipping summary (product pages)",
+          "placeholder": "Two or three sentences",
+          "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+          "allowTargetBlank": true
+        }
+      }
+    },
+    "SEO": {
+      "default_meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "Default SEO title",
+          "placeholder": ""
+        }
+      },
+      "default_meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "Default SEO description",
+          "placeholder": ""
+        }
+      },
+      "default_meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Default social sharing image (1200×630)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "google_site_verification": {
+        "type": "Text",
+        "config": {
+          "label": "Google Search Console verification code (optional)",
+          "placeholder": ""
+        }
+      },
+      "bing_site_verification": {
+        "type": "Text",
+        "config": {
+          "label": "Bing Webmaster verification code (optional)",
+          "placeholder": ""
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "id": "page",
+  "label": "Content page",
+  "repeatable": true,
+  "status": true,
+  "format": "custom",
+  "json": {
+    "Main": {
+      "uid": {
+        "type": "UID",
+        "config": {
+          "label": "URL slug",
+          "placeholder": "about, privacy, terms, cookies, shipping, returns, warranty…"
+        }
+      },
+      "title": {
+        "type": "Text",
+        "config": {
+          "label": "Title",
+          "placeholder": ""
+        }
+      },
+      "body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Content",
+          "placeholder": "",
+          "multi": "paragraph,heading2,heading3,heading4,strong,em,hyperlink,list-item,o-list-item,image,embed",
+          "allowTargetBlank": true
+        }
+      },
+      "last_updated": {
+        "type": "Date",
+        "config": {
+          "label": "Last updated (shown on legal pages)"
+        }
+      }
+    },
+    "SEO": {
+      "meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "SEO title (optional)",
+          "placeholder": "Defaults to the page title; keep under 60 characters"
+        }
+      },
+      "meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "SEO description (optional)",
+          "placeholder": "Keep under 160 characters"
+        }
+      },
+      "meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Social sharing image (optional, 1200×630)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      }
+    }
+  }
+}

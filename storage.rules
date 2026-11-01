@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Deny all direct client access. Uploads (e.g. review photos, Pix receipts)
+// go through the server, which validates type/size and writes with the Admin SDK.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

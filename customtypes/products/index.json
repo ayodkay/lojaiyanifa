@@ -1,0 +1,468 @@
+{
+  "id": "products",
+  "label": "Product",
+  "repeatable": true,
+  "json": {
+    "Main": {
+      "uid": {
+        "type": "UID",
+        "config": {
+          "label": "URL slug",
+          "placeholder": "e.g. classic-cotton-t-shirt"
+        }
+      },
+      "product_name": {
+        "type": "Text",
+        "config": {
+          "label": "Product name",
+          "placeholder": "e.g. Classic Cotton T-Shirt"
+        }
+      },
+      "sku": {
+        "type": "Text",
+        "config": {
+          "label": "Product SKU",
+          "placeholder": "e.g. TSH-001"
+        }
+      },
+      "short_description": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Short product description",
+          "placeholder": "One or two sentences for product cards and listings",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "description": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Product description",
+          "placeholder": "Full product description",
+          "multi": "paragraph,heading2,heading3,heading4,strong,em,hyperlink,list-item,o-list-item,image,embed",
+          "allowTargetBlank": true
+        }
+      },
+      "search_keywords": {
+        "type": "Text",
+        "config": {
+          "label": "Search keywords and synonyms (optional)",
+          "placeholder": "Comma-separated, e.g. cowrie, dilogun, merindilogun"
+        }
+      }
+    },
+    "Pricing & Stock": {
+      "price": {
+        "type": "Number",
+        "config": {
+          "label": "Price",
+          "placeholder": "Current selling price, e.g. 129.90"
+        }
+      },
+      "original_price": {
+        "type": "Number",
+        "config": {
+          "label": "Original price (when discounted)",
+          "placeholder": "Leave empty if not on sale, e.g. 159.90"
+        }
+      },
+      "discount_percentage": {
+        "type": "Number",
+        "config": {
+          "label": "Discount percentage",
+          "placeholder": "e.g. 20 for 20% off"
+        }
+      },
+      "availability": {
+        "type": "Select",
+        "config": {
+          "label": "Product availability",
+          "placeholder": "Choose availability",
+          "default_value": "In stock",
+          "options": [
+            "In stock",
+            "Out of stock",
+            "Pre-order",
+            "Backorder",
+            "Discontinued"
+          ]
+        }
+      },
+      "stock_quantity": {
+        "type": "Number",
+        "config": {
+          "label": "Stock quantity",
+          "placeholder": "e.g. 25"
+        }
+      },
+      "show_stock_quantity": {
+        "type": "Boolean",
+        "config": {
+          "label": "Display stock quantity on product page",
+          "default_value": false,
+          "placeholder_true": "Shown",
+          "placeholder_false": "Hidden"
+        }
+      }
+    },
+    "Media": {
+      "main_image": {
+        "type": "Image",
+        "config": {
+          "label": "Product image (main)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "gallery": {
+        "type": "Group",
+        "config": {
+          "label": "Product image gallery",
+          "repeat": true,
+          "fields": {
+            "image": {
+              "type": "Image",
+              "config": {
+                "label": "Image",
+                "constraint": {},
+                "thumbnails": []
+              }
+            }
+          }
+        }
+      },
+      "videos": {
+        "type": "Group",
+        "config": {
+          "label": "Product videos (optional)",
+          "repeat": true,
+          "fields": {
+            "video_embed": {
+              "type": "Embed",
+              "config": {
+                "label": "Video link (YouTube, Vimeo)",
+                "placeholder": "Paste a YouTube or Vimeo URL"
+              }
+            },
+            "video_file": {
+              "type": "Link",
+              "config": {
+                "label": "Or upload a video file (MP4)",
+                "select": "media"
+              }
+            },
+            "video_poster": {
+              "type": "Image",
+              "config": {
+                "label": "Poster / thumbnail image",
+                "constraint": {},
+                "thumbnails": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "Variants": {
+      "variants": {
+        "type": "Group",
+        "config": {
+          "label": "Product variants",
+          "repeat": true,
+          "fields": {
+            "variant_name": {
+              "type": "Text",
+              "config": {
+                "label": "Variant name",
+                "placeholder": "e.g. Black / M"
+              }
+            },
+            "variant_sku": {
+              "type": "Text",
+              "config": {
+                "label": "Variant SKU",
+                "placeholder": "e.g. TSH-001-BLK-M"
+              }
+            },
+            "size": {
+              "type": "Text",
+              "config": {
+                "label": "Size",
+                "placeholder": "e.g. M, 42, 10.5"
+              }
+            },
+            "color": {
+              "type": "Text",
+              "config": {
+                "label": "Color",
+                "placeholder": "e.g. Black"
+              }
+            },
+            "color_swatch": {
+              "type": "Color",
+              "config": {
+                "label": "Color swatch"
+              }
+            },
+            "material": {
+              "type": "Text",
+              "config": {
+                "label": "Material",
+                "placeholder": "e.g. 100% organic cotton"
+              }
+            },
+            "other_option": {
+              "type": "Text",
+              "config": {
+                "label": "Other option",
+                "placeholder": "e.g. Fit: Slim"
+              }
+            },
+            "variant_price": {
+              "type": "Number",
+              "config": {
+                "label": "Variant price",
+                "placeholder": "Leave empty to use the product price"
+              }
+            },
+            "variant_stock": {
+              "type": "Number",
+              "config": {
+                "label": "Variant stock quantity",
+                "placeholder": "e.g. 8"
+              }
+            },
+            "variant_availability": {
+              "type": "Select",
+              "config": {
+                "label": "Variant availability",
+                "placeholder": "Choose availability",
+                "default_value": "In stock",
+                "options": [
+                  "In stock",
+                  "Out of stock",
+                  "Pre-order",
+                  "Backorder",
+                  "Discontinued"
+                ]
+              }
+            },
+            "variant_image": {
+              "type": "Image",
+              "config": {
+                "label": "Variant image (main)",
+                "constraint": {},
+                "thumbnails": []
+              }
+            },
+            "variant_weight_grams": {
+              "type": "Number",
+              "config": {
+                "label": "Variant weight, packed (grams, optional)",
+                "placeholder": "Leave empty to use the product weight"
+              }
+            }
+          }
+        }
+      },
+      "variant_images": {
+        "type": "Group",
+        "config": {
+          "label": "Variant-specific images",
+          "repeat": true,
+          "fields": {
+            "variant_key": {
+              "type": "Text",
+              "config": {
+                "label": "Variant SKU or color",
+                "placeholder": "e.g. TSH-001-BLK-M, or Black for every size in that color"
+              }
+            },
+            "image": {
+              "type": "Image",
+              "config": {
+                "label": "Image",
+                "constraint": {},
+                "thumbnails": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "Size Guide": {
+      "size_guide": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Size guide (if applicable)",
+          "placeholder": "Leave empty if this product has no sizes",
+          "multi": "paragraph,heading3,heading4,strong,em,hyperlink,list-item,o-list-item"
+        }
+      },
+      "size_guide_image": {
+        "type": "Image",
+        "config": {
+          "label": "Size chart image (optional)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      }
+    },
+    "Details": {
+      "specifications": {
+        "type": "Group",
+        "config": {
+          "label": "Product specifications",
+          "repeat": true,
+          "fields": {
+            "spec_label": {
+              "type": "Text",
+              "config": {
+                "label": "Label",
+                "placeholder": "e.g. Origin"
+              }
+            },
+            "spec_value": {
+              "type": "Text",
+              "config": {
+                "label": "Value",
+                "placeholder": "e.g. Nigeria"
+              }
+            }
+          }
+        }
+      },
+      "materials": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Materials and ingredients (where applicable)",
+          "placeholder": "What it is made of",
+          "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+          "allowTargetBlank": true
+        }
+      },
+      "warranty_info": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Warranty information (optional)",
+          "placeholder": "Leave empty to show the store warranty policy",
+          "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+          "allowTargetBlank": true
+        }
+      },
+      "return_info": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Return policy notes (optional)",
+          "placeholder": "Leave empty to show the store return policy",
+          "multi": "paragraph,strong,em,hyperlink,list-item,o-list-item",
+          "allowTargetBlank": true
+        }
+      }
+    },
+    "Shipping": {
+      "weight_grams": {
+        "type": "Number",
+        "config": {
+          "label": "Product weight, packed (grams)",
+          "placeholder": "Needed for freight quotes, e.g. 350"
+        }
+      },
+      "length_cm": {
+        "type": "Number",
+        "config": {
+          "label": "Package length (cm)",
+          "placeholder": "e.g. 20"
+        }
+      },
+      "width_cm": {
+        "type": "Number",
+        "config": {
+          "label": "Package width (cm)",
+          "placeholder": "e.g. 15"
+        }
+      },
+      "height_cm": {
+        "type": "Number",
+        "config": {
+          "label": "Package height (cm)",
+          "placeholder": "e.g. 5"
+        }
+      },
+      "pickup_only": {
+        "type": "Boolean",
+        "config": {
+          "label": "Local pickup only",
+          "default_value": false,
+          "placeholder_true": "Customer must pick it up",
+          "placeholder_false": "Can be shipped"
+        }
+      }
+    },
+    "Related": {
+      "related_products": {
+        "type": "Group",
+        "config": {
+          "label": "Related products",
+          "repeat": true,
+          "fields": {
+            "product": {
+              "type": "Link",
+              "config": {
+                "label": "Product",
+                "select": "document",
+                "customtypes": [
+                  "products"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "bought_together": {
+        "type": "Group",
+        "config": {
+          "label": "Frequently bought together",
+          "repeat": true,
+          "fields": {
+            "product": {
+              "type": "Link",
+              "config": {
+                "label": "Product",
+                "select": "document",
+                "customtypes": [
+                  "products"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "SEO": {
+      "meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "SEO title (optional)",
+          "placeholder": "Defaults to the page title; keep under 60 characters"
+        }
+      },
+      "meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "SEO description (optional)",
+          "placeholder": "Keep under 160 characters"
+        }
+      },
+      "meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Social sharing image (optional, 1200×630)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      }
+    }
+  },
+  "status": true,
+  "format": "custom"
+}

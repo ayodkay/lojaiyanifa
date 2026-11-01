@@ -1,0 +1,829 @@
+{
+  "1": {
+    "Brand identity": {
+      "status": "todo",
+      "note": "_in progress_: wordmark + swappable design tokens (app/app.css); awaiting owner's logo, colours and fonts"
+    },
+    "Navigation menu": {
+      "status": "done",
+      "note": "header nav from Prismic categories + \"Todos os produtos\" (verified desktop)"
+    },
+    "Search bar": {
+      "status": "done",
+      "note": "header combobox with live suggestions (verified against real catalogue)"
+    },
+    "Shopping cart icon with item counter": {
+      "status": "done",
+      "note": "localStorage count, \"1 item\"/\"N itens\" label (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Account / login icon": {
+      "status": "todo",
+      "note": "_icon present_; /account not built yet"
+    },
+    "Wishlist icon": {
+      "status": "todo",
+      "note": "_icon + counter present_; /wishlist not built yet"
+    },
+    "Hero banner with promotional message": {
+      "status": "todo",
+      "note": "_implemented_ from Prismic `homepage`; verify after the owner creates the homepage document (fallback hero verified)"
+    },
+    "Main call-to-action buttons": {
+      "status": "done",
+      "note": "Prismic-driven CTAs with \"Ver todos os produtos\" default (verified)"
+    },
+    "Featured products": {
+      "status": "todo",
+      "note": "_implemented_ (homepage curation); needs Prismic content to verify"
+    },
+    "Best-selling products": {
+      "status": "todo",
+      "note": "needs order data (Firestore) — after checkout"
+    },
+    "New arrivals": {
+      "status": "done",
+      "note": "newest by Prismic publication date (verified ordering against API timestamps)"
+    },
+    "Featured categories": {
+      "status": "todo",
+      "note": "_implemented_; 0 categories in Prismic yet"
+    },
+    "Promotional banners": {
+      "status": "todo",
+      "note": "_implemented_ with start/end scheduling and cache capped at next boundary; needs Prismic content to verify"
+    },
+    "Discounts and special offers": {
+      "status": "done",
+      "note": "\"Ofertas\" section + /offers list products with original_price > price (verified 2026-11-01 with Búzios/Alaká: Alaká listed, Búzios not)"
+    },
+    "Benefits section (free shipping, secure payment, etc.)": {
+      "status": "todo",
+      "note": "_implemented_ from Prismic; footer trust strip verified"
+    },
+    "Customer reviews or testimonials": {
+      "status": "todo",
+      "note": "_testimonials implemented_ (Prismic, real customers only); reviews pending"
+    },
+    "Newsletter subscription": {
+      "status": "todo",
+      "note": "pending (needs Firestore + consent + Turnstile)"
+    },
+    "Social media links": {
+      "status": "todo",
+      "note": "_implemented_ (Prismic settings → footer); needs content"
+    },
+    "Footer with important links": {
+      "status": "todo",
+      "note": "_rendered_; several target pages (/about, /privacy…) not built yet"
+    },
+    "Recently viewed products": {
+      "status": "todo",
+      "note": "_implemented_ (localStorage + /api/products); browser flow not verified yet"
+    },
+    "Trust badges": {
+      "status": "done",
+      "note": "factual trust strip: Pix, secure checkout, support channel (verified)"
+    }
+  },
+  "2": {
+    "Main navigation menu": {
+      "status": "done",
+      "note": "verified desktop"
+    },
+    "Dropdown menus": {
+      "status": "todo",
+      "note": "_implemented_ (disclosure buttons); needs subcategories in Prismic to verify"
+    },
+    "Mega menu (for larger stores)": {
+      "status": "todo",
+      "note": "_implemented_ (subcategory panel + image); needs content"
+    },
+    "Product categories": {
+      "status": "todo",
+      "note": "_implemented_ (/categories/:uid, 301 to canonical prefix); 0 categories in Prismic"
+    },
+    "Subcategories": {
+      "status": "todo",
+      "note": "_implemented_ (parent_category field; membership unit-tested); needs content"
+    },
+    "Category landing pages": {
+      "status": "todo",
+      "note": "_implemented_; needs content"
+    },
+    "Breadcrumb navigation": {
+      "status": "done",
+      "note": "UI + BreadcrumbList JSON-LD (verified)"
+    },
+    "Category images": {
+      "status": "todo",
+      "note": "_implemented_; needs content"
+    },
+    "Category descriptions": {
+      "status": "todo",
+      "note": "_implemented_ (intro rich text); needs content"
+    },
+    "Mobile navigation menu": {
+      "status": "todo",
+      "note": "_implemented_ (native <dialog>); not visually verified on a phone width yet"
+    },
+    "Filters by category": {
+      "status": "todo",
+      "note": "query param supported; facet UI not built yet"
+    },
+    "Sorting options": {
+      "status": "done",
+      "note": "featured, best-selling, newest, price, name (unit-tested + rendered)"
+    },
+    "Pagination or infinite scrolling": {
+      "status": "done",
+      "note": "24 per page, canonical keeps ?pagina (verified 24/4 split)"
+    }
+  },
+  "3": {
+    "Product name": {
+      "status": "done"
+    },
+    "Product images": {
+      "status": "todo",
+      "note": "_implemented_ (imgix srcset); no images in Prismic yet — placeholder verified"
+    },
+    "Product image gallery": {
+      "status": "todo",
+      "note": "_implemented_; needs images"
+    },
+    "Image zoom": {
+      "status": "todo",
+      "note": "_implemented_ (hover + full-screen dialog); needs images"
+    },
+    "Product videos (optional)": {
+      "status": "todo",
+      "note": "_implemented_ (youtube-nocookie/vimeo dnt, URL parsing unit-tested); needs content"
+    },
+    "Product description": {
+      "status": "todo",
+      "note": "_implemented_; current products have no long description"
+    },
+    "Short product description": {
+      "status": "done",
+      "note": "verified with Prismic content"
+    },
+    "Price": {
+      "status": "done",
+      "note": "centavos, unit-tested (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Original price (when discounted)": {
+      "status": "done",
+      "note": "struck through next to the price (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Discount percentage": {
+      "status": "done",
+      "note": "computed from the two prices, mismatches flagged (verified 2026-11-01 with Búzios/Alaká: −7%)"
+    },
+    "Product SKU": {
+      "status": "done",
+      "note": "variant SKU when selected (verified)"
+    },
+    "Product availability": {
+      "status": "done",
+      "note": "badge + purchase state from Prismic availability (verified)"
+    },
+    "Stock quantity (optional to display)": {
+      "status": "todo",
+      "note": "needs Firestore inventory"
+    },
+    "Product variants (size, color, material, etc.)": {
+      "status": "todo",
+      "note": "_implemented_ (pickers, URL sync, inheritance unit-tested); no variants in data yet"
+    },
+    "Variant-specific images": {
+      "status": "todo",
+      "note": "_implemented_; needs content"
+    },
+    "Size guide (if applicable)": {
+      "status": "todo",
+      "note": "_implemented_ (dialog); needs content"
+    },
+    "Quantity selector": {
+      "status": "done",
+      "note": "adds the chosen quantity (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Add to cart button": {
+      "status": "done",
+      "note": "adds to the cart with confirmation; disabled without price/SKU; refuses a 51st line (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Buy now button": {
+      "status": "todo",
+      "note": "_implemented_; checkout not built yet"
+    },
+    "Add to wishlist": {
+      "status": "todo",
+      "note": "_implemented_ (localStorage); /wishlist page pending"
+    },
+    "Shipping cost calculator": {
+      "status": "todo",
+      "note": "pending (Melhor Envio + store rates)"
+    },
+    "Estimated delivery date": {
+      "status": "todo",
+      "note": "pending (with shipping quotes)"
+    },
+    "Product specifications": {
+      "status": "todo",
+      "note": "_implemented_ (specs + SKU/weight/dimensions); needs content"
+    },
+    "Product dimensions": {
+      "status": "todo",
+      "note": "_model + UI ready_; needs content"
+    },
+    "Product weight": {
+      "status": "todo",
+      "note": "_model + UI ready_; needs content"
+    },
+    "Materials and ingredients (where applicable)": {
+      "status": "todo",
+      "note": "_implemented_; needs content"
+    },
+    "Product reviews and ratings": {
+      "status": "todo",
+      "note": "pending"
+    },
+    "Customer questions and answers": {
+      "status": "todo",
+      "note": "pending"
+    },
+    "Related products": {
+      "status": "todo",
+      "note": "_implemented_ (editor picks, then same category); needs categories/picks"
+    },
+    "Frequently bought together": {
+      "status": "todo",
+      "note": "_implemented_; needs content"
+    },
+    "Recently viewed products": {
+      "status": "todo",
+      "note": "_tracking implemented_; list shown on home"
+    },
+    "Share product button": {
+      "status": "done",
+      "note": "Web Share API / copy link + WhatsApp share (verified rendered)"
+    },
+    "Return policy information": {
+      "status": "todo",
+      "note": "_implemented_ (product notes or store summary); needs content"
+    },
+    "Warranty information": {
+      "status": "todo",
+      "note": "_implemented_; needs content"
+    }
+  },
+  "4": {
+    "Search bar": {
+      "status": "done"
+    },
+    "Search autocomplete": {
+      "status": "done",
+      "note": "/api/search/suggest (verified with real catalogue)"
+    },
+    "Search suggestions": {
+      "status": "todo",
+      "note": "_implemented_ (recent searches + Prismic suggested searches); not browser-verified"
+    },
+    "Search by product name": {
+      "status": "done",
+      "note": "accent-insensitive (unit + live)"
+    },
+    "Search by SKU": {
+      "status": "done",
+      "note": "incl. variant SKUs and prefixes (unit + live)"
+    },
+    "Search by category": {
+      "status": "done",
+      "note": "category titles indexed (unit-tested)"
+    },
+    "Typo tolerance": {
+      "status": "done",
+      "note": "fuzzy matching (unit-tested)"
+    },
+    "Synonym recognition": {
+      "status": "done",
+      "note": "owner-defined synonym groups in Prismic settings + per-product keywords (unit-tested)"
+    },
+    "Search results page": {
+      "status": "done",
+      "note": "/search (verified; noindex)"
+    },
+    "Filters": {
+      "status": "done",
+      "note": "price, availability, size, colour, material (facets unit-tested)"
+    },
+    "Sorting": {
+      "status": "done",
+      "note": "relevance + listing sorts"
+    },
+    "No-results recommendations": {
+      "status": "done",
+      "note": "spelling tips, suggested searches, new arrivals (verified)"
+    },
+    "Search history (optional)": {
+      "status": "todo",
+      "note": "_implemented_ (localStorage, last 5); not browser-verified"
+    },
+    "Popular searches": {
+      "status": "todo",
+      "note": "_implemented_ (curated in Prismic); usage-based ranking pending"
+    }
+  },
+  "5": {
+    "Add products to cart": {
+      "status": "done",
+      "note": "from the product page (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Remove products": {
+      "status": "done",
+      "note": "per line + \"remove unavailable items\" (verified in browser)"
+    },
+    "Update quantities": {
+      "status": "done",
+      "note": "stepper, clamped to stock, totals re-quoted by the server (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Change product variants": {
+      "status": "todo",
+      "note": "_implemented_ (per-line select, merges duplicate lines); needs variants in Prismic"
+    },
+    "Display product images": {
+      "status": "todo",
+      "note": "_implemented_ (variant → product image → placeholder); placeholder verified, no images in Prismic yet"
+    },
+    "Display product names": {
+      "status": "done",
+      "note": "verified, incl. deleted products shown as \"Produto indisponível\""
+    },
+    "Display individual prices": {
+      "status": "done",
+      "note": "unit price + compare-at + % (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Display subtotal": {
+      "status": "done",
+      "note": "server-computed, unit-tested (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Calculate discounts": {
+      "status": "todo",
+      "note": "compare-at savings computed (unit-tested); coupons/automatic promotions pending (§11)"
+    },
+    "Apply coupon codes": {
+      "status": "todo",
+      "note": "pending (§11 discount engine)"
+    },
+    "Calculate shipping": {
+      "status": "todo",
+      "note": "pending (Melhor Envio + store rates); cart says \"calculado no checkout\""
+    },
+    "Display estimated taxes": {
+      "status": "todo",
+      "note": "**blocked**: the owner/accountant must define which tax information to show and its source; not invented"
+    },
+    "Display total price": {
+      "status": "done",
+      "note": "= subtotal until shipping/discounts join at checkout (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Continue shopping button": {
+      "status": "done",
+      "note": "\"Continuar comprando\" → /collections/all (verified)"
+    },
+    "Proceed to checkout button": {
+      "status": "todo",
+      "note": "_rendered_; enabled only when every line is purchasable (disabled state verified); /checkout not built yet"
+    },
+    "Save cart between sessions": {
+      "status": "done",
+      "note": "localStorage; survives reloads (verified in browser)"
+    },
+    "Cart persistence across devices (optional)": {
+      "status": "todo",
+      "note": "needs sign-in (carts/{uid})"
+    },
+    "Stock validation": {
+      "status": "done",
+      "note": "server quote: Firestore inventory + Prismic seed (unit + emulator tests); in the browser: 5 → 3 auto-adjust with notice, sold out blocks checkout (verified 2026-11-01 with Búzios/Alaká)"
+    },
+    "Recommended products": {
+      "status": "todo",
+      "note": "_implemented_ (bought-together → related, unit-tested); needs links in Prismic"
+    }
+  },
+  "6": {
+    "Guest checkout": {
+      "status": "done",
+      "note": "no account needed; order 1001/1002 placed as guest (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "Customer login during checkout": {
+      "status": "todo",
+      "note": "pending (customer accounts / auth)"
+    },
+    "Contact information": {
+      "status": "done",
+      "note": "name, e-mail, mobile (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "Email address": {
+      "status": "done",
+      "note": "validated, stored lowercase (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "Phone number": {
+      "status": "done",
+      "note": "validated Brazilian number, stored as +55… (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "Billing address": {
+      "status": "todo",
+      "note": "**needs input**: owner/accountant to confirm whether invoices need a billing address (delivery orders store the delivery address)"
+    },
+    "Shipping address": {
+      "status": "done",
+      "note": "required for delivery, not for pickup (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "Different billing and shipping addresses": {
+      "status": "todo",
+      "note": "**needs input**: same question as billing address"
+    },
+    "Address autocomplete": {
+      "status": "done",
+      "note": "CEP lookup via ViaCEP (verified 2026-11-01 (browser + live action on the dev server): 21360-201 → Av. Ministro Edgard Romero, Madureira)"
+    },
+    "Shipping method selection": {
+      "status": "done",
+      "note": "flat rate or pickup; pickup-only products hide delivery (verified 2026-11-01 (browser + live action on the dev server) + integration tests)"
+    },
+    "Shipping price calculation": {
+      "status": "done",
+      "note": "flat rate R$ 25,00 for all of Brazil (owner, for now) + free pickup, from settings/shipping (verified)"
+    },
+    "Delivery estimate": {
+      "status": "todo",
+      "note": "pickup: handling days shown; flat rate: needs the owner's transit days (shows \"prazo informado no envio\")"
+    },
+    "Coupon application": {
+      "status": "todo",
+      "note": "pending (§11)"
+    },
+    "Order summary": {
+      "status": "done",
+      "note": "lines, subtotal, delivery, total (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "Tax calculation": {
+      "status": "todo",
+      "note": "**blocked**: owner/accountant must define tax handling; not invented"
+    },
+    "Payment method selection": {
+      "status": "done",
+      "note": "Pix only (owner decision 2026-10-31), shown as the payment step"
+    },
+    "Terms and conditions acceptance": {
+      "status": "todo",
+      "note": "_checkbox required and enforced server-side_; /terms page content pending in Prismic (link 404s until published)"
+    },
+    "Privacy policy acceptance where required": {
+      "status": "todo",
+      "note": "_same checkbox_; /privacy content pending in Prismic (legal review)"
+    },
+    "Place order button": {
+      "status": "done",
+      "note": "disabled while submitting; double submit returns the same order (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "Payment processing": {
+      "status": "todo",
+      "note": "Pix code generated per order; manual confirmation in the admin pending"
+    },
+    "Payment confirmation": {
+      "status": "todo",
+      "note": "pending (admin confirms Pix)"
+    },
+    "Error handling": {
+      "status": "done",
+      "note": "per-field Portuguese errors + focus (browser), changed cart → 409 with review link, store not configured → 503 notice (verified 2026-11-01 (browser + live action on the dev server) + integration tests)"
+    },
+    "Order confirmation page": {
+      "status": "done",
+      "note": "QR + copia e cola + copy button + summary; guest secret link, wrong secret → 404 (verified 2026-11-01 (browser + live action on the dev server))"
+    }
+  },
+  "7": {
+    "Credit card payments": {
+      "status": "na",
+      "note": "owner decision 2026-10-31 — Pix only at launch"
+    },
+    "Debit card payments": {
+      "status": "na",
+      "note": "owner decision 2026-10-31 — Pix only at launch"
+    },
+    "Digital wallets": {
+      "status": "na",
+      "note": "owner decision 2026-10-31 — Pix only at launch"
+    },
+    "PayPal (where available)": {
+      "status": "na",
+      "note": "owner decision 2026-10-31 — Pix only at launch"
+    },
+    "Apple Pay (where available)": {
+      "status": "na",
+      "note": "owner decision 2026-10-31 — Pix only at launch"
+    },
+    "Google Pay (where available)": {
+      "status": "na",
+      "note": "owner decision 2026-10-31 — Pix only at launch"
+    },
+    "Installment payments": {
+      "status": "na",
+      "note": "owner decision 2026-10-31 — Pix only (no installments) at launch"
+    },
+    "Pix (for Brazil)": {
+      "status": "done",
+      "note": "static BR Code + QR + copia e cola per order, validated and read back (verified 2026-11-01); owner's PagSeguro random key confirmed and accepted (kept out of the repo)"
+    },
+    "Bank transfers (where applicable)": {
+      "status": "na",
+      "note": "Pix covers instant bank transfers; owner decision 2026-10-31: Pix only"
+    },
+    "Payment status tracking": {
+      "status": "todo",
+      "note": "status shown on the order page; admin confirmation pending"
+    },
+    "Duplicate payment prevention": {
+      "status": "todo",
+      "note": "orders are idempotent (double submit → one order, verified); a static Pix code can still be paid twice — admin must spot/refund (automatic prevention needs a PSP)"
+    }
+  },
+  "9": {
+    "Unique order number": {
+      "status": "done",
+      "note": "transactional counter from 1001; concurrency-tested (integration)"
+    },
+    "Order creation": {
+      "status": "done",
+      "note": "one transaction: re-price, stock reservation, number, Pix (verified 2026-11-01 (browser + live action on the dev server) + 11 integration tests)"
+    },
+    "Order confirmation": {
+      "status": "done",
+      "note": "confirmation page; e-mail pending (§15)"
+    },
+    "Order status": {
+      "status": "todo",
+      "note": "stored and shown to the customer; changes via admin pending"
+    },
+    "Pending orders": {
+      "status": "todo",
+      "note": "created as pending_payment; expiry job and admin list pending"
+    }
+  },
+  "10": {
+    "Shipping methods": {
+      "status": "done",
+      "note": "flat rate (all Brazil) + local pickup, from settings/shipping"
+    },
+    "Flat-rate shipping": {
+      "status": "done",
+      "note": "R$ 25,00 for all of Brazil (owner decision 2026-11-01, for now)"
+    },
+    "Local pickup (optional)": {
+      "status": "done",
+      "note": "Mercadão de Madureira – Anexo, Galeria K, Lojas 219-220 (verified order 1002)"
+    },
+    "Free shipping rules": {
+      "status": "na",
+      "note": "owner decision 2026-11-01: no free shipping at launch"
+    },
+    "Weight-based shipping": {
+      "status": "na",
+      "note": "owner decision 2026-11-01: one flat price for all of Brazil"
+    },
+    "Price-based shipping": {
+      "status": "na",
+      "note": "owner decision 2026-11-01: one flat price for all of Brazil"
+    },
+    "Location-based shipping": {
+      "status": "na",
+      "note": "owner decision 2026-11-01: one flat price for all of Brazil"
+    },
+    "Shipping zones": {
+      "status": "na",
+      "note": "owner decision 2026-11-01: one flat price for all of Brazil"
+    },
+    "Real-time shipping rates": {
+      "status": "todo",
+      "note": "Melhor Envio later (owner decision 2026-11-01); needs account, origin CEP, product weights/dimensions"
+    },
+    "Shipping carrier integration": {
+      "status": "todo",
+      "note": "Melhor Envio later (owner decision 2026-11-01)"
+    },
+    "Shipping restrictions": {
+      "status": "todo",
+      "note": "_pickup-only products enforced (integration-tested)_; other restrictions not defined"
+    },
+    "Delivery estimates": {
+      "status": "todo",
+      "note": "needs the owner's flat-rate transit days"
+    }
+  },
+  "13": {
+    "Contact page": {
+      "status": "done",
+      "note": "channels, hours, company details from Prismic (verified)"
+    },
+    "Frequently asked questions": {
+      "status": "todo",
+      "note": "_implemented_ (/faq + FAQPage JSON-LD); needs the Prismic FAQ document"
+    },
+    "Help center": {
+      "status": "todo",
+      "note": "_FAQ by topic implemented_; needs content"
+    },
+    "Business hours": {
+      "status": "todo",
+      "note": "_implemented_ (open-now in São Paulo time); needs hours in Prismic settings"
+    },
+    "WhatsApp integration (particularly useful in Brazil)": {
+      "status": "todo",
+      "note": "_implemented_ (floating button, contact page, product sharing); needs the number in Prismic settings to verify"
+    }
+  },
+  "16": {
+    "SEO-friendly URLs": {
+      "status": "done"
+    },
+    "Custom page titles": {
+      "status": "done",
+      "note": "Prismic SEO title or page title + store name"
+    },
+    "Meta descriptions": {
+      "status": "done",
+      "note": "Prismic SEO description or content excerpt (≤160 chars)"
+    },
+    "Heading hierarchy": {
+      "status": "done",
+      "note": "one h1 per page, h2 sections"
+    },
+    "Image alt text": {
+      "status": "todo",
+      "note": "_implemented_ (Prismic alt or product name; placeholders aria-hidden); needs real images to verify"
+    },
+    "XML sitemap": {
+      "status": "done",
+      "note": "products, categories, pages, lastmod from Prismic (verified 34 URLs)"
+    },
+    "Robots.txt": {
+      "status": "done",
+      "note": "blocks private areas; blocks everything on non-production hosts (verified)"
+    },
+    "Canonical URLs": {
+      "status": "done",
+      "note": "filters/sort dropped, pagination kept (verified)"
+    },
+    "Structured data / Schema.org": {
+      "status": "done",
+      "note": "WebSite+SearchAction, Organization, CollectionPage (verified)"
+    },
+    "Product structured data": {
+      "status": "done",
+      "note": "Offer/AggregateOffer only when a price exists (verified)"
+    },
+    "Review structured data": {
+      "status": "todo",
+      "note": "pending (with reviews)"
+    },
+    "Breadcrumb structured data": {
+      "status": "done"
+    },
+    "Open Graph metadata": {
+      "status": "done",
+      "note": "verified on product page"
+    },
+    "Social sharing previews": {
+      "status": "done",
+      "note": "server-rendered OG/Twitter tags (WhatsApp/Facebook read them without JS)"
+    },
+    "Custom 404 page": {
+      "status": "done",
+      "note": "noindex, links to home/search (verified)"
+    },
+    "Indexable category pages": {
+      "status": "done",
+      "note": "SSR + canonical + public cache"
+    },
+    "Search engine verification": {
+      "status": "todo",
+      "note": "_implemented_ (Prismic settings → meta tags); needs codes from owner"
+    }
+  },
+  "17": {
+    "CSRF protection": {
+      "status": "done",
+      "note": "same-origin check on every non-GET request (verified live: cross-site / foreign Origin → 403); SameSite=Lax session cookie with auth"
+    }
+  },
+  "18": {
+    "Company information": {
+      "status": "todo",
+      "note": "_implemented_ (footer + contact: legal name, CNPJ/CPF, address); needs owner data in Prismic settings"
+    },
+    "Contact information": {
+      "status": "todo",
+      "note": "_implemented_; needs owner data in Prismic settings"
+    }
+  },
+  "19": {
+    "Automated testing": {
+      "status": "todo",
+      "note": "_in progress_: 53 unit tests (`npm test`) + 8 emulator integration tests (`npm run test:integration`); e2e pending"
+    }
+  },
+  "20": {
+    "Appropriate color contrast": {
+      "status": "done",
+      "note": "all token pairs ≥ 4.5:1 text / ≥ 3:1 controls (calculations in docs/brand.md)"
+    },
+    "Semantic HTML": {
+      "status": "done",
+      "note": "landmarks, nav labels, lists, fieldsets"
+    },
+    "Proper heading hierarchy": {
+      "status": "done"
+    }
+  },
+  "23": {
+    "`Homepage /`": {
+      "status": "done"
+    },
+    "Shop": {
+      "status": "done"
+    },
+    "`/collections`": {
+      "status": "done",
+      "note": "index + /collections/all + /collections/:uid"
+    },
+    "`/categories`": {
+      "status": "done",
+      "note": "index + /categories/:uid"
+    },
+    "`/products/:slug`": {
+      "status": "done",
+      "note": "/products/:uid (Prismic UID)"
+    },
+    "`/search`": {
+      "status": "done"
+    },
+    "`/offers`": {
+      "status": "done"
+    },
+    "`/about`": {
+      "status": "todo",
+      "note": "_route implemented_ (Prismic page uid \"about\"); returns 404 until the owner publishes it"
+    },
+    "`/shipping`": {
+      "status": "todo",
+      "note": "_route implemented_ (Prismic page uid \"shipping\"); returns 404 until the owner publishes it"
+    },
+    "`/returns`": {
+      "status": "todo",
+      "note": "_route implemented_ (Prismic page uid \"returns\"); returns 404 until the owner publishes it"
+    },
+    "`/privacy`": {
+      "status": "todo",
+      "note": "_route implemented_ (Prismic page uid \"privacy\"); returns 404 until the owner publishes it"
+    },
+    "`/terms`": {
+      "status": "todo",
+      "note": "_route implemented_ (Prismic page uid \"terms\"); returns 404 until the owner publishes it"
+    },
+    "`/cookies`": {
+      "status": "todo",
+      "note": "_route implemented_ (Prismic page uid \"cookies\"); returns 404 until the owner publishes it"
+    },
+    "`/contact`": {
+      "status": "done"
+    },
+    "`/faq`": {
+      "status": "todo",
+      "note": "_route implemented_; needs the Prismic FAQ document"
+    },
+    "`/cart`": {
+      "status": "done",
+      "note": "verified (empty state, unavailable lines, removal, no-store, noindex); priced flow pending content"
+    },
+    "`/checkout`": {
+      "status": "done",
+      "note": "verified (verified 2026-11-01 (browser + live action on the dev server))"
+    },
+    "`/order-confirmation`": {
+      "status": "done",
+      "note": "`/order-confirmation/:number?t=…` (verified)"
+    }
+  },
+  "24": {
+    "Product catalog": {
+      "status": "done",
+      "note": "Prismic is the source; cached per release (verified with the live repository)"
+    },
+    "Product search and filtering": {
+      "status": "done"
+    }
+  }
+}

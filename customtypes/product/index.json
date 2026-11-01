@@ -1,0 +1,61 @@
+{
+  "id": "product",
+  "label": "Product Category",
+  "repeatable": true,
+  "json": {
+    "Main": {
+      "uid": {
+        "type": "UID",
+        "config": {
+          "label": "URL slug",
+          "placeholder": "e.g. summer-collection"
+        }
+      },
+      "title": {
+        "type": "Text",
+        "config": {
+          "label": "Page title",
+          "placeholder": "e.g. Summer Collection"
+        }
+      },
+      "intro": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro text",
+          "placeholder": "Optional text shown above the products",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "show_all_products": {
+        "type": "Boolean",
+        "config": {
+          "label": "Show all products",
+          "default_value": false,
+          "placeholder_true": "All products, automatically",
+          "placeholder_false": "Only the products picked below"
+        }
+      },
+      "products": {
+        "type": "Group",
+        "config": {
+          "label": "Products",
+          "repeat": true,
+          "fields": {
+            "product": {
+              "type": "Link",
+              "config": {
+                "label": "Product",
+                "select": "document",
+                "customtypes": [
+                  "products"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "status": false,
+  "format": "custom"
+}

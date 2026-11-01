@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Deny all direct client access.
+//
+// Every read and write goes through the server (React Router loaders/actions
+// running in the `ssr` Cloud Function), which uses the Admin SDK and enforces
+// authentication, ownership and admin roles in code. Keeping the client
+// surface closed means a bug in a rule can never expose orders, customers or
+// stock. If a feature later needs direct client access (e.g. live order
+// status), open only that path here and add a rules test for it.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

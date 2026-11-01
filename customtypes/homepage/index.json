@@ -1,0 +1,271 @@
+{
+  "id": "homepage",
+  "label": "Homepage",
+  "repeatable": false,
+  "status": true,
+  "format": "custom",
+  "json": {
+    "Hero": {
+      "hero_title": {
+        "type": "Text",
+        "config": {
+          "label": "Hero title",
+          "placeholder": "Main promotional message"
+        }
+      },
+      "hero_subtitle": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Hero subtitle",
+          "placeholder": "Supporting sentence",
+          "single": "paragraph,strong,em,hyperlink",
+          "allowTargetBlank": true
+        }
+      },
+      "hero_image": {
+        "type": "Image",
+        "config": {
+          "label": "Hero image",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "hero_cta_label": {
+        "type": "Text",
+        "config": {
+          "label": "Main button label",
+          "placeholder": "e.g. Ver produtos"
+        }
+      },
+      "hero_cta_link": {
+        "type": "Link",
+        "config": {
+          "label": "Main button link",
+          "allowTargetBlank": true
+        }
+      },
+      "hero_secondary_cta_label": {
+        "type": "Text",
+        "config": {
+          "label": "Second button label (optional)",
+          "placeholder": ""
+        }
+      },
+      "hero_secondary_cta_link": {
+        "type": "Link",
+        "config": {
+          "label": "Second button link (optional)",
+          "allowTargetBlank": true
+        }
+      }
+    },
+    "Merchandising": {
+      "featured_products": {
+        "type": "Group",
+        "config": {
+          "label": "Featured products",
+          "repeat": true,
+          "fields": {
+            "product": {
+              "type": "Link",
+              "config": {
+                "label": "Product",
+                "select": "document",
+                "customtypes": [
+                  "products"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "featured_categories": {
+        "type": "Group",
+        "config": {
+          "label": "Featured categories",
+          "repeat": true,
+          "fields": {
+            "category": {
+              "type": "Link",
+              "config": {
+                "label": "Category",
+                "select": "document",
+                "customtypes": [
+                  "product_category"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "promo_banners": {
+        "type": "Group",
+        "config": {
+          "label": "Promotional banners",
+          "repeat": true,
+          "fields": {
+            "image": {
+              "type": "Image",
+              "config": {
+                "label": "Banner image",
+                "constraint": {},
+                "thumbnails": []
+              }
+            },
+            "title": {
+              "type": "Text",
+              "config": {
+                "label": "Title",
+                "placeholder": ""
+              }
+            },
+            "text": {
+              "type": "Text",
+              "config": {
+                "label": "Text",
+                "placeholder": ""
+              }
+            },
+            "link_label": {
+              "type": "Text",
+              "config": {
+                "label": "Link label",
+                "placeholder": ""
+              }
+            },
+            "link": {
+              "type": "Link",
+              "config": {
+                "label": "Link",
+                "allowTargetBlank": true
+              }
+            },
+            "starts_at": {
+              "type": "Timestamp",
+              "config": {
+                "label": "Show from (optional)"
+              }
+            },
+            "ends_at": {
+              "type": "Timestamp",
+              "config": {
+                "label": "Show until (optional)"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Trust": {
+      "benefits": {
+        "type": "Group",
+        "config": {
+          "label": "Benefits (e.g. secure payment, shipping)",
+          "repeat": true,
+          "fields": {
+            "icon": {
+              "type": "Select",
+              "config": {
+                "label": "Icon",
+                "placeholder": "Choose…",
+                "options": [
+                  "shipping",
+                  "secure",
+                  "pix",
+                  "support",
+                  "authentic",
+                  "returns"
+                ],
+                "default_value": "shipping"
+              }
+            },
+            "title": {
+              "type": "Text",
+              "config": {
+                "label": "Title",
+                "placeholder": ""
+              }
+            },
+            "text": {
+              "type": "Text",
+              "config": {
+                "label": "Text",
+                "placeholder": ""
+              }
+            }
+          }
+        }
+      },
+      "testimonials": {
+        "type": "Group",
+        "config": {
+          "label": "Testimonials (real customers only)",
+          "repeat": true,
+          "fields": {
+            "quote": {
+              "type": "Text",
+              "config": {
+                "label": "Quote",
+                "placeholder": ""
+              }
+            },
+            "author": {
+              "type": "Text",
+              "config": {
+                "label": "Customer name",
+                "placeholder": ""
+              }
+            },
+            "location": {
+              "type": "Text",
+              "config": {
+                "label": "City / state (optional)",
+                "placeholder": ""
+              }
+            }
+          }
+        }
+      }
+    },
+    "Newsletter": {
+      "newsletter_title": {
+        "type": "Text",
+        "config": {
+          "label": "Newsletter title",
+          "placeholder": "e.g. Receba novidades"
+        }
+      },
+      "newsletter_text": {
+        "type": "Text",
+        "config": {
+          "label": "Newsletter text",
+          "placeholder": ""
+        }
+      }
+    },
+    "SEO": {
+      "meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "SEO title (optional)",
+          "placeholder": "Defaults to the page title; keep under 60 characters"
+        }
+      },
+      "meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "SEO description (optional)",
+          "placeholder": "Keep under 160 characters"
+        }
+      },
+      "meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Social sharing image (optional, 1200×630)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      }
+    }
+  }
+}

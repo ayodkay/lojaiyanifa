@@ -1,0 +1,115 @@
+{
+  "id": "product_category",
+  "label": "Product Category",
+  "repeatable": true,
+  "json": {
+    "Main": {
+      "uid": {
+        "type": "UID",
+        "config": {
+          "label": "URL slug",
+          "placeholder": "e.g. summer-collection"
+        }
+      },
+      "title": {
+        "type": "Text",
+        "config": {
+          "label": "Page title",
+          "placeholder": "e.g. Summer Collection"
+        }
+      },
+      "intro": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro text",
+          "placeholder": "Optional text shown above the products",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "show_all_products": {
+        "type": "Boolean",
+        "config": {
+          "label": "Show all products",
+          "default_value": false,
+          "placeholder_true": "All products, automatically",
+          "placeholder_false": "Only the products picked below"
+        }
+      },
+      "products": {
+        "type": "Group",
+        "config": {
+          "label": "Products",
+          "repeat": true,
+          "fields": {
+            "product": {
+              "type": "Link",
+              "config": {
+                "label": "Product",
+                "select": "document",
+                "customtypes": [
+                  "products"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "kind": {
+        "type": "Select",
+        "config": {
+          "label": "Type",
+          "placeholder": "Choose…",
+          "options": [
+            "Category",
+            "Collection"
+          ],
+          "default_value": "Category"
+        }
+      },
+      "image": {
+        "type": "Image",
+        "config": {
+          "label": "Category image",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "parent_category": {
+        "type": "Link",
+        "config": {
+          "label": "Parent category (makes this a subcategory)",
+          "select": "document",
+          "customtypes": [
+            "product_category"
+          ]
+        }
+      }
+    },
+    "SEO": {
+      "meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "SEO title (optional)",
+          "placeholder": "Defaults to the page title; keep under 60 characters"
+        }
+      },
+      "meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "SEO description (optional)",
+          "placeholder": "Keep under 160 characters"
+        }
+      },
+      "meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Social sharing image (optional, 1200×630)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      }
+    }
+  },
+  "status": true,
+  "format": "custom"
+}

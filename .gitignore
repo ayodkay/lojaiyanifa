@@ -1,0 +1,54 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+database-debug.log*
+pubsub-debug.log*
+
+# Dependencies
+node_modules
+
+# Build output
+/build/
+/.react-router/
+dist
+dist-ssr
+
+# Secrets and local environment — never commit these.
+# Only .env.example (no values) is tracked.
+.env
+.env.*
+!.env.example
+*.local
+.secret.local
+.runtimeconfig.json
+service-account*.json
+*-firebase-adminsdk-*.json
+
+# Firebase
+.firebase/
+.emulator-data/
+
+# Tests
+/coverage/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

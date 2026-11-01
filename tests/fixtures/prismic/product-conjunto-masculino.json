@@ -1,0 +1,41 @@
+{
+  "id": "auY87xEAACgAoFT9",
+  "uid": "conjunto-masculino",
+  "url": null,
+  "type": "products",
+  "href": "https://lojaiyanifa.cdn.prismic.io/api/v2/documents/search?ref=auZH5hEAAC4AoGar&q=%5B%5B%3Ad+%3D+at%28document.id%2C+%22auY87xEAACgAoFT9%22%29+%5D%5D",
+  "tags": [],
+  "first_publication_date": "2026-10-31T19:46:51+0000",
+  "last_publication_date": "2026-10-31T19:56:17+0000",
+  "slugs": [
+    "conjunto-masculino"
+  ],
+  "linked_documents": [],
+  "lang": "pt-br",
+  "alternate_languages": [],
+  "data": {
+    "product_name": "Conjunto masculino",
+    "sku": "VES-001",
+    "short_description": [
+      {
+        "type": "paragraph",
+        "text": "Male ritual clothing",
+        "spans": []
+      }
+    ],
+    "description": [],
+    "price": null,
+    "original_price": null,
+    "discount_percentage": null,
+    "availability": "In stock",
+    "stock_quantity": null,
+    "show_stock_quantity": false,
+    "main_image": {},
+    "gallery": [],
+    "videos": [],
+    "variants": [],
+    "variant_images": [],
+    "size_guide": [],
+    "size_guide_image": {}
+  }
+}
