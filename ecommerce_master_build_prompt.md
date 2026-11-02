@@ -209,9 +209,9 @@ One of the most important parts of an e-commerce website.
 - [x] Pix (for Brazil) — static BR Code + QR + copia e cola per order, validated and read back (verified 2026-11-01); owner's PagSeguro random key confirmed and accepted (kept out of the repo)
 - [ ] Bank transfers (where applicable) — **N/A**: Pix covers instant bank transfers; owner decision 2026-10-31: Pix only
 - [ ] Installment payments — **N/A**: owner decision 2026-10-31 — Pix only (no installments) at launch
-- [ ] Payment status tracking — status shown on the order page; admin confirmation pending
-- [ ] Payment confirmation
-- [ ] Failed payment handling
+- [x] Payment status tracking — pending → confirmed by an admin; shown in /admin and on the customer order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Payment confirmation — manual Pix confirmation in /admin/orders/:number (owner/admin/staff): one transaction marks the order paid, turns the stock reservation into a sale, writes history + audit log; repeated or conflicting confirmations refused, incl. a confirm-vs-cancel race (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [ ] Failed payment handling — _partial_: overdue Pix orders are flagged and owner/admin can cancel them (stock released); the automatic expiry job (cancel after settings/payment.expiryHours) is not built yet
 - [ ] Refund processing
 - [ ] Partial refunds
 - [ ] Fraud detection
@@ -248,13 +248,13 @@ One of the most important parts of an e-commerce website.
 - [x] Unique order number — transactional counter from 1001; concurrency-tested (integration)
 - [x] Order creation — one transaction: re-price, stock reservation, number, Pix (verified 2026-11-01 (browser + live action on the dev server) + 11 integration tests)
 - [x] Order confirmation — confirmation page; e-mail pending (§15)
-- [ ] Order status — stored and shown to the customer; changes via admin pending
-- [ ] Pending orders — created as pending_payment; expiry job and admin list pending
-- [ ] Paid orders
+- [ ] Order status — _partial_: pending_payment → paid / cancelled from /admin (verified 2026-11-02); processing → shipped → delivered not built yet
+- [ ] Pending orders — _partial_: /admin/orders work queue (default tab, overdue Pix flagged) with confirm/cancel (verified 2026-11-02); automatic expiry job pending
+- [x] Paid orders — confirming the Pix moves the order to paid and sells the reserved stock; "Pagos" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Processing orders
 - [ ] Shipped orders
 - [ ] Delivered orders
-- [ ] Cancelled orders
+- [x] Cancelled orders — owner/admin cancel unpaid orders with a reason; stock released; the customer page says "Pedido cancelado" with a contact link; "Cancelados" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests). Cancelling a paid order belongs to refunds (§7)
 - [ ] Refunded orders
 - [ ] Order history
 - [ ] Order tracking number
@@ -374,11 +374,11 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Inventory history
 - [ ] Multiple warehouse support
 - [ ] SKU management
-- [ ] Order management
-- [ ] View orders
+- [ ] Order management — _partial_: list, detail, confirm Pix, cancel unpaid (verified 2026-11-02); editing, fulfilment statuses, refunds, invoices, labels and internal notes pending
+- [x] View orders — /admin/orders: tabs by status with counts, newest first, 25 per page, overdue Pix flagged; /admin/orders/:number: items, totals, customer (incl. CPF), delivery, history (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Edit orders
-- [ ] Update order status
-- [ ] Cancel orders
+- [ ] Update order status — _partial_: pending_payment → paid / cancelled only
+- [ ] Cancel orders — _partial_: unpaid Pix orders (owner/admin, reason required, stock released, audited; verified 2026-11-02); paid orders need the refund flow
 - [ ] Process refunds
 - [ ] Print invoices
 - [ ] Print shipping labels
@@ -391,10 +391,10 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Customer lifetime value
 - [ ] Customer support history
 - [ ] Administration
-- [ ] User roles
-- [ ] Admin permissions
-- [ ] Multiple administrators
-- [ ] Activity logs
+- [x] User roles — owner / admin / staff as Firebase custom claims, granted with scripts/admin/grant-role.mjs (revokes the account's sessions so changes apply at once), enforced on the server (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Admin permissions — capability table (docs/architecture.md §3) checked in every admin loader/action; staff can confirm Pix but not cancel: the page hides it and a crafted POST gets 403 (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Multiple administrators — any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02); added with scripts/admin/grant-role.mjs until /admin/users exists
+- [ ] Activity logs — _partial_: auditLogs records admin sign-in/out, Pix confirmations, cancellations and role changes (order changes and their entries in one transaction); no viewer in the admin yet
 - [ ] Store settings
 - [ ] Payment settings
 - [ ] Shipping settings
@@ -450,9 +450,9 @@ The administrative system is what allows the business owner to manage the entire
 
 - [ ] HTTPS / SSL certificate
 - [ ] Secure password hashing
-- [ ] Secure authentication
-- [ ] Two-factor authentication for administrators
-- [ ] Role-based access control
+- [ ] Secure authentication — _admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending
+- [ ] Two-factor authentication for administrators — _server gate done_: with ADMIN_REQUIRE_MFA=true (production default) admin sessions require a second factor (tested with an emulator SMS factor). TOTP enrolment/sign-in screens deferred until the real Firebase project (Identity Platform) exists — owner decision 2026-11-01; until then production admin sign-in is refused
+- [x] Role-based access control — owner/admin/staff claims + per-action capability checks on the server (unit, integration and Chrome tests, 2026-11-02)
 - [ ] Protection against SQL injection
 - [ ] Protection against XSS
 - [x] CSRF protection — same-origin check on every non-GET request (verified live: cross-site / foreign Origin → 403); SameSite=Lax session cookie with auth
@@ -464,9 +464,9 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Secure API endpoints
 - [ ] Database backups
 - [ ] Security monitoring
-- [ ] Audit logs
-- [ ] Session management
-- [ ] Account lockout policies
+- [x] Audit logs — auditLogs: admin sign-in/out, Pix confirmations, cancellations, role changes; each order change and its entry are written in one transaction (integration-tested 2026-11-02)
+- [ ] Session management — _admin done_: 12-hour admin sessions; Sair revokes every session of the account; role changes revoke; dead cookies cleared (verified 2026-11-02). Customer sessions pending
+- [ ] Account lockout policies — Firebase Auth throttles repeated failed sign-ins (auth/too-many-requests; message mapped on /admin/login, not triggered in tests)
 - [ ] Secrets management
 - [ ] Disaster recovery plan
 
@@ -627,7 +627,7 @@ This is how I would organize the actual website's pages and routes.
 - [ ] `/admin/dashboard`
 - [ ] `/admin/products`
 - [ ] `/admin/categories`
-- [ ] `/admin/orders`
+- [x] `/admin/orders` — list + /admin/orders/:number with confirm/cancel (verified 2026-11-02)
 - [ ] `/admin/customers`
 - [ ] `/admin/inventory`
 - [ ] `/admin/discounts`

@@ -15,10 +15,36 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import { env } from "./env";
 
+/**
+ * Pointed at an emulator, the Admin SDK accepts UNSIGNED tokens, so a
+ * production server with an emulator variable set would let anyone forge an
+ * admin session cookie. The functions emulator (`npm run preview`) is the one
+ * place a production build legitimately runs against the emulators.
+ */
+export function assertNoEmulatorInProduction(runtime: {
+  prod: boolean;
+  functionsEmulator: boolean;
+  firestoreEmulatorHost: string | undefined;
+  authEmulatorHost: string | undefined;
+}): void {
+  if (runtime.prod && !runtime.functionsEmulator && (runtime.firestoreEmulatorHost || runtime.authEmulatorHost)) {
+    throw new Error(
+      "FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST are set in a production build outside the Firebase emulators. " +
+        "Remove them from the deployed environment: with them set, the Admin SDK accepts unsigned tokens.",
+    );
+  }
+}
+
 function adminApp(): App {
   const existing = getApps()[0];
   if (existing) return existing;
 
+  assertNoEmulatorInProduction({
+    prod: import.meta.env.PROD,
+    functionsEmulator: process.env.FUNCTIONS_EMULATOR === "true",
+    firestoreEmulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
+    authEmulatorHost: process.env.FIREBASE_AUTH_EMULATOR_HOST,
+  });
   const { FIREBASE_PROJECT_ID, FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST } = env();
   if (import.meta.env.DEV && (!FIRESTORE_EMULATOR_HOST || !FIREBASE_AUTH_EMULATOR_HOST)) {
     throw new Error(
@@ -42,3 +68,30 @@ export const db = (): Firestore => getFirestore(adminApp());
 
 /** Firebase Auth (Admin SDK): session cookies, custom claims, user management. */
 export const adminAuth = (): Auth => getAuth(adminApp());
+
+export interface FirebaseWebConfig {
+  apiKey: string;
+  authDomain: string | null;
+  /** The Auth emulator's URL in development; null in production. */
+  emulatorUrl: string | null;
+}
+
+/**
+ * Config for the browser SDK on the sign-in page. Against the emulators (dev
+ * server, or a production build in the functions emulator) the browser must
+ * use the same Auth emulator as the server, and the emulator ignores the key.
+ */
+export function firebaseWebConfig(): FirebaseWebConfig {
+  const { FIREBASE_WEB_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_AUTH_EMULATOR_HOST } = env();
+  const emulated = Boolean(FIREBASE_AUTH_EMULATOR_HOST) && (import.meta.env.DEV || process.env.FUNCTIONS_EMULATOR === "true");
+  if (emulated) {
+    return { apiKey: FIREBASE_WEB_API_KEY ?? "emulator-ignores-the-key", authDomain: null, emulatorUrl: `http://${FIREBASE_AUTH_EMULATOR_HOST}` };
+  }
+  if (!FIREBASE_WEB_API_KEY) {
+    throw new Error(
+      "FIREBASE_WEB_API_KEY is not set: /admin/login needs the Firebase web app's API key " +
+        "(Firebase console → Project settings → Your apps). See .env.example.",
+    );
+  }
+  return { apiKey: FIREBASE_WEB_API_KEY, authDomain: FIREBASE_AUTH_DOMAIN ?? null, emulatorUrl: null };
+}

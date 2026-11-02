@@ -543,12 +543,20 @@
       "note": "Pix covers instant bank transfers; owner decision 2026-10-31: Pix only"
     },
     "Payment status tracking": {
-      "status": "todo",
-      "note": "status shown on the order page; admin confirmation pending"
+      "status": "done",
+      "note": "pending → confirmed by an admin; shown in /admin and on the customer order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     },
     "Duplicate payment prevention": {
       "status": "todo",
       "note": "orders are idempotent (double submit → one order, verified); a static Pix code can still be paid twice — admin must spot/refund (automatic prevention needs a PSP)"
+    },
+    "Payment confirmation": {
+      "status": "done",
+      "note": "manual Pix confirmation in /admin/orders/:number (owner/admin/staff): one transaction marks the order paid, turns the stock reservation into a sale, writes history + audit log; repeated or conflicting confirmations refused, incl. a confirm-vs-cancel race (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Failed payment handling": {
+      "status": "todo",
+      "note": "_partial_: overdue Pix orders are flagged and owner/admin can cancel them (stock released); the automatic expiry job (cancel after settings/payment.expiryHours) is not built yet"
     }
   },
   "9": {
@@ -566,11 +574,19 @@
     },
     "Order status": {
       "status": "todo",
-      "note": "stored and shown to the customer; changes via admin pending"
+      "note": "_partial_: pending_payment → paid / cancelled from /admin (verified 2026-11-02); processing → shipped → delivered not built yet"
     },
     "Pending orders": {
       "status": "todo",
-      "note": "created as pending_payment; expiry job and admin list pending"
+      "note": "_partial_: /admin/orders work queue (default tab, overdue Pix flagged) with confirm/cancel (verified 2026-11-02); automatic expiry job pending"
+    },
+    "Paid orders": {
+      "status": "done",
+      "note": "confirming the Pix moves the order to paid and sells the reserved stock; \"Pagos\" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Cancelled orders": {
+      "status": "done",
+      "note": "owner/admin cancel unpaid orders with a reason; stock released; the customer page says \"Pedido cancelado\" with a contact link; \"Cancelados\" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests). Cancelling a paid order belongs to refunds (§7)"
     }
   },
   "10": {
@@ -645,6 +661,40 @@
       "note": "_implemented_ (floating button, contact page, product sharing); needs the number in Prismic settings to verify"
     }
   },
+  "14": {
+    "Order management": {
+      "status": "todo",
+      "note": "_partial_: list, detail, confirm Pix, cancel unpaid (verified 2026-11-02); editing, fulfilment statuses, refunds, invoices, labels and internal notes pending"
+    },
+    "View orders": {
+      "status": "done",
+      "note": "/admin/orders: tabs by status with counts, newest first, 25 per page, overdue Pix flagged; /admin/orders/:number: items, totals, customer (incl. CPF), delivery, history (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Update order status": {
+      "status": "todo",
+      "note": "_partial_: pending_payment → paid / cancelled only"
+    },
+    "Cancel orders": {
+      "status": "todo",
+      "note": "_partial_: unpaid Pix orders (owner/admin, reason required, stock released, audited; verified 2026-11-02); paid orders need the refund flow"
+    },
+    "User roles": {
+      "status": "done",
+      "note": "owner / admin / staff as Firebase custom claims, granted with scripts/admin/grant-role.mjs (revokes the account's sessions so changes apply at once), enforced on the server (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Admin permissions": {
+      "status": "done",
+      "note": "capability table (docs/architecture.md §3) checked in every admin loader/action; staff can confirm Pix but not cancel: the page hides it and a crafted POST gets 403 (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Multiple administrators": {
+      "status": "done",
+      "note": "any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02); added with scripts/admin/grant-role.mjs until /admin/users exists"
+    },
+    "Activity logs": {
+      "status": "todo",
+      "note": "_partial_: auditLogs records admin sign-in/out, Pix confirmations, cancellations and role changes (order changes and their entries in one transaction); no viewer in the admin yet"
+    }
+  },
   "16": {
     "SEO-friendly URLs": {
       "status": "done"
@@ -717,6 +767,30 @@
     "CSRF protection": {
       "status": "done",
       "note": "same-origin check on every non-GET request (verified live: cross-site / foreign Origin → 403); SameSite=Lax session cookie with auth"
+    },
+    "Secure authentication": {
+      "status": "todo",
+      "note": "_admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending"
+    },
+    "Two-factor authentication for administrators": {
+      "status": "todo",
+      "note": "_server gate done_: with ADMIN_REQUIRE_MFA=true (production default) admin sessions require a second factor (tested with an emulator SMS factor). TOTP enrolment/sign-in screens deferred until the real Firebase project (Identity Platform) exists — owner decision 2026-11-01; until then production admin sign-in is refused"
+    },
+    "Role-based access control": {
+      "status": "done",
+      "note": "owner/admin/staff claims + per-action capability checks on the server (unit, integration and Chrome tests, 2026-11-02)"
+    },
+    "Audit logs": {
+      "status": "done",
+      "note": "auditLogs: admin sign-in/out, Pix confirmations, cancellations, role changes; each order change and its entry are written in one transaction (integration-tested 2026-11-02)"
+    },
+    "Session management": {
+      "status": "todo",
+      "note": "_admin done_: 12-hour admin sessions; Sair revokes every session of the account; role changes revoke; dead cookies cleared (verified 2026-11-02). Customer sessions pending"
+    },
+    "Account lockout policies": {
+      "status": "todo",
+      "note": "Firebase Auth throttles repeated failed sign-ins (auth/too-many-requests; message mapped on /admin/login, not triggered in tests)"
     }
   },
   "18": {
@@ -815,6 +889,10 @@
     "`/order-confirmation`": {
       "status": "done",
       "note": "`/order-confirmation/:number?t=…` (verified)"
+    },
+    "`/admin/orders`": {
+      "status": "done",
+      "note": "list + /admin/orders/:number with confirm/cancel (verified 2026-11-02)"
     }
   },
   "24": {

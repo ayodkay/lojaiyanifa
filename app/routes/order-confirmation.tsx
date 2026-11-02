@@ -61,6 +61,7 @@ export default function OrderConfirmation({ loaderData }: Route.ComponentProps) 
   const { order, qrDataUrl, whatsapp } = loaderData;
   const [params, setParams] = useSearchParams();
   const pending = order.status === "pending_payment";
+  const cancelled = order.status === "cancelled";
 
   // First visit straight from checkout: the order now holds the items, so empty the cart.
   useEffect(() => {
@@ -84,7 +85,9 @@ export default function OrderConfirmation({ loaderData }: Route.ComponentProps) 
         ]}
       />
       <p className="eyebrow mt-8">Pedido nº {order.number}</p>
-      <h1 className="mb-3 mt-3 text-4xl md:text-5xl">{pending ? "Pedido recebido! Agora é só pagar com Pix." : "Obrigado pela sua compra!"}</h1>
+      <h1 className="mb-3 mt-3 text-4xl md:text-5xl">
+        {pending ? "Pedido recebido! Agora é só pagar com Pix." : cancelled ? "Pedido cancelado" : "Obrigado pela sua compra!"}
+      </h1>
       <p className="text-muted">
         Situação: <strong className="text-ink">{ORDER_STATUS_LABEL[order.status]}</strong>
       </p>
@@ -92,6 +95,25 @@ export default function OrderConfirmation({ loaderData }: Route.ComponentProps) 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_22rem]">
         {pending && qrDataUrl ? (
           <PixPayment order={order} qrDataUrl={qrDataUrl} whatsapp={whatsapp} />
+        ) : cancelled ? (
+          <section aria-labelledby="cancelado" className="space-y-3">
+            <h2 id="cancelado" className="text-2xl">
+              Este pedido foi cancelado
+            </h2>
+            <p className="text-muted">Ele não será enviado, e os produtos voltaram a ficar disponíveis na loja.</p>
+            <p className="text-muted">Se você já tinha feito o Pix, fale com a gente para receber o reembolso.</p>
+            <p>
+              {whatsapp ? (
+                <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-4">
+                  Falar com a loja pelo WhatsApp
+                </a>
+              ) : (
+                <Link to="/contact" className="text-ink underline underline-offset-4">
+                  Falar com a loja
+                </Link>
+              )}
+            </p>
+          </section>
         ) : (
           <section aria-labelledby="proximos" className="space-y-3">
             <h2 id="proximos" className="text-2xl">

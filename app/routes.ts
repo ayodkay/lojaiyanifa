@@ -25,6 +25,16 @@ export default [
     route("contact", "routes/contact.tsx"),
   ]),
 
+  // Admin (back office). Sign-in and sign-out sit outside the protected layout,
+  // whose middleware checks the session before any admin loader or action runs.
+  route("admin/login", "routes/admin.login.tsx"),
+  route("admin/logout", "routes/admin.logout.ts"),
+  route("admin", "routes/admin.tsx", { id: "admin" }, [
+    index("routes/admin.home.ts"),
+    route("orders", "routes/admin.orders.tsx"),
+    route("orders/:number", "routes/admin.order.tsx"),
+  ]),
+
   // Resource routes (no UI)
   route("sitemap.xml", "routes/sitemap-xml.ts"),
   route("robots.txt", "routes/robots-txt.ts"),

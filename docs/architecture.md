@@ -64,19 +64,40 @@ app's `Cache-Control` headers, which both CDNs honour).
 
 - Sign-in happens in the browser with the Firebase Auth JS SDK (email/password,
   email verification, password reset; Google sign-in optional).
-- After sign-in the browser POSTs the ID token to `/api/session`. The server
-  verifies it (`auth_time` must be < 5 min old), creates a Firebase **session
-  cookie** (14 days) and sets it as `__session`
-  (`HttpOnly; Secure; SameSite=Lax; Path=/`).
-- Private loaders/actions verify `__session` with
-  `verifySessionCookie(cookie, checkRevoked = true)`. Logout clears the cookie
-  and revokes refresh tokens.
+- **Admin sign-in (built 2026-11-02, `app/.server/session.ts`)**: `/admin/login`
+  signs in with the JS SDK (in-memory persistence: nothing stays on the device)
+  and posts the fresh ID token to its own action. The server verifies it with
+  revocation checking, requires `auth_time` < 5 min, then admits the user only
+  if the `role` claim is owner/admin/staff, the e-mail is **verified** (blocks
+  someone pre-registering the owner's address and inheriting a role granted to
+  it), and — when `ADMIN_REQUIRE_MFA=true` — the sign-in used a second factor.
+  It then sets a Firebase **session cookie** in `__session`
+  (`HttpOnly; Secure; SameSite=Lax; Path=/`) valid **12 hours** for admins.
+  Customers (not built yet) will get their own sign-in route; 14-day sessions planned.
+- **Every `/admin` request** passes the admin layout's middleware
+  (`app/.server/admin-guard.ts`), which runs before any admin loader or action
+  (a parent loader would not do: loaders run in parallel). It calls
+  `verifySessionCookie(cookie, checkRevoked = true)`; no/expired/revoked cookie →
+  `/admin/login?redirectTo=…`; valid session without admin access → 403. Each
+  action also checks its capability (`requireCapability`). firebase-admin always
+  checks revocation against the emulator, so a unit test pins the `true` flag.
+- **Sign-out** (`POST /admin/logout`) revokes all of the account's sessions and
+  refresh tokens (every device) and clears the cookie. A GET never signs out.
 - **Roles** are Firebase custom claims: `role: "owner" | "admin" | "staff"`.
-  Customers have no role claim. The first owner is granted with
-  `scripts/admin/grant-role.mjs`; afterwards owners manage roles in `/admin/users`.
-- **Admin 2FA**: in production, admin routes require the session to have been
-  created with a second factor (`firebase.sign_in_second_factor` claim). TOTP MFA
-  requires "Firebase Authentication with Identity Platform" on the project.
+  Customers have no role claim. Roles are granted with
+  `scripts/admin/grant-role.mjs` (emulator by default; `--production --project`
+  for a real project), which also revokes the account's sessions — a live
+  cookie keeps the claims it was minted with. `/admin/users` comes later.
+- **Admin 2FA**: with `ADMIN_REQUIRE_MFA=true` (the default; production) admin
+  sessions require the `firebase.sign_in_second_factor` claim — verified with an
+  emulator SMS factor. The TOTP enrolment/sign-in screens are not built yet
+  (owner decision 2026-11-01: build them on the real project, since the Auth
+  emulator only implements SMS second factors). TOTP MFA requires "Firebase
+  Authentication with Identity Platform" on the project. Until the screens
+  exist, production admin sign-in is refused (fail-closed).
+- **Emulator guard**: pointed at an emulator the Admin SDK accepts unsigned
+  tokens, so a production build refuses to start with `FIRESTORE_EMULATOR_HOST` /
+  `FIREBASE_AUTH_EMULATOR_HOST` set, except inside the functions emulator.
 - **CSRF**: `SameSite=Lax` cookie + every non-GET request must pass a
   same-origin check (`Sec-Fetch-Site` / `Origin` against `SITE_URL`). Webhooks are
   exempt and authenticate with their own shared secret.
@@ -128,7 +149,8 @@ All money is stored as **integer centavos** (BRL). All timestamps are Firestore
 | `newsletter/{emailHash}` | sha256(email) | subscription + consent record |
 | `mail/{id}` | auto | email outbox |
 | `settings/{store,payment,shipping,tax,email}` | fixed | commerce settings edited in admin |
-| `auditLogs/{id}` | auto | who did what, when (admin actions) |
+| `auditLogs/{id}` | auto | who did what, when: `{ at, action, actor, target, details }`; actor = `{ uid, email, role }` (app) or `{ type: "script", name, by }` (scripts). Actions: `admin.signed_in`, `admin.signed_out`, `order.payment_confirmed`, `order.cancelled`, `role.changed` |
+| `checkoutAttempts/{sha256(key)}` | checkout key hash | idempotency: maps a checkout attempt to its order number |
 | `redirects/{encodedPath}` | path | old URL → new URL (301) |
 
 #### Stock
@@ -159,6 +181,19 @@ pending_payment ──(admin confirms Pix)──► paid ──► processing �
 - `paid` converts the reservation into a sale (`onHand -= qty`, `reserved -= qty`).
 - `cancelled` (incl. Pix expiry) releases the reservation.
 - Every transition appends to `timeline` and writes an audit log entry.
+
+Built so far (2026-11-02, `app/.server/admin-orders.ts`): `pending_payment → paid`
+(admin confirms the Pix) and `pending_payment → cancelled` (owner/admin, with a
+reason). Each is ONE transaction that re-reads the order (must still be pending,
+so two admins or a future expiry job can't settle it twice), checks every reserved
+SKU's stock document covers the reservation (corrupt counts fail loudly, nothing
+written), moves the stock, updates the order and writes the audit entry.
+- Timeline entry: `{ at, status, by: "customer" | "admin" | "system", actor: { uid, email } | null, note }`.
+- Paid: `payment.status = "confirmed"`, `payment.confirmedAt`, `payment.confirmedBy`.
+- Cancelled: `cancellation: { at, reason: "payment_not_received" | "customer_request" | "other", note, by }`;
+  `payment.status` stays `"pending"` (it was never confirmed). The customer's order
+  page says the order was cancelled and how to ask for a refund.
+- Not built yet: processing/shipped/delivered, refunds, the Pix expiry job.
 
 ## 5. Payments — static Pix (owner decision, 2026-10-31)
 
@@ -231,3 +266,7 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-01 | Delivery at launch: one flat rate for all of Brazil + local pickup (Mercadão de Madureira – Anexo, Galeria K, Lojas 219-220, Rio de Janeiro – RJ, 21360-201); no free shipping; Melhor Envio later. Settings in Firestore `settings/shipping` | Owner |
 | 2026-11-01 | CPF required at checkout, and at account creation | Owner |
 | 2026-11-01 | Guest order link = `/order-confirmation/:number?t=<checkout key>`; only the key's SHA-256 is stored; the same key makes order creation idempotent | Proposed |
+| 2026-11-01 | Admin sessions last 12 hours (customers keep the planned 14 days) | Owner |
+| 2026-11-01 | Admin 2FA: the server requires a second factor now (`ADMIN_REQUIRE_MFA`); TOTP screens are built on the real Firebase project; production admin sign-in is refused until then | Owner |
+| 2026-11-02 | Admin accounts need a verified e-mail; admin sign-in posts the ID token to the `/admin/login` action (no generic `/api/session`) | Proposed |
+| 2026-11-02 | Admin orders list defaults to "Aguardando pagamento" (the Pix work queue); staff may confirm Pix but not cancel (role table above) | Proposed |

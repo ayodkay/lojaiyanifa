@@ -146,25 +146,92 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   place a test order on the dev site and scan the QR in the bank app **without paying** — the app should
   show the PagSeguro account holder.
 
+## Session 3 — 2026-11-01/02: admin sign-in with roles, orders, Pix confirm/cancel
+
+### Owner decisions
+- Baseline commit before any edit: `643da9e` (all of sessions 1–2). Session-3 work is **uncommitted** for review.
+- Admin 2FA: the server gate now; TOTP enrolment/sign-in screens are built on the real Firebase project
+  (the Auth emulator only implements SMS second factors). Production admin sign-in is refused until then.
+- Admin sessions last **12 hours**.
+- Session-1 orphan emulator (functions+hosting) **stopped** with the owner's OK — ports 4000/4400/4500/5000/5001 are free.
+- Production build check **skipped** (see "Found").
+
+### Done and verified
+- **Roles and sessions** — `app/lib/admin/roles.ts` (owner/admin/staff + capability table),
+  `app/.server/session.ts` (session cookie, admission rule, sign-in/read/sign-out), `app/.server/audit.ts`,
+  `app/.server/admin-guard.ts` (middleware gate + `requireCapability`), emulator guard in `app/.server/firebase.ts`.
+  `scripts/admin/grant-role.mjs` (+ `roles.mjs`): emulator by default, `--production --project <id>` for real;
+  revokes sessions on every change; 8 CLI cases verified. The dev seed now creates `dono@example.com` (owner),
+  `equipe@example.com` (staff), `cliente@example.com` (no role) — password in `scripts/dev/seed-emulator.mjs`.
+- **Admin UI** — `/admin/login` (browser SDK in memory only; forgot-password; verify-e-mail button),
+  `POST /admin/logout`, `/admin` layout (gate, header, sign-out), `/admin/orders` (tabs + counts, 25/page,
+  overdue Pix flagged), `/admin/orders/:number` (items, totals, customer incl. CPF, delivery, history,
+  confirm payment, cancel with reason). The customer order page now says when an order was cancelled.
+- **Orders** — `app/.server/admin-orders.ts`: list/counts, `confirmPixPayment` (reservation → sale),
+  `cancelPendingOrder` (reservation released), one transaction each with history + audit entry.
+  Composite index `orders (status ASC, number DESC)` added to `firestore.indexes.json` (unverifiable locally).
+- **Tests** — unit 108 (22 new), integration 38 (16 new: 6 session, 10 admin orders incl. a confirm-vs-cancel
+  race, re-run 6×), typecheck clean, lint 0 errors (new warnings are route-module exports only).
+  Mutation-checked: 11 mutations caught.
+- **Chrome on the dev server (:5173)** — signed-out redirect keeps `redirectTo`; wrong password; customer refused;
+  owner and staff sign in (role shown); cookie not readable by JS; tabs/counts; overdue flag; sign-out revokes
+  (emulator `validSince` moved) + audit entries; password reset (emulator OOB code); staff: no cancel form and a
+  crafted cancel POST → 403; staff confirmed 1001 (stock 100/3 → 99/2 and 100/5 → 98/3, as computed); owner
+  cancelled 1002 ("other" without a note → server error first); a stale tab confirming an order cancelled
+  elsewhere → 409 notice and the page reloads to the real state; customer page of a cancelled order. The final
+  emulator state matched the computed one.
+
+### Found in session 3
+- firebase-admin **always** checks revocation against the emulator (`checkRevoked || isEmulator` in
+  base-auth.js), so emulator tests can't catch a missing `checkRevoked = true`; a stubbed unit test pins it.
+- The Auth emulator (firebase-tools 15.24) implements SMS second factors only — no TOTP.
+- React Router skips loader revalidation after an action answers 4xx (`actionStatus >= 400` in router.js);
+  the order page opts back in on 409 (`shouldRevalidate`). Found in Chrome: the page claimed to show the
+  current state but didn't.
+- The Vite dev server listens on IPv6 `::1`: probe `http://localhost:5173`, not `127.0.0.1` (that returns nothing).
+- `npm run build` fails with `EBUSY: rmdir build\functions`, also after the orphan emulator was stopped and with
+  no emulator workers left. Holder not identified (suspected: WebStorm indexing `build\functions\node_modules`;
+  Sysinternals `handle` isn't installed). Nothing in `build\` was deleted. Unresolved — owner chose to skip.
+- `core.autocrlf=true` (Git for Windows system config): a `git checkout` of a file rewrites LF → CRLF, which would
+  break `scripts/prismic/add-product.sh` under bash. A `.gitattributes` with `* text=auto eol=lf` would prevent
+  it — owner's call.
+
+### Not verified (session 3)
+- Production build/bundles (EBUSY above): whether the Firebase browser SDK stays out of the server bundle and
+  loads only with `/admin/login` (React Router's `.client` rule says so: `react-router:dot-client` in vite.js).
+- TOTP flows (not built); real verification/password-reset e-mails (emulator only); the composite index in
+  production; the admin layout on a phone (the automation viewport stays 1536 px).
+
 ## Handoff for the next session (read this first)
-**State:** browsing, cart, checkout, orders (stock reservation, numbering, idempotency) and Pix codes
-work and are verified. Checklist: 94 done / 13 N/A (see `ecommerce_master_build_prompt.md`).
-Tests: `npm test` (86 unit), `npm run test:integration` (22, own emulator ports via `firebase.test.json`),
-`npm run typecheck`, `npm run lint` (0 errors; ~50 route-module warnings are expected).
+**State:** storefront, cart, checkout, orders and Pix codes (sessions 1–2) plus the admin: sign-in with roles,
+orders list, order detail, confirm Pix / cancel unpaid orders — all verified except the production build.
+Checklist: 105 done / 13 N/A (`ecommerce_master_build_prompt.md`). Tests: `npm test` (108 unit),
+`npm run test:integration` (38, own emulator ports via `firebase.test.json`), `npm run typecheck`, `npm run lint`.
+**Uncommitted:** everything from session 3 sits on `master` on top of `643da9e`. Review with `git status` and
+`git diff 643da9e`; commit only when the owner says so (add files by path, never `git add .`).
 
 **This machine:**
-- Emulators need Java 21. Claude's shell may still list JDK 17 first on PATH: prefix commands with
-  `PATH="/c/Program Files/Microsoft/jdk-21.0.13.21-hotspot/bin:$PATH"` (or restart Claude Code).
-- Firestore emulator :8180 (Docker owns 8080); Auth :9099; tests use :8280/:9098.
-- Session-1 orphan emulator (functions+hosting, started 2026-10-31 18:39) holds :4000/:4400/:4500 —
-  owner chose to keep it, so `npm run emulators` (with UI) fails; use `npm run dev:emulated`.
-- A dev server started from Claude's session 2 may still be running on :5173 (find it by the command line
-  `react-router dev --port 5173`); its emulator data (test orders 1001/1002) is temporary.
-- Never put the owner's personal data (phone, Pix key, names) in committed files — use `.env.local` /
-  Firestore settings; grep the repo for it before finishing.
+- Emulators need Java 21: prefix shell commands with `PATH="/c/Program Files/Microsoft/jdk-21.0.13.21-hotspot/bin:$PATH"`.
+- Dev Firestore emulator :8180 (Docker owns 8080), Auth :9099; integration tests use :8280/:9098.
+- The session-1 orphan emulator is gone: `npm run emulators` (with UI on :4000) should start again — not tried.
+- A dev server + emulators started from Claude's session 2 may still run (`emulators:exec … react-router dev
+  --port 5173`); probe `http://localhost:5173/healthz`. Its data is temporary: orders 1001 paid, 1002/1004/1005
+  cancelled (test orders), **1003 is the owner's own test order — leave it alone**. Re-seed users/settings with
+  `node scripts/dev/seed-emulator.mjs` (emulator only). A fresh start: `npm run dev:emulated`.
+- `npm run build` currently fails with EBUSY on `build\functions` (see Found). Exclude `build/` from WebStorm
+  indexing or close WebStorm, then retry.
+- Never put the owner's personal data (phone, Pix key, names, e-mail) in committed files — `.env.local` /
+  Firestore only; grep before finishing (session 3: 0 hits).
 
-**Not built yet (in order):** admin sign-in with roles (Firebase Auth session cookie + custom claims,
-MFA for admins) → admin orders list + **confirm Pix payment** / cancel (release reservations) → Pix expiry
-job (cancel unpaid after `expiryHours`, release stock) → transactional e-mails (SMTP provider needed) →
-customer accounts (CPF required at sign-up) → coupons → Melhor Envio. Terms/privacy pages are Prismic
+**Owner actions before production admin works:** create the Firebase project (Blaze) and upgrade Auth to Identity
+Platform with TOTP MFA enabled; set `FIREBASE_WEB_API_KEY` / `FIREBASE_AUTH_DOMAIN` for the function; create the
+owner account (console → Authentication → Add user), run
+`node scripts/admin/grant-role.mjs --production --project <id> --email <owner e-mail> --role owner`, then verify the
+e-mail from the sign-in page. Then build the TOTP screens (next item) and test them there.
+
+**Not built yet (in order):** TOTP enrolment + sign-in screens (needs the real project) → Pix expiry job (cancel
+unpaid after `expiryHours` through the same transaction as `cancelPendingOrder`, with `by: "system"`) →
+fulfilment statuses (processing/shipped/delivered) + internal notes → refunds (record full/partial; cancelling
+paid orders) → transactional e-mails (SMTP provider needed) → activity-log viewer → `/admin/users` → admin
+dashboard → customer accounts (CPF required at sign-up) → coupons → Melhor Envio. Terms/privacy pages are Prismic
 content the owner must publish (checkout links to them).

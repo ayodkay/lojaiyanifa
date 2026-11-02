@@ -23,6 +23,13 @@ const schema = z.object({
   /** host:port of the local emulators. Required in development and tests (see app/.server/firebase.ts). */
   FIRESTORE_EMULATOR_HOST: optional,
   FIREBASE_AUTH_EMULATOR_HOST: optional,
+  /**
+   * Firebase web app config for the browser sign-in (Firebase console → Project
+   * settings → Your apps). Public values, not secrets. Not needed against the
+   * Auth emulator, which ignores the API key.
+   */
+  FIREBASE_WEB_API_KEY: optional,
+  FIREBASE_AUTH_DOMAIN: optional,
   /** Production: admins must sign in with a second factor. */
   ADMIN_REQUIRE_MFA: z
     .enum(["true", "false"])
