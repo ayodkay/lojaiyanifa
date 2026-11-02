@@ -149,7 +149,8 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 ## Session 3 — 2026-11-01/02: admin sign-in with roles, orders, Pix confirm/cancel
 
 ### Owner decisions
-- Baseline commit before any edit: `643da9e` (all of sessions 1–2). Session-3 work is **uncommitted** for review.
+- Baseline commit before any edit: `643da9e` (all of sessions 1–2). Session-3 work committed at the owner's
+  request as `a3b31d2`, after `e418f1b` (`.gitattributes`).
 - Admin 2FA: the server gate now; TOTP enrolment/sign-in screens are built on the real Firebase project
   (the Auth emulator only implements SMS second factors). Production admin sign-in is refused until then.
 - Admin sessions last **12 hours**.
@@ -193,8 +194,8 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   no emulator workers left. Holder not identified (suspected: WebStorm indexing `build\functions\node_modules`;
   Sysinternals `handle` isn't installed). Nothing in `build\` was deleted. Unresolved — owner chose to skip.
 - `core.autocrlf=true` (Git for Windows system config): a `git checkout` of a file rewrites LF → CRLF, which would
-  break `scripts/prismic/add-product.sh` under bash. A `.gitattributes` with `* text=auto eol=lf` would prevent
-  it — owner's call.
+  break `scripts/prismic/add-product.sh` under bash. Fixed at the owner's request: `.gitattributes`
+  (`* text=auto eol=lf`, commit `e418f1b`); every tracked file was already LF, so nothing was renormalized.
 
 ### Not verified (session 3)
 - Production build/bundles (EBUSY above): whether the Firebase browser SDK stays out of the server bundle and
@@ -207,8 +208,8 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 orders list, order detail, confirm Pix / cancel unpaid orders — all verified except the production build.
 Checklist: 105 done / 13 N/A (`ecommerce_master_build_prompt.md`). Tests: `npm test` (108 unit),
 `npm run test:integration` (38, own emulator ports via `firebase.test.json`), `npm run typecheck`, `npm run lint`.
-**Uncommitted:** everything from session 3 sits on `master` on top of `643da9e`. Review with `git status` and
-`git diff 643da9e`; commit only when the owner says so (add files by path, never `git add .`).
+**Git:** `master` = `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin
+(this handoff fixed in the commit after it). Commit only when the owner asks; add files by path, never `git add .`.
 
 **This machine:**
 - Emulators need Java 21: prefix shell commands with `PATH="/c/Program Files/Microsoft/jdk-21.0.13.21-hotspot/bin:$PATH"`.
