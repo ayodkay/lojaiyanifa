@@ -1,0 +1,5 @@
+# Line endings: LF in the repository and in every checkout, whatever
+# core.autocrlf says. Git for Windows defaults to autocrlf=true, which writes
+# CRLF on checkout and would break shell scripts under bash
+# (e.g. scripts/prismic/add-product.sh). Binary files are detected and untouched.
+* text=auto eol=lf
