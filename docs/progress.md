@@ -155,7 +155,7 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   (the Auth emulator only implements SMS second factors). Production admin sign-in is refused until then.
 - Admin sessions last **12 hours**.
 - Session-1 orphan emulator (functions+hosting) **stopped** with the owner's OK — ports 4000/4400/4500/5000/5001 are free.
-- Production build check **skipped** (see "Found").
+- Production build: skipped at first (EBUSY), then fixed and verified after the push (see "Found").
 
 ### Done and verified
 - **Roles and sessions** — `app/lib/admin/roles.ts` (owner/admin/staff + capability table),
@@ -181,6 +181,10 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   cancelled 1002 ("other" without a note → server error first); a stale tab confirming an order cancelled
   elsewhere → 409 notice and the page reloads to the real state; customer page of a cancelled order. The final
   emulator state matched the computed one.
+- **Production build** (`npm run build`, after the push) passes. The server bundle has no Firebase browser SDK:
+  `firebase` isn't among the 13 packages it imports, and 0 hits for `signInWithEmailAndPassword`,
+  `inMemoryPersistence`, `connectAuthEmulator`, `getIdToken`. In the browser the SDK is one chunk
+  (`admin.login-*.js`, 27.6 KB gzipped) that only the `/admin/login` route loads.
 
 ### Found in session 3
 - firebase-admin **always** checks revocation against the emulator (`checkRevoked || isEmulator` in
@@ -190,26 +194,29 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   the order page opts back in on 409 (`shouldRevalidate`). Found in Chrome: the page claimed to show the
   current state but didn't.
 - The Vite dev server listens on IPv6 `::1`: probe `http://localhost:5173`, not `127.0.0.1` (that returns nothing).
-- `npm run build` fails with `EBUSY: rmdir build\functions`, also after the orphan emulator was stopped and with
-  no emulator workers left. Holder not identified (suspected: WebStorm indexing `build\functions\node_modules`;
-  Sysinternals `handle` isn't installed). Nothing in `build\` was deleted. Unresolved — owner chose to skip.
+- `npm run build` failed with `EBUSY: rmdir build\functions` — `react-router build` deletes `build\` first, and
+  Windows refuses to delete a folder that a process uses as its working directory. First holder: the session-1
+  orphan emulator (its functions worker ran in `build\functions`). After it was stopped the error repeated —
+  most likely Claude's own shell, left in `build\functions` by a timestamp check just before (unproven:
+  Sysinternals `handle` isn't installed). With both gone the build passes; nothing in `build\` was ever deleted.
+  **Never leave a shell (or an Explorer window) inside `build\`.**
 - `core.autocrlf=true` (Git for Windows system config): a `git checkout` of a file rewrites LF → CRLF, which would
   break `scripts/prismic/add-product.sh` under bash. Fixed at the owner's request: `.gitattributes`
   (`* text=auto eol=lf`, commit `e418f1b`); every tracked file was already LF, so nothing was renormalized.
 
 ### Not verified (session 3)
-- Production build/bundles (EBUSY above): whether the Firebase browser SDK stays out of the server bundle and
-  loads only with `/admin/login` (React Router's `.client` rule says so: `react-router:dot-client` in vite.js).
 - TOTP flows (not built); real verification/password-reset e-mails (emulator only); the composite index in
   production; the admin layout on a phone (the automation viewport stays 1536 px).
 
 ## Handoff for the next session (read this first)
 **State:** storefront, cart, checkout, orders and Pix codes (sessions 1–2) plus the admin: sign-in with roles,
-orders list, order detail, confirm Pix / cancel unpaid orders — all verified except the production build.
+orders list, order detail, confirm Pix / cancel unpaid orders — all verified, production build included.
+The admin does NOT work in production yet: see "Owner actions" and the TOTP item below.
 Checklist: 105 done / 13 N/A (`ecommerce_master_build_prompt.md`). Tests: `npm test` (108 unit),
 `npm run test:integration` (38, own emulator ports via `firebase.test.json`), `npm run typecheck`, `npm run lint`.
-**Git:** `master` = `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin
-(this handoff fixed in the commit after it). Commit only when the owner asks; add files by path, never `git add .`.
+**Git:** `master` = `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin →
+handoff fixes; pushed to `origin/master` by the owner. Commit only when the owner asks; add files by path,
+never `git add .`.
 
 **This machine:**
 - Emulators need Java 21: prefix shell commands with `PATH="/c/Program Files/Microsoft/jdk-21.0.13.21-hotspot/bin:$PATH"`.
@@ -219,8 +226,9 @@ Checklist: 105 done / 13 N/A (`ecommerce_master_build_prompt.md`). Tests: `npm t
   --port 5173`); probe `http://localhost:5173/healthz`. Its data is temporary: orders 1001 paid, 1002/1004/1005
   cancelled (test orders), **1003 is the owner's own test order — leave it alone**. Re-seed users/settings with
   `node scripts/dev/seed-emulator.mjs` (emulator only). A fresh start: `npm run dev:emulated`.
-- `npm run build` currently fails with EBUSY on `build\functions` (see Found). Exclude `build/` from WebStorm
-  indexing or close WebStorm, then retry.
+- `npm run build` works. It deletes `build\` first: if it fails with EBUSY, some process (a shell, Explorer, an
+  emulator serving `build\functions`) is sitting in that folder — Resource Monitor → CPU → Associated Handles →
+  search `build\functions` names it.
 - Never put the owner's personal data (phone, Pix key, names, e-mail) in committed files — `.env.local` /
   Firestore only; grep before finishing (session 3: 0 hits).
 
