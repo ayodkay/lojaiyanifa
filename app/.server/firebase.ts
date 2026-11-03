@@ -82,16 +82,16 @@ export interface FirebaseWebConfig {
  * use the same Auth emulator as the server, and the emulator ignores the key.
  */
 export function firebaseWebConfig(): FirebaseWebConfig {
-  const { FIREBASE_WEB_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_AUTH_EMULATOR_HOST } = env();
+  const { WEB_API_KEY, WEB_AUTH_DOMAIN, FIREBASE_AUTH_EMULATOR_HOST } = env();
   const emulated = Boolean(FIREBASE_AUTH_EMULATOR_HOST) && (import.meta.env.DEV || process.env.FUNCTIONS_EMULATOR === "true");
   if (emulated) {
-    return { apiKey: FIREBASE_WEB_API_KEY ?? "emulator-ignores-the-key", authDomain: null, emulatorUrl: `http://${FIREBASE_AUTH_EMULATOR_HOST}` };
+    return { apiKey: WEB_API_KEY ?? "emulator-ignores-the-key", authDomain: null, emulatorUrl: `http://${FIREBASE_AUTH_EMULATOR_HOST}` };
   }
-  if (!FIREBASE_WEB_API_KEY) {
+  if (!WEB_API_KEY) {
     throw new Error(
-      "FIREBASE_WEB_API_KEY is not set: /admin/login needs the Firebase web app's API key " +
-        "(Firebase console → Project settings → Your apps). See .env.example.",
+      "WEB_API_KEY is not set: /admin/login needs the Firebase web app's API key " +
+        "(Firebase console → Project settings → Your apps). In production it comes from .env.<project-id>; see .env.example.",
     );
   }
-  return { apiKey: FIREBASE_WEB_API_KEY, authDomain: FIREBASE_AUTH_DOMAIN ?? null, emulatorUrl: null };
+  return { apiKey: WEB_API_KEY, authDomain: WEB_AUTH_DOMAIN ?? null, emulatorUrl: null };
 }

@@ -728,7 +728,7 @@
     },
     "Multiple administrators": {
       "status": "done",
-      "note": "any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02); added with scripts/admin/grant-role.mjs until /admin/users exists"
+      "note": "any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02), granted with scripts/admin/grant-role.mjs; the store runs with a single owner account, so there is no /admin/users page (owner decision 2026-11-03)"
     },
     "Activity logs": {
       "status": "todo",
@@ -941,6 +941,10 @@
     "`/admin/orders`": {
       "status": "done",
       "note": "list + /admin/orders/:number with confirm/cancel (verified 2026-11-02)"
+    },
+    "`/admin/users`": {
+      "status": "na",
+      "note": "the store has a single admin account, the owner (owner decision 2026-11-03); roles change only through scripts/admin/grant-role.mjs, which also signs the account out everywhere"
     }
   },
   "24": {

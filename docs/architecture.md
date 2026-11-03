@@ -87,7 +87,8 @@ app's `Cache-Control` headers, which both CDNs honour).
   Customers have no role claim. Roles are granted with
   `scripts/admin/grant-role.mjs` (emulator by default; `--production --project`
   for a real project), which also revokes the account's sessions — a live
-  cookie keeps the claims it was minted with. `/admin/users` comes later.
+  cookie keeps the claims it was minted with. There is no `/admin/users` page:
+  the store has a single admin account, the owner (owner decision 2026-11-03).
 - **Admin 2FA (TOTP, built 2026-11-02)**: with `ADMIN_REQUIRE_MFA=true` (the
   default; production) admin sessions require the `firebase.sign_in_second_factor`
   claim. On `/admin/login` (`app/.client/firebase.ts`): an account with an
@@ -266,6 +267,23 @@ fails at startup with a precise message if something required is missing.
 Browser code only sees `PUBLIC_*` variables. See `.env.example` for the full list.
 Secrets in production live in Cloud Secret Manager (`firebase functions:secrets:set`).
 
+Where the variables come from:
+
+| Runs as | Source |
+| --- | --- |
+| `react-router dev`, scripts | `.env.local` (gitignored), loaded by `vite.config.ts` or by each script |
+| Integration tests | `vitest.integration.config.ts` and the test emulators |
+| `npm run preview` (functions emulator) | `build/functions/.env.local`, which the build copies from the root. The Firebase CLI refuses it today because it holds `FIREBASE_*` names (found 2026-11-03, not fixed) |
+| Deployed functions | `.env.<project-id>` at the repo root (`.env.lojaiyanifa`, gitignored). On every deploy the functions predeploy hook `scripts/functions-env.mjs` checks it and copies it into `build/functions/`, where the Firebase CLI loads it |
+
+The hook refuses a file that:
+
+- misses a required variable;
+- sets an emulator variable, `FUNCTIONS_EMULATOR`, `GOOGLE_APPLICATION_CREDENTIALS` or a token;
+- uses a name the Firebase CLI reserves (`FIREBASE_*`, `X_GOOGLE_*`, `EXT_*`), which is why the web app config is
+  `WEB_API_KEY` / `WEB_AUTH_DOMAIN`;
+- has a `SITE_URL` that isn't an https origin, or `ADMIN_REQUIRE_MFA` other than `true`.
+
 ## 9. Error handling
 
 - Expected failures (validation, out of stock, freight unavailable) are returned
@@ -314,3 +332,7 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-02 | Fulfilment steps only go forward ("processing" may be skipped); pickup orders read "Pronto para retirada" / "Retirado"; tracking optional, https links only | Proposed |
 | 2026-11-02 | Internal notes are append-only (no edit/delete), team-wide, max 200 per order | Proposed |
 | 2026-11-02 | Refund forms carry a one-time key (double submit = one refund); refunding needs a "returned via the bank" confirmation; a duplicated Pix is a note, not a refund | Proposed |
+| 2026-11-03 | Single admin account (the owner); no `/admin/users` page. Roles change only through `scripts/admin/grant-role.mjs` | Owner |
+| 2026-11-03 | Deployed functions read a gitignored `.env.<project-id>`, checked and copied by the functions predeploy hook; the web app config is renamed `WEB_API_KEY` / `WEB_AUTH_DOMAIN` (the Firebase CLI reserves `FIREBASE_*`) | Owner |
+| 2026-11-03 | `.firebaserc` default stays `demo-lojaiyanifa`; production is the `prod` alias (`--project prod`) | Owner |
+| 2026-11-03 | The work is committed before the first deploy, so production matches a commit | Owner |

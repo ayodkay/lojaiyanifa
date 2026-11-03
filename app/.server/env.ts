@@ -26,10 +26,11 @@ const schema = z.object({
   /**
    * Firebase web app config for the browser sign-in (Firebase console → Project
    * settings → Your apps). Public values, not secrets. Not needed against the
-   * Auth emulator, which ignores the API key.
+   * Auth emulator, which ignores the API key. Not named FIREBASE_*: the Firebase
+   * CLI refuses that (reserved) prefix in a deployed function's environment.
    */
-  FIREBASE_WEB_API_KEY: optional,
-  FIREBASE_AUTH_DOMAIN: optional,
+  WEB_API_KEY: optional,
+  WEB_AUTH_DOMAIN: optional,
   /** Production: admins must sign in with a second factor. */
   ADMIN_REQUIRE_MFA: z
     .enum(["true", "false"])

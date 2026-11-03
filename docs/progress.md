@@ -273,23 +273,95 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   `orders.refund`); the automatic-cancellation text on the admin order page (data path integration-tested; not opened
   in Chrome: running the job on the dev data would also cancel the owner's order 1003).
 
+## Session 5 — 2026-11-03: deploy readiness, production config
+
+### Owner decisions
+- **Single admin account:** the owner only. The e-mail is kept out of the repo.
+- `/admin/users` dropped (checklist N/A).
+- Apply the production-config fix.
+- Restore `.firebaserc`'s demo default and add a `prod` alias.
+- Commit before deploying.
+
+### Found (deploy readiness check)
+- **Blocker, now fixed: production config never reached the deployed function.**
+  - `env.ts` requires `SITE_URL` and `PRISMIC_REPO`.
+  - The Firebase CLI loads only `.env` / `.env.<project-id>` from the functions source folder (`build/functions`).
+  - The build copied only `.env.local`, which the CLI loads for the emulator only.
+  - Deployed as-is, every page would have returned 500.
+- **`FIREBASE_*` names can't be deployed.** firebase-tools 15.24.0 refuses the prefixes `FIREBASE_`, `X_GOOGLE_` and
+  `EXT_` (`lib/functions/env.js`). The web config was renamed `WEB_API_KEY` / `WEB_AUTH_DOMAIN`.
+- **No Prismic token needed.** The Content API answers without a token (HTTP 200), so production needs no token or secret.
+- **`npm run preview` (not fixed; not verified by running preview).**
+  - The CLI also refuses `build/functions/.env.local` in emulator mode, because the dev `.env.local` holds
+    `FIREBASE_PROJECT_ID` and `FIREBASE_AUTH_EMULATOR_HOST`.
+  - So the functions emulator probably can't load its config.
+  - The problem predates session 5.
+- **The owner's root `.env` (gitignored) is read by nothing.** Its web config was copied into `.env.lojaiyanifa`.
+- **Service-account key in the repo root.**
+  - The owner downloaded it; it is gitignored (`*-firebase-adminsdk-*.json`).
+  - `grant-role.mjs --production` takes `GOOGLE_APPLICATION_CREDENTIALS` from the shell, not from `.env`.
+  - Recommended: move the key out of the project folder, and delete it in the console once the owner role is granted.
+- **`parseEnv` (`node:util`) returns keys sorted, not in file order.** One test assumed file order; fixed in the test.
+- **Claude Code's memory-pressure reaper** dropped its handle on the session-2 dev server (~10:00). The dev server
+  processes kept running, and its data survived.
+
+### Done and verified
+- **Commit `867bed1`:** the session-4 work (36 files).
+- **`.firebaserc`:** `default` = `demo-lojaiyanifa`, `prod` = `lojaiyanifa`. The CLI keeps no per-folder active project
+  for this repo (checked in its configstore), so `.firebaserc` decides.
+- **Production config:**
+  - `scripts/functions-env.mjs` is the functions `predeploy` hook in `firebase.json`. It checks the root
+    `.env.<project-id>` and copies it into `build/functions/`. Types are in `functions-env.d.mts`.
+  - `.env.lojaiyanifa` (gitignored, checked with `git check-ignore`) was written from the owner's `.env` without
+    printing the key. It holds `SITE_URL=https://lojaiyanifa.web.app`, `PRISMIC_REPO`, `PRISMIC_LOCALE`,
+    `WEB_API_KEY`, `WEB_AUTH_DOMAIN` and `ADMIN_REQUIRE_MFA=true`.
+  - 6 unit tests; 3 of 3 mutations caught.
+  - The hook was run the way the CLI runs it (through `cmd`, with `GCLOUD_PROJECT` / `PROJECT_DIR` / `RESOURCE_DIR`
+    set). It copies the file for `lojaiyanifa`, and exits 1 for a missing file or a missing project.
+  - firebase-tools' own `loadUserEnvs` (deploy mode, `lojaiyanifa` via `prod`) loads exactly those 6 keys.
+  - The server's own schema (`env.ts`, run with `--experimental-strip-types`) accepts the file, with MFA on and no
+    emulator.
+- **Totals:**
+  - unit tests 138, integration tests 65 (fresh emulators);
+  - tsc 0 errors; lint 0 errors, 63 warnings;
+  - build passes (13 packages);
+  - checklist 121 done / 14 N/A.
+
+### Not verified (session 5)
+- Anything on the real project: no deploy, no `grant-role`. Nothing touched `lojaiyanifa`.
+- The hook inside a real `firebase deploy`. It was run by hand exactly as the CLI's source shows it is called.
+
 ## Handoff for the next session (read this first)
-**State:** storefront, cart, checkout, orders and Pix codes (sessions 1–2); admin sign-in with roles (session 3);
-session 4: TOTP screens (verification pending on the real project), Pix expiry job, fulfilment (preparing → shipped /
-ready → delivered / picked up) with tracking, internal notes, full/partial refunds with stock returns — verified as
-listed above. **Not committed yet** (session 4 work is in the working tree; commit only when the owner asks).
-Checklist: 121 done / 13 N/A (`ecommerce_master_build_prompt.md`). Tests: `npm test` (132 unit),
-`npm run test:integration` (65, own emulator ports via `firebase.test.json`), `npm run typecheck`, `npm run lint`.
-**Git:** `master` = `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin →
-handoff fixes (`246acfa`); pushed to `origin/master` by the owner. Commit only when the owner asks; add files by path,
-never `git add .`.
+**State:**
+- Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
+- Session 3: admin sign-in with roles.
+- Session 4: TOTP screens (verification pending on the real project), Pix expiry job, fulfilment (preparing →
+  shipped / ready → delivered / picked up) with tracking, internal notes, full/partial refunds with stock returns.
+- Session 5: production config for the deployed functions; `.firebaserc` `prod` alias; `/admin/users` dropped.
+- Everything is verified as listed above.
+
+**Not deployed yet.** That waits for the owner's console steps and explicit go (below).
+
+**Checks:**
+- Checklist: 121 done / 14 N/A (`ecommerce_master_build_prompt.md`).
+- `npm test` (138 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`).
+- `npm run typecheck` and `npm run lint`.
+
+**Git:**
+- `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
+  fixes → `867bed1` session 4 → the session-5 config commit right after it.
+- Pushed to `origin/master` up to `246acfa` by the owner; the session-4 and session-5 commits are local.
+- Commit only when the owner asks. Add files by path, never `git add .`.
 
 **This machine:**
 - Emulators need Java 21: prefix shell commands with `PATH="/c/Program Files/Microsoft/jdk-21.0.13.21-hotspot/bin:$PATH"`.
 - Dev Firestore emulator :8180 (Docker owns 8080), Auth :9099; integration tests use :8280/:9098.
 - The session-1 orphan emulator is gone: `npm run emulators` (with UI on :4000) should start again — not tried.
-- A dev server + emulators started from Claude's session 2 still ran at the end of session 4 (PIDs 33300/12220/41396/24628,
-  `emulators:exec … react-router dev --port 5173`, started 2026-11-01 13:52); probe `http://localhost:5173/healthz`.
+- A dev server + emulators started from Claude's session 2 still ran on 2026-11-03. Its PIDs were
+  33300 (firebase), 12220 (java) and 44052/13692/3280 (react-router dev).
+  - Command: `emulators:exec … react-router dev --port 5173`, started 2026-11-01 13:52.
+  - Claude Code no longer tracks it (memory-pressure reaper, session 5), so stopping it means those PIDs.
+  - Probe it with `http://localhost:5173/healthz`.
   Its data is temporary test data: 1001 partially refunded (R$ 10,00) + shipped with test tracking + a test note;
   1002/1004/1005 cancelled; **1003 is the owner's own test order (still pending, past its deadline) — leave it alone,
   and never run the expiry job against this dev data**; 1006 (session 4, pickup) paid, ready for pickup, R$ 5,00
@@ -302,52 +374,58 @@ never `git add .`.
 - Never put the owner's personal data (phone, Pix key, names, e-mail) in committed files — `.env.local` /
   Firestore only; grep before finishing (session 3: 0 hits).
 
-**Deploy readiness check (2026-11-03): not ready, one blocker in our build.**
-
-- **The blocker:** production config never reaches the function.
-  - `env.ts` requires `SITE_URL` and `PRISMIC_REPO`.
-  - The Firebase CLI loads only `.env` / `.env.<projectId>` from the functions source folder (`build/functions`).
-  - `build-functions.mjs` copies only `.env.local` there, which the CLI uses for the emulator and never deploys.
-  - Deployed as-is, every page would return 500.
-- **Second problem:** `FIREBASE_WEB_API_KEY` / `FIREBASE_AUTH_DOMAIN` can't be deployed under those names. firebase-tools
-  15.24.0 rejects keys starting with `FIREBASE_` (`lib/functions/env.js`).
-- **Proposed fix (waiting for the owner's go):**
-  - Rename the two variables to `WEB_API_KEY` / `WEB_AUTH_DOMAIN`.
-  - Add a gitignored root file `.env.lojaiyanifa` with the production values: `SITE_URL=https://lojaiyanifa.web.app`,
-    `PRISMIC_REPO`, `PRISMIC_LOCALE`, the web config and `ADMIN_REQUIRE_MFA=true`.
-  - The build script copies it into `build/functions/`. It refuses emulator variables, `GOOGLE_APPLICATION_CREDENTIALS`,
-    reserved keys, a non-https `SITE_URL` and MFA off.
-  - No Prismic token or secret is needed: the Content API answers without a token (HTTP 200, 2026-11-03).
-- **Also found on 2026-11-03:**
-  - The root `.env` (owner's, gitignored) is read by nothing. It holds the web config plus dev values.
-  - The owner set `.firebaserc`'s default to `lojaiyanifa`. Every npm script still passes `--project demo-lojaiyanifa`.
-    Proposed: restore the demo default and add a `prod` alias.
-  - A service-account key sits in the repo root. It is gitignored by `*-firebase-adminsdk-*.json`.
-    `grant-role.mjs --production` takes Google credentials from the shell environment (or gcloud ADC), never from `.env`.
-- **Single admin account:** the owner only (e-mail kept out of the repo). Proposed: drop `/admin/users`.
+**Production config (session 5):**
+- Deployed functions read the gitignored root file `.env.lojaiyanifa`. It exists on this machine and was created
+  2026-11-03.
+- The functions predeploy hook (`scripts/functions-env.mjs`) checks it and copies it into `build/functions/` on every
+  functions deploy. A missing or unsafe file stops the deploy.
+- What it must contain: `.env.example`, "Production", and `docs/architecture.md` §8.
+- The owner's root `.env` is now redundant: nothing reads it.
+- Single admin account: the owner. The e-mail is not written here (owner data).
 
 **Owner actions before the first deploy (TOTP check):**
-1. Google credentials for the admin scripts: the owner downloaded a service-account key; `gcloud auth application-default
-   login` also works.
-2. Blaze plan, then a Firestore database in `southamerica-east1`. The location can't be changed later. Create it
-   **before** running `grant-role`, which writes to `auditLogs` after setting the claim.
-3. Turn on Email/Password sign-in and create the owner account (console → Authentication → Add user).
-4. With `GOOGLE_APPLICATION_CREDENTIALS` set in the same shell, run
+1. Google credentials for the admin scripts: the downloaded service-account key, passed through the shell's
+   `GOOGLE_APPLICATION_CREDENTIALS`, or `gcloud auth application-default login`.
+2. Blaze plan, then a Firestore database in `southamerica-east1`.
+   - The location can't be changed later.
+   - Create it **before** running `grant-role`, which writes to `auditLogs` after setting the claim.
+3. Turn on Email/Password sign-in, then create the owner account (console → Authentication → Add user).
+4. Grant the role, with `GOOGLE_APPLICATION_CREDENTIALS` set in the same shell:
    `node scripts/admin/grant-role.mjs --production --project lojaiyanifa --email <owner e-mail> --role owner`.
+   This script takes the real project ID, not the `prod` alias.
 
-**Deploy, after the fix and the owner's go:**
-1. `firebase deploy --only firestore --project lojaiyanifa`, then wait until both indexes are "Enabled". The expiry job's
-   query needs one of them.
-2. `firebase deploy --only hosting,functions --project lojaiyanifa`. Not a bare deploy: `firebase.json` also lists
-   Storage, which the app doesn't use.
-3. Leave `settings/payment` absent so checkout stays closed.
-4. On `https://lojaiyanifa.web.app/admin/login`: verify the e-mail, enrol TOTP (back it up on a second device), sign in
+**Deploy, on the owner's go:**
+1. `npm run build`.
+2. `firebase deploy --only firestore --project prod`, then wait until both indexes are "Enabled". The expiry job's query
+   needs one of them.
+3. `firebase deploy --only hosting,functions --project prod`.
+   - The predeploy hook prints `.env.lojaiyanifa checked and copied`.
+   - Don't run a bare deploy: `firebase.json` also lists Storage, which the app doesn't use.
+4. Leave `settings/payment` absent so checkout stays closed.
+5. On `https://lojaiyanifa.web.app/admin/login`: verify the e-mail, enrol TOTP (back it up on a second device), sign in
    with a code, sign out.
-5. Check the order tabs (indexes) and `curl -I` an `/assets/*` file (immutable cache header).
+6. Check the order tabs (indexes) and `curl -I` an `/assets/*` file (immutable cache header).
+7. Stop and report if:
+   - pages answer 500 (`firebase functions:log --only ssr --project prod`);
+   - TOTP fails (never set `ADMIN_REQUIRE_MFA=false` to get in);
+   - the deploy warns "Unable to set the invoker" (a Google Workspace organization policy makes every page answer 403).
 
-**Not built yet (in order):** first deploy + TOTP verification (above) → transactional e-mails (SMTP provider and a
-verified sender domain needed; shipped/refunded/cancelled events are ready to hook in) → activity-log viewer
-(`auditLogs`) → `/admin/users` → admin dashboard → customer accounts (CPF required at sign-up) → coupons → Melhor
-Envio. **Needed before launch but not on this list:** `/admin/settings` (today the production Pix key could only be
-entered in the Firebase console) and `/admin/inventory` (stock adjustments). Terms/privacy pages are Prismic content
-the owner must publish (checkout links to them).
+**Not built yet (in order):**
+1. First deploy + TOTP verification (above).
+2. Transactional e-mails. Needs an SMTP provider and a verified sender domain; the shipped / refunded / cancelled
+   events are ready to hook in.
+3. Activity-log viewer (`auditLogs`).
+4. Admin dashboard.
+5. Customer accounts (CPF required at sign-up).
+6. Coupons.
+7. Melhor Envio.
+
+`/admin/users` was dropped on 2026-11-03: single admin account.
+
+**Needed before launch but not on this list:**
+- `/admin/settings`: today the production Pix key could only be entered in the Firebase console.
+- `/admin/inventory`: stock adjustments.
+- Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
+
+**Known issue:** `npm run preview` probably can't load `build/functions/.env.local`, because of the `FIREBASE_*` names
+(session 5, "Found").

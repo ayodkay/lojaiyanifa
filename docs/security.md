@@ -16,6 +16,18 @@ Controls are filled in as features land; see the checklist in
 - Never commit secrets. `.env.local` (development) is gitignored; `.env.example`
   documents every variable without values.
 - Production secrets live in Cloud Secret Manager (`firebase functions:secrets:set NAME`).
+- Production configuration (not secret) lives in the gitignored `.env.lojaiyanifa`. It reaches the deployed functions
+  only through the predeploy hook `scripts/functions-env.mjs`. Unit-tested and mutation-checked 2026-11-03; it refuses:
+  - emulator variables;
+  - `FUNCTIONS_EMULATOR`, which would switch off the emulator-in-production guard;
+  - `GOOGLE_APPLICATION_CREDENTIALS`;
+  - tokens;
+  - `ADMIN_REQUIRE_MFA` other than `true`;
+  - a `SITE_URL` that isn't an https origin.
+- Google credentials for the admin scripts (`--production`): gcloud ADC, or a service-account key kept out of git
+  (`*-firebase-adminsdk-*.json` and `service-account*.json` are ignored) and passed through the shell's
+  `GOOGLE_APPLICATION_CREDENTIALS`. Such a key never expires: keep it outside the project folder and delete it in the
+  console (IAM → Service accounts → Keys) when it's no longer needed.
 - 2026-10-31: the Prismic write token and Content API token were removed from
   the original scripts (they had been hardcoded) and moved to `.env.local` before
   the first commit. Rotate them in Prismic (Settings → API & Security) if they were
@@ -56,7 +68,9 @@ Design: docs/architecture.md §3. How each control is implemented and tested:
   CDN-cached public pages for React Router's hydration scripts). Admin/account
   pages are never cached, so they could use a per-request nonce instead — not done.
 - **`npm run preview`** (production build in the functions emulator): the CSP's
-  `connect-src` doesn't allow the Auth emulator, so admin sign-in fails there.
+  `connect-src` doesn't allow the Auth emulator, so admin sign-in fails there. Also (found 2026-11-03,
+  not verified by running preview): the Firebase CLI refuses `build/functions/.env.local` because it holds
+  `FIREBASE_*` names, so the functions emulator probably can't load its configuration.
 - **Rate limiting on `/admin/login`**: only Firebase Auth's own throttling
   (`auth/too-many-requests`); Cloudflare rules are still to be written.
 - **Firestore composite index** `orders (status ASC, number DESC)` is declared in

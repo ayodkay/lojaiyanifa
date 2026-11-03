@@ -393,7 +393,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Administration
 - [x] User roles — owner / admin / staff as Firebase custom claims, granted with scripts/admin/grant-role.mjs (revokes the account's sessions so changes apply at once), enforced on the server (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Admin permissions — capability table (docs/architecture.md §3) checked in every admin loader/action; staff can confirm Pix but not cancel: the page hides it and a crafted POST gets 403 (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
-- [x] Multiple administrators — any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02); added with scripts/admin/grant-role.mjs until /admin/users exists
+- [x] Multiple administrators — any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02), granted with scripts/admin/grant-role.mjs; the store runs with a single owner account, so there is no /admin/users page (owner decision 2026-11-03)
 - [ ] Activity logs — _partial_: auditLogs records sign-in/out, Pix confirmations, cancellations (admin and automatic), fulfilment steps, tracking edits, notes, refunds, role changes and 2FA resets (each order change in the same transaction as its entry); no viewer in the admin yet
 - [ ] Store settings
 - [ ] Payment settings
@@ -633,7 +633,7 @@ This is how I would organize the actual website's pages and routes.
 - [ ] `/admin/discounts`
 - [ ] `/admin/analytics`
 - [ ] `/admin/settings`
-- [ ] `/admin/users`
+- [ ] `/admin/users` — **N/A**: the store has a single admin account, the owner (owner decision 2026-11-03); roles change only through scripts/admin/grant-role.mjs, which also signs the account out everywhere
 
 ### 24. Final master checklist
 #### Storefront
