@@ -479,13 +479,18 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   - `/health` 200 JSON (`no-store`).
   - `/`, `/products/alaka` and `/sitemap.xml` 200; `/admin` 302 → login; an `/assets/*` file `immutable`.
   - `/healthz` still gets Google's own 404 (expected).
-- **Seen in the function log:** a scanner probed the site at 20:58Z (`/.env` variants, `/phpinfo`,
-  `/wp-login.php`…), and every probe got the store's 404. React Router writes each unmatched URL to the log with a
-  stack trace (severity unset): noise to filter out of any future log alert.
-
-### Not verified (evening)
-- The function log after the deploy: at 21:58Z, `firebase functions:log` showed nothing after 21:36Z, not even the
-  live checks. The new revision serves: `/health` exists only in the new code.
+- **Function log after the deploy** (Logs Explorer, checked by the owner; Cloud Run entries for `ssr` since 21:30Z):
+  - The deploy replaced the service at 21:54Z. Revision `ssr-00002-lac` started (`DEPLOYMENT_ROLLOUT`) and was ready
+    at 21:55Z ("Deploying revision succeeded in 15.85s").
+  - The live checks at 21:56Z: `/`, `/health`, `/products/alaka` and `/sitemap.xml` 200, `/admin` 302. No errors.
+  - `/robots.txt`, `/favicon.ico`, `/favicon.svg` and the asset never reached the function (Hosting answered them),
+    and neither did `/healthz` (Google's front end).
+- **Scanners in the log:** probes at 20:58Z (`/.env` variants, `/phpinfo`, `/info.php`) and 21:36–21:37Z
+  (`/wp-login.php`, `/xmlrpc.php`, `/wp-admin/`, `/wp-json/`) all got the store's 404. React Router writes each
+  unmatched URL to the log with a stack trace (severity unset): noise to filter out of any future log alert.
+- **`firebase functions:log` gave a stale view:** at 21:58Z and again at 22:46Z it showed nothing newer than
+  21:36:53Z, while the Logs Explorer has entries from 21:37Z on, from the same revision. It returned an older slice
+  of the log instead of the newest entries; why is unverified. Use the Logs Explorer (handoff, "Redeploying").
 
 ## Handoff for the next session (read this first)
 **State:**
@@ -583,8 +588,10 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
      deleting functions that are missing from the source.
 3. Leave `settings/payment` absent until checkout should open.
 4. Check: `/`, a product page, `/admin` → 302, `/robots.txt` (200, the rules), `/favicon.ico` (301 → `/favicon.svg`),
-   `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header), and
-   `firebase functions:log --only ssr --project prod`.
+   `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header), and the function log in the Logs
+   Explorer, with this query (put in the deploy's UTC start time):
+   `resource.type="cloud_run_revision" AND resource.labels.service_name="ssr" AND timestamp>="2026-11-03T21:30:00Z"`
+   Don't rely on `firebase functions:log`: on 2026-11-03 it showed a stale slice of the log.
 5. Stop and report if pages answer 500, or if the deploy warns "Unable to set the invoker" (a Google Workspace
    organization policy would make every page answer 403).
 
