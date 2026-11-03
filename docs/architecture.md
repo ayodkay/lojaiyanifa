@@ -102,8 +102,11 @@ app's `Cache-Control` headers, which both CDNs honour).
   accepts authenticator apps only). Lost phone: `scripts/admin/reset-mfa.mjs`
   removes the account's second factors and revokes its sessions (audited as
   `mfa.reset`). Needs "Firebase Authentication with Identity Platform" with TOTP
-  enabled (owner: enabled on `lojaiyanifa`). The Auth emulator has no TOTP, so the
-  code exchange itself is verified on the first deploy (owner decision 2026-11-02).
+  enabled. On `lojaiyanifa` (checked 2026-11-03), Identity Platform was on but TOTP
+  was off; it was turned on that day with the owner's go (TOTP provider, 5 adjacent
+  intervals, SMS left off). The Auth emulator has no TOTP, so the code exchange
+  itself is verified by the owner's first sign-in on the deployed site (deployed
+  2026-11-03; owner decision 2026-11-02).
 - **Emulator guard**: pointed at an emulator the Admin SDK accepts unsigned
   tokens, so a production build refuses to start with `FIRESTORE_EMULATOR_HOST` /
   `FIREBASE_AUTH_EMULATOR_HOST` set, except inside the functions emulator.
@@ -273,7 +276,7 @@ Where the variables come from:
 | --- | --- |
 | `react-router dev`, scripts | `.env.local` (gitignored), loaded by `vite.config.ts` or by each script |
 | Integration tests | `vitest.integration.config.ts` and the test emulators |
-| `npm run preview` (functions emulator) | `build/functions/.env.local`, which the build copies from the root. The Firebase CLI refuses it today because it holds `FIREBASE_*` names (found 2026-11-03, not fixed) |
+| `npm run preview` (functions emulator) | `build/functions/.env.local`: the build copies the root `.env.local` without the names the Firebase CLI refuses (`FIREBASE_*`; one such name made the CLI load no function at all). The emulator sets their replacements itself (`FIREBASE_CONFIG`, emulator hosts). Fixed 2026-11-03 (`emulatorEnvFile` in `scripts/functions-env.mjs`) |
 | Deployed functions | `.env.<project-id>` at the repo root (`.env.lojaiyanifa`, gitignored). On every deploy the functions predeploy hook `scripts/functions-env.mjs` checks it and copies it into `build/functions/`, where the Firebase CLI loads it |
 
 The hook refuses a file that:
@@ -336,3 +339,5 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-03 | Deployed functions read a gitignored `.env.<project-id>`, checked and copied by the functions predeploy hook; the web app config is renamed `WEB_API_KEY` / `WEB_AUTH_DOMAIN` (the Firebase CLI reserves `FIREBASE_*`) | Owner |
 | 2026-11-03 | `.firebaserc` default stays `demo-lojaiyanifa`; production is the `prod` alias (`--project prod`) | Owner |
 | 2026-11-03 | The work is committed before the first deploy, so production matches a commit | Owner |
+| 2026-11-03 | TOTP turned on in `lojaiyanifa`'s Auth config by an Admin SDK call (it was off): TOTP provider, 5 adjacent intervals (Google's default); SMS stays off | Owner |
+| 2026-11-03 | Container images of the functions are deleted after 1 day (the Firebase CLI's default cleanup policy, applied with `--force` on the first deploy) | Owner |

@@ -327,9 +327,101 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   - build passes (13 packages);
   - checklist 121 done / 14 N/A.
 
-### Not verified (session 5)
-- Anything on the real project: no deploy, no `grant-role`. Nothing touched `lojaiyanifa`.
-- The hook inside a real `firebase deploy`. It was run by hand exactly as the CLI's source shows it is called.
+### Not verified (session 5, morning)
+- Anything on the real project: the morning work touched nothing on `lojaiyanifa`. The deploy came in the afternoon
+  (below).
+- The hook inside a real `firebase deploy`: verified in the afternoon (it printed its check line on both deploys).
+
+## Session 5, afternoon — 2026-11-03: first deploy, owner role, TOTP on, preview fixed
+
+### Owner decisions
+- Grant the owner role, deploy, and fix `npm run preview`. The owner pushes.
+- TOTP turned out to be off on the project (below): turn it on with the Admin SDK (TOTP, 5 adjacent intervals, SMS
+  stays off).
+- The first functions deploy runs with `--force`, so the CLI applies its default cleanup policy (container images
+  deleted after 1 day) instead of failing on a prompt it can't show.
+- After the 409 (below): retry `ssr` + hosting only.
+
+### Done and verified
+- **Read-only preflight** (Firebase CLI, and the Admin SDK with the service-account key):
+  - Hosting site `lojaiyanifa` → `https://lojaiyanifa.web.app`, which matches `SITE_URL`.
+  - Firestore `(default)`: Native mode, `southamerica-east1`.
+  - Owner account: password provider, e-mail not yet verified, no role, no second factor.
+  - `settings/payment` absent (checkout closed); no orders; no audit entries.
+  - Auth: Identity Platform, e-mail sign-in on, authorized domains include both site domains. **MFA was DISABLED**
+    (TOTP off), although an earlier answer said it was on.
+  - No functions existed: the Cloud Functions API had never been enabled (403 on list).
+- **Owner role:** `grant-role --production` printed role (none) → owner and revoked all sessions. Re-read: the claim
+  is set and there is 1 audit entry.
+- **Build:** `npm run build` from the clean tree at `2438821`.
+- **Firestore:** `firebase deploy --only firestore --project prod` released the rules. Both indexes were READY after
+  about 4 minutes.
+- **Functions and hosting:**
+  - `firebase deploy --only hosting,functions --project prod --force`: the hook ran, the APIs were enabled and
+    `expirePixOrders` was created. `ssr` failed (409, below) and hosting was not released.
+  - The retry `firebase deploy --only functions:ssr,hosting --project prod --force` created `ssr`, configured the
+    cleanup policy (1 day) and released hosting. Exit 0, no invoker warning.
+- **Live checks** (curl):
+  - `/`, `/products/alaka`, `/collections/all`, `/cart` and `/search?q=pano` answer 200 with their titles.
+    `/sitemap.xml` answers 200.
+  - `/admin` → 302 to `/admin/login` (`private, no-store`, `noindex`); `/admin/login` answers 200.
+  - The CSP's `connect-src` allows identitytoolkit, securetoken and googleapis.
+  - `/assets/*` → `public, max-age=31536000, immutable`.
+  - Function logs show no configuration error.
+- **TOTP turned on:** Admin SDK `updateProjectConfig`, sending only `mfa.providerConfigs`. A re-read through the
+  Identity Toolkit admin API shows TOTP ENABLED (5 intervals) and SMS still DISABLED.
+
+### Found
+- **First-deploy race on 2nd-gen functions:**
+  - Creating `ssr` and `expirePixOrders` at once on a fresh project failed `ssr` with `HTTP Error: 409, Could not
+    create bucket gcf-v2-sources-<project-number>-southamerica-east1`.
+  - The other function's create made that bucket at the same moment (14:51:47Z).
+  - Retrying `ssr` alone worked. Only the first deploy in a region can hit this.
+- **The Firebase CLI is non-interactive from Claude's tools** (stdin isn't a TTY, `lib/command.js`).
+  - A prompt it can't show becomes an error.
+  - The cleanup-policy prompt would have thrown after the functions were created, before hosting was released.
+  - `--force` answers it with the default. It's no longer needed for that, because the policy now exists.
+- **Piped output lost the CLI's last lines** on the first deploy: no error summary and no `firebase-debug.log`.
+  - The cause is unknown: an asynchronous pipe at exit, or the process was killed.
+  - Redirecting to a file (`> log 2>&1`) gave the full output and firebase's real exit code.
+- **`/robots.txt` answers an empty 404 in production.**
+  - The function's own URL does too, while `/sitemap.xml` works.
+  - Theory, unverified: the Cloud Functions Framework answers `/robots.txt` and `/favicon.ico` itself, before the app.
+  - Effect: crawlers don't get the Disallow rules (`/admin`, `/account`, `/cart`…) or the Sitemap line. Admin pages
+    still send `noindex` and need a session.
+  - Not fixed: the owner chooses how.
+- **`/healthz` never reaches the function in production.**
+  - Google's front end answers with its own "Error 404 (Not Found)!!1" page; Cloud Run reserves paths ending in `z`.
+  - It works in dev and in the emulator. Not fixed.
+- **`npm run preview` was broken (verified).** With the deployed build, the functions emulator printed `Failed to load
+  function definition from source: FirebaseError: Failed to load environment variables from .env.local.`, and every
+  page answered 404 "Function southamerica-east1-ssr does not exist".
+- **A stray `firebase init` process** (PID 47288, started 00:15 on 2026-11-03) was running on this machine. Claude
+  didn't start it and left it alone.
+
+### Preview fix: done and verified
+- **The fix:** `emulatorEnvFile` (`scripts/functions-env.mjs`) drops the lines whose names have a prefix the CLI
+  refuses and keeps every other line byte for byte. `scripts/build-functions.mjs` writes `build/functions/.env.local`
+  with it and names what it left out.
+- **Tests:** 2 unit tests (failing first), and 3 of 3 mutations caught.
+- **Emulator check:** preview's emulator set ran on spare ports (`emulators:exec --only functions,hosting,firestore,auth`
+  with a temporary config, removed afterwards).
+  - Both functions load. `expirePixOrders` is ignored (no Pub/Sub emulator), so it can't run.
+  - `/healthz` 200, `/` 200, `/admin` 302 → login, `/admin/login` 200.
+  - The dev emulators (order 1003) weren't touched: the emulator's own hosts override `.env.local`'s.
+- **Totals:**
+  - unit tests 140 (17 files);
+  - tsc 0 errors; lint 0 errors, 63 warnings;
+  - build OK.
+  - Integration tests were not re-run, because no app code changed.
+
+### Not verified (afternoon)
+- The TOTP exchange (enrolment, then sign-in with a code) and the admin orders tabs: they need the owner's first
+  sign-in.
+- The e-mail verification link (Firebase's default template, sent from `noreply@lojaiyanifa.firebaseapp.com`).
+- A scheduled run of `expirePixOrders`. None was seen in the log yet; it started cleanly at 14:53Z.
+- `npm run preview` on its own standard ports, which the dev emulators hold. The same emulators, build and config were
+  checked on spare ports.
 
 ## Handoff for the next session (read this first)
 **State:**
@@ -338,19 +430,23 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Session 4: TOTP screens (verification pending on the real project), Pix expiry job, fulfilment (preparing →
   shipped / ready → delivered / picked up) with tracking, internal notes, full/partial refunds with stock returns.
 - Session 5: production config for the deployed functions; `.firebaserc` `prod` alias; `/admin/users` dropped.
+  In the afternoon: first production deploy, owner role, TOTP turned on in the project, `npm run preview` fixed.
 - Everything is verified as listed above.
 
-**Not deployed yet.** That waits for the owner's console steps and explicit go (below).
+**Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
+absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below).
 
 **Checks:**
-- Checklist: 121 done / 14 N/A (`ecommerce_master_build_prompt.md`).
-- `npm test` (138 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`).
+- Checklist: 120 done / 14 N/A (`ecommerce_master_build_prompt.md`). "Robots.txt" went back to todo on 2026-11-03:
+  production answers it with a 404.
+- `npm test` (140 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`).
 - `npm run typecheck` and `npm run lint`.
 
 **Git:**
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
-  fixes → `867bed1` session 4 → the session-5 config commit right after it.
-- Pushed to `origin/master` up to `246acfa` by the owner; the session-4 and session-5 commits are local.
+  fixes → `867bed1` session 4 → `2438821` session-5 config (what is deployed) → the session-5 afternoon work
+  (preview fix + deploy notes; see `git log`).
+- Pushed to `origin/master` up to `246acfa` by the owner, who pushes the later commits.
 - Commit only when the owner asks. Add files by path, never `git add .`.
 
 **This machine:**
@@ -373,6 +469,8 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   search `build\functions` names it.
 - Never put the owner's personal data (phone, Pix key, names, e-mail) in committed files — `.env.local` /
   Firestore only; grep before finishing (session 3: 0 hits).
+- The Firebase CLI run from Claude's tools is non-interactive (no TTY). Redirect deploy output to a file
+  (`firebase deploy … > log 2>&1`): piped through `grep`, the first deploy lost its last lines.
 
 **Production config (session 5):**
 - Deployed functions read the gitignored root file `.env.lojaiyanifa`. It exists on this machine and was created
@@ -383,35 +481,39 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - The owner's root `.env` is now redundant: nothing reads it.
 - Single admin account: the owner. The e-mail is not written here (owner data).
 
-**Owner actions before the first deploy (TOTP check):**
-1. Google credentials for the admin scripts: the downloaded service-account key, passed through the shell's
-   `GOOGLE_APPLICATION_CREDENTIALS`, or `gcloud auth application-default login`.
-2. Blaze plan, then a Firestore database in `southamerica-east1`.
-   - The location can't be changed later.
-   - Create it **before** running `grant-role`, which writes to `auditLogs` after setting the claim.
-3. Turn on Email/Password sign-in, then create the owner account (console → Authentication → Add user).
-4. Grant the role, with `GOOGLE_APPLICATION_CREDENTIALS` set in the same shell:
-   `node scripts/admin/grant-role.mjs --production --project lojaiyanifa --email <owner e-mail> --role owner`.
-   This script takes the real project ID, not the `prod` alias.
+**Done before and during the first deploy (2026-11-03):**
+- Blaze plan; Firestore `(default)` in `southamerica-east1`; Email/Password on; owner account created (owner).
+- Owner role granted with `grant-role --production --project lojaiyanifa` (it takes the real project ID, not the
+  `prod` alias). Credentials: the service-account key through the shell's `GOOGLE_APPLICATION_CREDENTIALS`.
+- TOTP turned on in the project's Auth config (it was off).
 
-**Deploy, on the owner's go:**
-1. `npm run build`.
-2. `firebase deploy --only firestore --project prod`, then wait until both indexes are "Enabled". The expiry job's query
-   needs one of them.
-3. `firebase deploy --only hosting,functions --project prod`.
+**Owner's first sign-in (next), on `https://lojaiyanifa.web.app/admin/login`:**
+1. Sign in with the password. The page asks to confirm the e-mail and sends the link (from
+   `noreply@lojaiyanifa.firebaseapp.com`; check spam).
+2. After the link, sign in again: the page shows a QR code. Scan it with an authenticator app and type its code.
+   Back the enrolment up on a second device: with one admin account, a lost phone needs
+   `scripts/admin/reset-mfa.mjs --production`.
+3. Sign out, sign in with a code, open the order tabs (they need the indexes).
+4. If TOTP fails: stop and report. Never set `ADMIN_REQUIRE_MFA=false` to get in.
+Then the checklist item "Two-factor authentication for administrators" can be marked done.
+
+**Redeploying, on the owner's go:**
+1. `npm run build` from a committed tree.
+2. `firebase deploy --only hosting,functions --project prod > <log> 2>&1`, then read the log and the exit code.
    - The predeploy hook prints `.env.lojaiyanifa checked and copied`.
+   - Rules or index changes: `firebase deploy --only firestore --project prod`, and wait for READY
+     (`firebase firestore:indexes --project prod --pretty`) before deploying code that needs a new index.
    - Don't run a bare deploy: `firebase.json` also lists Storage, which the app doesn't use.
-4. Leave `settings/payment` absent so checkout stays closed.
-5. On `https://lojaiyanifa.web.app/admin/login`: verify the e-mail, enrol TOTP (back it up on a second device), sign in
-   with a code, sign out.
-6. Check the order tabs (indexes) and `curl -I` an `/assets/*` file (immutable cache header).
-7. Stop and report if:
-   - pages answer 500 (`firebase functions:log --only ssr --project prod`);
-   - TOTP fails (never set `ADMIN_REQUIRE_MFA=false` to get in);
-   - the deploy warns "Unable to set the invoker" (a Google Workspace organization policy makes every page answer 403).
+   - `--force` is no longer needed for the cleanup policy, which now exists. Don't add it by habit: it also approves
+     deleting functions that are missing from the source.
+3. Leave `settings/payment` absent until checkout should open.
+4. Check: `/`, a product page, `/admin` → 302, `curl -I` an `/assets/*` file (immutable cache header), and
+   `firebase functions:log --only ssr --project prod`.
+5. Stop and report if pages answer 500, or if the deploy warns "Unable to set the invoker" (a Google Workspace
+   organization policy would make every page answer 403).
 
 **Not built yet (in order):**
-1. First deploy + TOTP verification (above).
+1. The owner's first sign-in with TOTP (above). It's the TOTP verification.
 2. Transactional e-mails. Needs an SMTP provider and a verified sender domain; the shipped / refunded / cancelled
    events are ready to hook in.
 3. Activity-log viewer (`auditLogs`).
@@ -427,5 +529,12 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - `/admin/inventory`: stock adjustments.
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 
-**Known issue:** `npm run preview` probably can't load `build/functions/.env.local`, because of the `FIREBASE_*` names
-(session 5, "Found").
+**Known issues in production (session 5 afternoon, "Found"; not fixed, owner to decide):**
+- `/robots.txt` answers an empty 404, so its crawl rules and Sitemap line aren't served. Theory, unverified: the Cloud
+  Functions Framework answers `/robots.txt` itself.
+  - One possible fix: a static `robots.txt` in Hosting, written at deploy time from `SITE_URL`.
+  - Another: submit the sitemap in Search Console and accept the 404.
+- `/healthz` can't be reached in production (Cloud Run reserves paths ending in `z`). Rename it before any uptime check
+  relies on it.
+- `npm run preview`'s admin sign-in still fails on the CSP (`connect-src` doesn't allow the Auth emulator).
+  `docs/security.md`, "Known gaps".

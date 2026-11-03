@@ -432,7 +432,7 @@ The administrative system is what allows the business owner to manage the entire
 - [x] Heading hierarchy — one h1 per page, h2 sections
 - [ ] Image alt text — _implemented_ (Prismic alt or product name; placeholders aria-hidden); needs real images to verify
 - [x] XML sitemap — products, categories, pages, lastmod from Prismic (verified 34 URLs)
-- [x] Robots.txt — blocks private areas; blocks everything on non-production hosts (verified)
+- [ ] Robots.txt — _works in dev and the emulator, not in production_: the deployed function answers /robots.txt with an empty 404 (found 2026-11-03; theory, unverified: the Cloud Functions Framework answers it before the app). Rules: private areas blocked; everything blocked on non-production hosts. Owner to choose a fix
 - [x] Canonical URLs — filters/sort dropped, pagination kept (verified)
 - [x] Structured data / Schema.org — WebSite+SearchAction, Organization, CollectionPage (verified)
 - [x] Product structured data — Offer/AggregateOffer only when a price exists (verified)
@@ -451,7 +451,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] HTTPS / SSL certificate
 - [ ] Secure password hashing
 - [ ] Secure authentication — _admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending
-- [ ] Two-factor authentication for administrators — _TOTP built 2026-11-02_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Verified against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP): to be verified on the first deploy (owner decision 2026-11-02)
+- [ ] Two-factor authentication for administrators — _TOTP built 2026-11-02_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Verified against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP). Deployed 2026-11-03 and TOTP turned on in the project that day (it was off): the owner's first sign-in verifies the exchange
 - [x] Role-based access control — owner/admin/staff claims + per-action capability checks on the server (unit, integration and Chrome tests, 2026-11-02)
 - [ ] Protection against SQL injection
 - [ ] Protection against XSS

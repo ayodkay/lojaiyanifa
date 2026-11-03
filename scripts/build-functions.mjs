@@ -7,15 +7,19 @@
 //                                pinned to the ranges in the root package.json
 //           node_modules/        installed so the Firebase CLI can load the module
 //                                locally (function discovery) and emulators can run it
-//           .env.local           copied for the emulator only (gitignored)
+//           .env.local           the dev .env.local for the functions emulator (`npm run preview`), minus the
+//                                names the Firebase CLI refuses (gitignored; never uploaded: firebase.json
+//                                ignores *.local)
 //
 // Fails loudly if the bundle imports a package that isn't a root "dependency",
 // because that import would crash in production.
 
 import { execSync } from "node:child_process";
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { join } from "node:path";
+
+import { emulatorEnvFile } from "./functions-env.mjs";
 
 const root = process.cwd();
 const serverDir = join(root, "build", "server");
@@ -95,7 +99,12 @@ writeFileSync(
   )}\n`,
 );
 if (existsSync(join(root, ".env.local"))) {
-  copyFileSync(join(root, ".env.local"), join(outDir, ".env.local"));
+  // Copied as-is, the functions emulator would refuse the whole file (FIREBASE_* names) and load no function at all.
+  const { text, dropped } = emulatorEnvFile(readFileSync(join(root, ".env.local"), "utf8"));
+  writeFileSync(join(outDir, ".env.local"), text);
+  if (dropped.length > 0) {
+    console.log(`[build-functions] .env.local for the emulator: left out ${dropped.join(", ")} (the Firebase CLI refuses these names; the emulator sets its own)`);
+  }
 }
 
 console.log(`[build-functions] bundle imports ${packages.size} packages: ${Object.keys(dependencies).join(", ")}`);

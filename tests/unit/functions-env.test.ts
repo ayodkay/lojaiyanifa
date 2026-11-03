@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { productionEnvProblems } from "../../scripts/functions-env.mjs";
+import { emulatorEnvFile, productionEnvProblems } from "../../scripts/functions-env.mjs";
 
 /** A deployable file. The key is a neutral fake. */
 const VALID = {
@@ -68,5 +68,34 @@ describe("productionEnvProblems", () => {
     const problems = productionEnvProblems(file({ ...VALID, PRISMIC_WRITE_TOKEN: "x", PRISMIC_ACCESS_TOKEN: "x" }));
     expect(problems.map((p) => p.split(" ")[0]).sort()).toEqual(["PRISMIC_ACCESS_TOKEN", "PRISMIC_WRITE_TOKEN"]);
     expect(problems.every((p) => p.includes("Secret Manager"))).toBe(true);
+  });
+});
+
+describe("emulatorEnvFile", () => {
+  it("drops the names the Firebase CLI refuses and keeps every other line as written", () => {
+    const local = [
+      "# development",
+      "SITE_URL=http://localhost:5173",
+      'STORE_PIX_NAME="Loja Teste"',
+      "FIREBASE_PROJECT_ID=demo-lojaiyanifa",
+      "FIRESTORE_EMULATOR_HOST=127.0.0.1:8180",
+      "export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099",
+      "",
+      "PRISMIC_REPO=lojaiyanifa",
+      "",
+    ].join("\r\n");
+    const { text, dropped } = emulatorEnvFile(local);
+    expect(dropped).toEqual(["FIREBASE_PROJECT_ID", "FIREBASE_AUTH_EMULATOR_HOST"]);
+    expect(text).toBe(
+      ["# development", "SITE_URL=http://localhost:5173", 'STORE_PIX_NAME="Loja Teste"', "FIRESTORE_EMULATOR_HOST=127.0.0.1:8180", "", "PRISMIC_REPO=lojaiyanifa", ""].join(
+        "\r\n",
+      ),
+    );
+  });
+
+  it("goes by the name alone, for every prefix the CLI refuses", () => {
+    const { text, dropped } = emulatorEnvFile("NOTE=FIREBASE_X\nX_GOOGLE_A=1\nEXT_B=2\nFIREBASEX=3\n  FIREBASE_C = 4\n");
+    expect(dropped).toEqual(["X_GOOGLE_A", "EXT_B", "FIREBASE_C"]);
+    expect(text).toBe("NOTE=FIREBASE_X\nFIREBASEX=3\n");
   });
 });

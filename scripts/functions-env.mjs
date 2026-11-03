@@ -56,6 +56,23 @@ export function productionEnvProblems(text) {
   return problems;
 }
 
+/**
+ * The dev .env.local as the functions emulator (`npm run preview`) can load it. If one name in the file has a reserved
+ * prefix, the CLI loads none of it (discovery fails), and the dev file has two: FIREBASE_PROJECT_ID and
+ * FIREBASE_AUTH_EMULATOR_HOST. The emulator sets FIREBASE_CONFIG and the emulator hosts itself, so those lines are
+ * dropped; every other line is kept exactly as written (quotes, comments, line endings).
+ */
+export function emulatorEnvFile(text) {
+  const dropped = [];
+  const lines = text.split(/(?<=\n)/).filter((line) => {
+    const name = /^\s*(?:export\s+)?([\w./]+)\s*=/.exec(line)?.[1];
+    if (!name || !RESERVED_PREFIXES.some((prefix) => name.startsWith(prefix))) return true;
+    dropped.push(name);
+    return false;
+  });
+  return { text: lines.join(""), dropped };
+}
+
 function fail(message) {
   console.error(`\n[functions-env] ERROR: ${message}\n`);
   process.exit(1);

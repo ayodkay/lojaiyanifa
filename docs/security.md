@@ -53,26 +53,28 @@ Design: docs/architecture.md §3. How each control is implemented and tested:
 | Production can't run in emulator (unsigned-token) mode | `assertNoEmulatorInProduction` in `app/.server/firebase.ts` | unit |
 | Audit trail | `auditLogs` (order changes and their entry in one transaction) | integration + emulator check after Chrome run |
 | Admin pages never cached or indexed | `Cache-Control: private, no-store` + `X-Robots-Tag` set by the admin middleware; `noindex` meta | curl |
-| Second factor: TOTP code after the password; enrolment before first use (built 2026-11-02) | `app/.client/firebase.ts`, `app/routes/admin.login.tsx` | Chrome with `ADMIN_REQUIRE_MFA=true` (enrolment screen, emulator error mapped, SMS-only account refused); the code exchange itself only on the real project (pending first deploy) |
+| Second factor: TOTP code after the password; enrolment before first use (built 2026-11-02) | `app/.client/firebase.ts`, `app/routes/admin.login.tsx` | Chrome with `ADMIN_REQUIRE_MFA=true` (enrolment screen, emulator error mapped, SMS-only account refused); the code exchange itself only on the real project (deployed and TOTP turned on 2026-11-03; pending the owner's first sign-in) |
 | TOTP secret never reaches our server; QR drawn in the browser (data: image, allowed by the CSP) | `startTotpEnrollment` + lazy `qrcode` import | code review; the server bundle has no browser SDK (build check) |
 | Lost authenticator: factors removed only by an operator script, sessions revoked, audited | `scripts/admin/reset-mfa.mjs` (`mfa.reset`) | 8 CLI cases against the emulator |
 | Order changes re-check state in one transaction; a lost race is a 409, never a double settlement | `settlePendingOrder`, `takeFulfillmentStep`, `recordRefund` | integration (races + stubbed "transaction closed" errors) |
 | Refunds: owner/admin only; amount ≤ what remains; units ≤ what the order took; one refund per form key | `requireCapability("orders.refund")`, `parseRefundForm`, `refundInTransaction` | unit + integration + Chrome |
 | Tracking links shown to customers: https only, `rel="noopener noreferrer"` | `parseTracking` | unit (javascript:/data:/http refused) + Chrome |
 
-## Known gaps (2026-11-02)
+## Known gaps (updated 2026-11-03)
 
-- **TOTP unverified on the real project**: built and checked against the emulator, which
-  has no TOTP. Production admin sign-in works only once the first deploy confirms it.
+- **TOTP not yet exercised on the real project**: built and checked against the emulator, which
+  has no TOTP. Deployed 2026-11-03. TOTP was off in the project's Auth config that morning and was
+  turned on the same day, so until then production admin sign-in could not complete (it failed
+  closed). The owner's first sign-in (enrolment, then a code) is the verification.
 - **CSP on admin pages** still allows inline scripts (`'unsafe-inline'`, needed on
   CDN-cached public pages for React Router's hydration scripts). Admin/account
   pages are never cached, so they could use a per-request nonce instead — not done.
 - **`npm run preview`** (production build in the functions emulator): the CSP's
-  `connect-src` doesn't allow the Auth emulator, so admin sign-in fails there. Also (found 2026-11-03,
-  not verified by running preview): the Firebase CLI refuses `build/functions/.env.local` because it holds
-  `FIREBASE_*` names, so the functions emulator probably can't load its configuration.
+  `connect-src` doesn't allow the Auth emulator, so admin sign-in fails there. (The other preview
+  problem, a `build/functions/.env.local` the Firebase CLI refused, so no function loaded, was fixed
+  2026-11-03: the build leaves the refused `FIREBASE_*` names out.)
 - **Rate limiting on `/admin/login`**: only Firebase Auth's own throttling
   (`auth/too-many-requests`); Cloudflare rules are still to be written.
-- **Firestore composite index** `orders (status ASC, number DESC)` is declared in
-  `firestore.indexes.json` but unverified: the emulator doesn't enforce indexes.
-  Check the admin orders tabs right after the first deploy.
+- **Firestore composite indexes** (`orders`: status + number, status + expiresAt): deployed 2026-11-03
+  and both READY (`firebase firestore:indexes --pretty`). The emulator doesn't enforce indexes, so the
+  admin orders tabs still need a look once the owner can sign in.
