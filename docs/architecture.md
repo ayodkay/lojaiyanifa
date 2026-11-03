@@ -278,8 +278,9 @@ Where the variables come from:
 | Integration tests | `vitest.integration.config.ts` and the test emulators |
 | `npm run preview` (functions emulator) | `build/functions/.env.local`: the build copies the root `.env.local` without the names the Firebase CLI refuses (`FIREBASE_*`; one such name made the CLI load no function at all). The emulator sets their replacements itself (`FIREBASE_CONFIG`, emulator hosts). Fixed 2026-11-03 (`emulatorEnvFile` in `scripts/functions-env.mjs`) |
 | Deployed functions | `.env.<project-id>` at the repo root (`.env.lojaiyanifa`, gitignored). On every deploy the functions predeploy hook `scripts/functions-env.mjs` checks it and copies it into `build/functions/`, where the Firebase CLI loads it |
+| Deployed `robots.txt` (hosting) | `SITE_URL` from the same `.env.<project-id>`. On every hosting deploy the hosting predeploy hook `scripts/robots-txt.mjs` runs the same checks and writes `build/client/robots.txt`, which Hosting serves before its rewrite to `ssr`. The app can't answer `/robots.txt` in production: the Cloud Functions Framework answers it (and `/favicon.ico`) itself with an empty 404 (verified 2026-11-03) |
 
-The hook refuses a file that:
+Both hooks refuse a file that:
 
 - misses a required variable;
 - sets an emulator variable, `FUNCTIONS_EMULATOR`, `GOOGLE_APPLICATION_CREDENTIALS` or a token;
@@ -341,3 +342,6 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-03 | The work is committed before the first deploy, so production matches a commit | Owner |
 | 2026-11-03 | TOTP turned on in `lojaiyanifa`'s Auth config by an Admin SDK call (it was off): TOTP provider, 5 adjacent intervals (Google's default); SMS stays off | Owner |
 | 2026-11-03 | Container images of the functions are deleted after 1 day (the Firebase CLI's default cleanup policy, applied with `--force` on the first deploy) | Owner |
+| 2026-11-03 | `/robots.txt` is a static file written at deploy time from `SITE_URL` by a hosting predeploy hook (the deployed function can't serve it); the route is removed | Owner |
+| 2026-11-03 | The liveness probe is `/health`, not `/healthz` (Cloud Run reserves some paths ending in `z`) | Owner |
+| 2026-11-03 | `/favicon.ico` is a Hosting redirect to `/favicon.svg` (the deployed function can't serve it), written as a `regex` because this machine's Hosting emulator (Windows) never matches a `source` redirect; the route is removed | Owner |

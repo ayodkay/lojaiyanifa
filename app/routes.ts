@@ -35,12 +35,12 @@ export default [
     route("orders/:number", "routes/admin.order.tsx"),
   ]),
 
-  // Resource routes (no UI)
+  // Resource routes (no UI). /robots.txt and /favicon.ico are not here: the deployed function can't answer them (the
+  // Functions Framework does, with an empty 404), so Firebase Hosting serves them. The hosting predeploy hook writes
+  // robots.txt (scripts/robots-txt.mjs); /favicon.ico is a redirect to /favicon.svg in firebase.json.
   route("sitemap.xml", "routes/sitemap-xml.ts"),
-  route("robots.txt", "routes/robots-txt.ts"),
-  route("favicon.ico", "routes/favicon-ico.ts"),
   route("api/search/suggest", "routes/api.search.suggest.ts"),
   route("api/products", "routes/api.products.ts"),
   route("api/cart/quote", "routes/api.cart.quote.ts"),
-  route("healthz", "routes/healthz.ts"),
+  route("health", "routes/health.ts"),
 ] satisfies RouteConfig;

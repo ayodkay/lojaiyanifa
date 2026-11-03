@@ -769,7 +769,7 @@
     },
     "Robots.txt": {
       "status": "todo",
-      "note": "_works in dev and the emulator, not in production_: the deployed function answers /robots.txt with an empty 404 (found 2026-11-03; theory, unverified: the Cloud Functions Framework answers it before the app). Rules: private areas blocked; everything blocked on non-production hosts. Owner to choose a fix"
+      "note": "_fixed in code 2026-11-03 (evening), deploy pending_: the app can't serve it in production (the Cloud Functions Framework answers /robots.txt and /favicon.ico itself with an empty 404; verified from its source), so the hosting predeploy hook scripts/robots-txt.mjs writes build/client/robots.txt from SITE_URL and Hosting serves it before the rewrite. Verified in the Hosting emulator; done once production serves it. Rules: private areas blocked; everything blocked on non-production sites"
     },
     "Canonical URLs": {
       "status": "done",

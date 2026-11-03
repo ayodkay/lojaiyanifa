@@ -4,6 +4,7 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
     "trailingSlash": false,
+    "redirects": [{ "regex": "^/favicon[.]ico$", "destination": "/favicon.svg", "type": 301 }],
     "headers": [
       {
         "source": "/assets/**",
@@ -15,7 +16,8 @@
         "source": "**",
         "function": { "functionId": "ssr", "region": "southamerica-east1" }
       }
-    ]
+    ],
+    "predeploy": ["node scripts/robots-txt.mjs"]
   },
   "functions": [
     {

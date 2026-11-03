@@ -9,7 +9,7 @@ in the `@theme` block of `app/app.css`.**
 | Asset | Where | How |
 | --- | --- | --- |
 | Logo | Prismic → Store settings → Logo | Upload an SVG/PNG. The header switches from the text wordmark to the image automatically. |
-| Favicon / app icons | `public/` | Replace `favicon.svg`/`favicon.ico` (keep file names). |
+| Favicon / app icons | `public/` | Replace `favicon.svg` (keep the file name). There is no `favicon.ico`: `firebase.json` redirects `/favicon.ico` to the SVG. To ship a real `favicon.ico`, add it to `public/` and remove that redirect, because Hosting applies redirects before files. |
 | Display font (headings) | `app/app.css` | Self-host the font files in `public/fonts/`, add `@font-face` rules, set `--font-display`. Self-hosting avoids sending visitor IPs to a font CDN (LGPD) and is faster. |
 | Body font | `app/app.css` | Same, `--font-sans`. |
 | Primary colour (buttons, active states) | `app/app.css` | `--color-accent` and `--color-accent-contrast` (text on the accent). |

@@ -386,13 +386,14 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   - Redirecting to a file (`> log 2>&1`) gave the full output and firebase's real exit code.
 - **`/robots.txt` answers an empty 404 in production.**
   - The function's own URL does too, while `/sitemap.xml` works.
-  - Theory, unverified: the Cloud Functions Framework answers `/robots.txt` and `/favicon.ico` itself, before the app.
+  - Cause (a theory that afternoon, verified from source in the evening): the Cloud Functions Framework answers
+    `/robots.txt` and `/favicon.ico` itself, before the app.
   - Effect: crawlers don't get the Disallow rules (`/admin`, `/account`, `/cart`…) or the Sitemap line. Admin pages
     still send `noindex` and need a session.
-  - Not fixed: the owner chooses how.
+  - Fixed in the evening (below); deploy pending.
 - **`/healthz` never reaches the function in production.**
   - Google's front end answers with its own "Error 404 (Not Found)!!1" page; Cloud Run reserves paths ending in `z`.
-  - It works in dev and in the emulator. Not fixed.
+  - It works in dev and in the emulator. Renamed `/health` in the evening (below); deploy pending.
 - **`npm run preview` was broken (verified).** With the deployed build, the functions emulator printed `Failed to load
   function definition from source: FirebaseError: Failed to load environment variables from .env.local.`, and every
   page answered 404 "Function southamerica-east1-ssr does not exist".
@@ -407,7 +408,7 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - **Emulator check:** preview's emulator set ran on spare ports (`emulators:exec --only functions,hosting,firestore,auth`
   with a temporary config, removed afterwards).
   - Both functions load. `expirePixOrders` is ignored (no Pub/Sub emulator), so it can't run.
-  - `/healthz` 200, `/` 200, `/admin` 302 → login, `/admin/login` 200.
+  - `/healthz` (renamed `/health` in the evening) 200, `/` 200, `/admin` 302 → login, `/admin/login` 200.
   - The dev emulators (order 1003) weren't touched: the emulator's own hosts override `.env.local`'s.
 - **Totals:**
   - unit tests 140 (17 files);
@@ -423,6 +424,55 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - `npm run preview` on its own standard ports, which the dev emulators hold. The same emulators, build and config were
   checked on spare ports.
 
+## Session 5, evening — 2026-11-03: robots.txt and favicon.ico through Hosting, `/health`
+
+### Owner decisions
+- `/robots.txt`: a static file written at deploy time from `SITE_URL` (the fix proposed in the afternoon).
+- Rename `/healthz`. It is now `/health`.
+- `/favicon.ico`: a Hosting redirect to `/favicon.svg`, written as a `regex` (Found, below). Then commit, and deploy
+  `ssr` + hosting.
+
+### Found
+- **The robots.txt cause, verified from source:** for HTTP functions, the Node Functions Framework
+  (`functions-framework-nodejs`, `src/server.ts`) answers `/favicon.ico` and `/robots.txt` with a 404 and an empty
+  body before the app's handler. Production shows exactly that for both paths.
+- **`/favicon.ico` has the same problem in production** (curl: empty 404 on the site and on the function's own URL).
+  The app's 301 to `/favicon.svg` never runs. Every page links `/favicon.svg` as its icon, so only clients that ask
+  for `/favicon.ico` anyway are affected. Fixed with a Hosting redirect (below).
+- **This machine's Hosting emulator can't apply `source` redirects.** Superstatic 10.0.0 (inside firebase-tools)
+  passes each `source` through `glob-slasher`, which on Windows turns `/favicon.ico` into `\favicon.ico`. That never
+  matches, so the request fell through to the rewrite, and the functions emulator answered with its copy of Google's
+  rule (`functionsEmulatorRuntime.js`). Shown in memory with superstatic's own code. The `regex` form isn't affected.
+
+### Done and verified
+- **robots.txt:**
+  - `scripts/robots-txt.mjs` is the hosting `predeploy` hook in `firebase.json`. It reads `.env.<project-id>`, runs
+    the functions hook's checks (`productionEnvProblems`) and writes `build/client/robots.txt`. Hosting serves files
+    from `build/client` before its rewrite to `ssr`.
+  - The rules moved from the route unchanged. `SITE_URL` loses trailing slashes, as in `app/.server/env.ts`.
+  - It stops the deploy when `GCLOUD_PROJECT` isn't set, the env file is missing or fails the checks, or
+    `build/client` isn't built.
+  - The route `app/routes/robots-txt.ts` is deleted: it could never answer in production. In dev, `/robots.txt` is
+    now a 404.
+- **`/health`:** `app/routes/health.ts`, the same loader as `/healthz`, with a comment on why the name doesn't end in
+  `z`.
+- **`/favicon.ico`:** `firebase.json` redirects it to `/favicon.svg` (301, `"regex": "^/favicon[.]ico$"`). Hosting
+  applies redirects before files and rewrites. The route `app/routes/favicon-ico.ts` is deleted, and `docs/brand.md`
+  now says to remove the redirect if a real `favicon.ico` is ever added.
+- **Tests:** 3 unit tests (`tests/unit/robots-txt.test.ts`, one at a time), and 4 of 4 mutations caught.
+- **By hand:** `GCLOUD_PROJECT=lojaiyanifa node scripts/robots-txt.mjs` wrote the production rules, ending with
+  `Sitemap: https://lojaiyanifa.web.app/sitemap.xml`. Without the env file, or without `GCLOUD_PROJECT`, it exits 1.
+- **Emulator check** (spare ports, temporary config removed afterwards): `/robots.txt` 200 `text/plain`, identical to
+  the file (no route is left, so Hosting served it); `/favicon.ico` 301 → `/favicon.svg` (the `source` form got the
+  empty 404, Found above); `/favicon.svg` 200; `/health` 200 JSON; `/healthz` 404; `/` 200.
+- **Dev server** (:5173) picked up the change: `/health` 200, `/healthz` 404.
+- **Totals:** unit tests 143 (18 files); tsc 0 errors; lint 0 errors, 63 warnings; build OK.
+
+### Not verified (evening)
+- Production, until the deploy: `/robots.txt` should answer 200 with the rules, `/favicon.ico` 301 → `/favicon.svg`,
+  and `/health` 200 JSON.
+- The hosting hook inside a real `firebase deploy`.
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
@@ -431,21 +481,24 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   shipped / ready → delivered / picked up) with tracking, internal notes, full/partial refunds with stock returns.
 - Session 5: production config for the deployed functions; `.firebaserc` `prod` alias; `/admin/users` dropped.
   In the afternoon: first production deploy, owner role, TOTP turned on in the project, `npm run preview` fixed.
+  In the evening: `/robots.txt` as a static file written at deploy time, `/favicon.ico` as a Hosting redirect;
+  `/healthz` renamed `/health`.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
-absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below).
+absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below). The evening's
+`/robots.txt`, `/favicon.ico` and `/health` change is not deployed yet.
 
 **Checks:**
 - Checklist: 120 done / 14 N/A (`ecommerce_master_build_prompt.md`). "Robots.txt" went back to todo on 2026-11-03:
-  production answers it with a 404.
-- `npm test` (140 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`).
+  production answers it with a 404. Fixed in code that evening; mark it done once production serves the file.
+- `npm test` (143 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`).
 - `npm run typecheck` and `npm run lint`.
 
 **Git:**
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
-  fixes → `867bed1` session 4 → `2438821` session-5 config (what is deployed) → the session-5 afternoon work
-  (preview fix + deploy notes; see `git log`).
+  fixes → `867bed1` session 4 → `2438821` session-5 config (what is deployed) → `1b3c384` preview fix + deploy
+  notes → the evening's robots.txt + favicon + `/health` change (see `git log`).
 - Pushed to `origin/master` up to `246acfa` by the owner, who pushes the later commits.
 - Commit only when the owner asks. Add files by path, never `git add .`.
 
@@ -457,7 +510,7 @@ absent). The owner role is granted and TOTP is on. Next: the owner's first sign-
   33300 (firebase), 12220 (java) and 44052/13692/3280 (react-router dev).
   - Command: `emulators:exec … react-router dev --port 5173`, started 2026-11-01 13:52.
   - Claude Code no longer tracks it (memory-pressure reaper, session 5), so stopping it means those PIDs.
-  - Probe it with `http://localhost:5173/healthz`.
+  - Probe it with `http://localhost:5173/health` (it was `/healthz` until the evening of 2026-11-03).
   Its data is temporary test data: 1001 partially refunded (R$ 10,00) + shipped with test tracking + a test note;
   1002/1004/1005 cancelled; **1003 is the owner's own test order (still pending, past its deadline) — leave it alone,
   and never run the expiry job against this dev data**; 1006 (session 4, pickup) paid, ready for pickup, R$ 5,00
@@ -471,12 +524,17 @@ absent). The owner role is granted and TOTP is on. Next: the owner's first sign-
   Firestore only; grep before finishing (session 3: 0 hits).
 - The Firebase CLI run from Claude's tools is non-interactive (no TTY). Redirect deploy output to a file
   (`firebase deploy … > log 2>&1`): piped through `grep`, the first deploy lost its last lines.
+- This machine's Hosting emulator can't apply redirects written with `source` (a Windows bug in superstatic 10.0.0:
+  `/favicon.ico` becomes `\favicon.ico`). Write redirects with `regex`, which production supports too, or check them on
+  the live site.
 
 **Production config (session 5):**
 - Deployed functions read the gitignored root file `.env.lojaiyanifa`. It exists on this machine and was created
   2026-11-03.
 - The functions predeploy hook (`scripts/functions-env.mjs`) checks it and copies it into `build/functions/` on every
   functions deploy. A missing or unsafe file stops the deploy.
+- The hosting predeploy hook (`scripts/robots-txt.mjs`) writes `build/client/robots.txt` from the same file's
+  `SITE_URL` on every hosting deploy, after the same checks.
 - What it must contain: `.env.example`, "Production", and `docs/architecture.md` §8.
 - The owner's root `.env` is now redundant: nothing reads it.
 - Single admin account: the owner. The e-mail is not written here (owner data).
@@ -500,14 +558,16 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 **Redeploying, on the owner's go:**
 1. `npm run build` from a committed tree.
 2. `firebase deploy --only hosting,functions --project prod > <log> 2>&1`, then read the log and the exit code.
-   - The predeploy hook prints `.env.lojaiyanifa checked and copied`.
+   - The functions hook prints `.env.lojaiyanifa checked and copied`. The hosting hook prints
+     `build\client\robots.txt written from .env.lojaiyanifa`, then the rules.
    - Rules or index changes: `firebase deploy --only firestore --project prod`, and wait for READY
      (`firebase firestore:indexes --project prod --pretty`) before deploying code that needs a new index.
    - Don't run a bare deploy: `firebase.json` also lists Storage, which the app doesn't use.
    - `--force` is no longer needed for the cleanup policy, which now exists. Don't add it by habit: it also approves
      deleting functions that are missing from the source.
 3. Leave `settings/payment` absent until checkout should open.
-4. Check: `/`, a product page, `/admin` → 302, `curl -I` an `/assets/*` file (immutable cache header), and
+4. Check: `/`, a product page, `/admin` → 302, `/robots.txt` (200, the rules), `/favicon.ico` (301 → `/favicon.svg`),
+   `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header), and
    `firebase functions:log --only ssr --project prod`.
 5. Stop and report if pages answer 500, or if the deploy warns "Unable to set the invoker" (a Google Workspace
    organization policy would make every page answer 403).
@@ -529,12 +589,12 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 - `/admin/inventory`: stock adjustments.
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 
-**Known issues in production (session 5 afternoon, "Found"; not fixed, owner to decide):**
-- `/robots.txt` answers an empty 404, so its crawl rules and Sitemap line aren't served. Theory, unverified: the Cloud
-  Functions Framework answers `/robots.txt` itself.
-  - One possible fix: a static `robots.txt` in Hosting, written at deploy time from `SITE_URL`.
-  - Another: submit the sitemap in Search Console and accept the 404.
-- `/healthz` can't be reached in production (Cloud Run reserves paths ending in `z`). Rename it before any uptime check
-  relies on it.
+**Known issues in production (session 5, "Found"):**
+- `/robots.txt` answers an empty 404, so its crawl rules and Sitemap line aren't served. Fixed in code on the evening
+  of 2026-11-03 (a static file from the hosting predeploy hook); it goes live with the next hosting deploy.
+- `/healthz` can't be reached in production (Cloud Run reserves paths ending in `z`). Renamed `/health` the same
+  evening; it goes live with the next `ssr` deploy. Uptime checks should probe `/health`.
+- `/favicon.ico` answers an empty 404 (the same Functions Framework rule as `/robots.txt`). Fixed in code the same
+  evening (a Hosting redirect to `/favicon.svg`); it goes live with the next hosting deploy.
 - `npm run preview`'s admin sign-in still fails on the CSP (`connect-src` doesn't allow the Auth emulator).
   `docs/security.md`, "Known gaps".
