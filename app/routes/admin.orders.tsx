@@ -1,6 +1,6 @@
 // /admin/orders — orders by status, newest first. The default tab is the work
 // queue: Pix payments to look for in the bank account. Pix orders past their
-// expiry are flagged (there's no automatic expiry job yet).
+// deadline are flagged until the expiry job (every 15 minutes) cancels them.
 import { Link } from "react-router";
 
 import { countOrders, listOrders } from "~/.server/admin-orders";
@@ -19,6 +19,7 @@ import {
   parseOrderFilter,
 } from "~/lib/admin/orders";
 import { formatBRL } from "~/lib/money";
+import { orderStatusLabel } from "~/lib/orders";
 
 import type { Route } from "./+types/admin.orders";
 
@@ -129,7 +130,11 @@ function OrderList({ rows, now }: { rows: AdminOrderRow[]; now: number }) {
                   </span>
                 </span>
                 <span>
-                  <OrderStatusBadge status={row.status} />
+                  <OrderStatusBadge status={row.status} method={row.shippingMethod} />
+                  {/* A partial refund takes over the status; the shipping stage still matters to the team. */}
+                  {row.status === "partially_refunded" && row.fulfillmentStage !== "unfulfilled" && (
+                    <span className="mt-1 block text-sm text-muted">{orderStatusLabel(row.fulfillmentStage, row.shippingMethod)}</span>
+                  )}
                   {overdue && <span className="mt-1 block text-sm font-medium text-danger">Prazo do Pix vencido</span>}
                   {pendingPix && !overdue && (
                     <span className="mt-1 block text-sm text-muted">Pix vence {adminDateTime.format(new Date(row.expiresAt))}</span>

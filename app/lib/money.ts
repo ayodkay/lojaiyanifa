@@ -26,3 +26,15 @@ export function percentOff(priceCents: Cents, originalCents: Cents): number | nu
 export function toDecimalString(cents: Cents): string {
   return (cents / 100).toFixed(2);
 }
+
+/**
+ * The value of an `<input type="number" step="0.01">` ("129.9", "129.90", "130")
+ * in centavos — browsers always submit it with a dot, whatever the display
+ * locale. Anything else (commas, signs, exponents, a third decimal) is null.
+ * No floats: "0.29" is exactly 29.
+ */
+export function parseDecimalToCents(value: string): Cents | null {
+  const match = /^(\d{1,9})(?:\.(\d{1,2}))?$/.exec(value.trim());
+  if (!match) return null;
+  return Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
+}

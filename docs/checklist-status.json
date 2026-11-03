@@ -555,8 +555,16 @@
       "note": "manual Pix confirmation in /admin/orders/:number (owner/admin/staff): one transaction marks the order paid, turns the stock reservation into a sale, writes history + audit log; repeated or conflicting confirmations refused, incl. a confirm-vs-cancel race (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     },
     "Failed payment handling": {
-      "status": "todo",
-      "note": "_partial_: overdue Pix orders are flagged and owner/admin can cancel them (stock released); the automatic expiry job (cancel after settings/payment.expiryHours) is not built yet"
+      "status": "done",
+      "note": "unpaid Pix orders are cancelled automatically once their deadline (settings/payment.expiryHours) passes: scheduled function expirePixOrders every 15 min, same transaction as an admin cancellation (stock released, history + audit as \"system\"); admins can still cancel by hand (verified 2026-11-02: 6 emulator integration tests incl. a race with an admin confirmation; the built function carries the schedule). The Cloud Scheduler trigger itself first runs after the first deploy"
+    },
+    "Refund processing": {
+      "status": "done",
+      "note": "the owner returns the money in the bank app and records it in /admin/orders/:number (owner/admin): one transaction writes the refund, the new status, the units chosen to go back on sale, history + audit; a double submit records it once (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Partial refunds": {
+      "status": "done",
+      "note": "any amount up to what remains; the order becomes \"Reembolsado parcialmente\" and shipping goes on (owner decision 2026-11-02); partial refunds add up to a full one, which ends the order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     }
   },
   "9": {
@@ -573,12 +581,12 @@
       "note": "confirmation page; e-mail pending (§15)"
     },
     "Order status": {
-      "status": "todo",
-      "note": "_partial_: pending_payment → paid / cancelled from /admin (verified 2026-11-02); processing → shipped → delivered not built yet"
+      "status": "done",
+      "note": "pending_payment → paid → processing → shipped → delivered (pickup: ready → picked up); cancelled (admin or expiry job); refunded / partially_refunded (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     },
     "Pending orders": {
-      "status": "todo",
-      "note": "_partial_: /admin/orders work queue (default tab, overdue Pix flagged) with confirm/cancel (verified 2026-11-02); automatic expiry job pending"
+      "status": "done",
+      "note": "\"Aguardando pagamento\" work queue with overdue Pix flagged; the expiry job cancels unpaid orders after expiryHours (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     },
     "Paid orders": {
       "status": "done",
@@ -587,6 +595,34 @@
     "Cancelled orders": {
       "status": "done",
       "note": "owner/admin cancel unpaid orders with a reason; stock released; the customer page says \"Pedido cancelado\" with a contact link; \"Cancelados\" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests). Cancelling a paid order belongs to refunds (§7)"
+    },
+    "Processing orders": {
+      "status": "done",
+      "note": "\"Em preparação\" step and tab; may be skipped (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Shipped orders": {
+      "status": "done",
+      "note": "\"Enviados\" tab; flat-rate orders take carrier + tracking code + https link, pickup orders become \"Pronto para retirada\" (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Delivered orders": {
+      "status": "done",
+      "note": "\"Entregues\" tab; marking needs a confirmation box (pickup: \"Retirado\") (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Refunded orders": {
+      "status": "done",
+      "note": "\"Reembolsados\" and \"Reembolso parcial\" tabs; a partially refunded row also shows its shipping stage (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Order tracking number": {
+      "status": "done",
+      "note": "carrier + code + https link, editable after shipping, shown on the customer's order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Refund management": {
+      "status": "done",
+      "note": "refund history per order (amount, reason, note, units back on sale, who, when); customers see amounts and dates only (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Order notes": {
+      "status": "done",
+      "note": "internal notes on each order: team only, never on the customer page, can't be edited or deleted, max 200 per order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     }
   },
   "10": {
@@ -637,6 +673,10 @@
     "Delivery estimates": {
       "status": "todo",
       "note": "needs the owner's flat-rate transit days"
+    },
+    "Tracking integration": {
+      "status": "todo",
+      "note": "_manual tracking built_: carrier + code + link typed by the team and shown to the customer (2026-11-02); carrier API tracking waits for Melhor Envio"
     }
   },
   "13": {
@@ -664,19 +704,19 @@
   "14": {
     "Order management": {
       "status": "todo",
-      "note": "_partial_: list, detail, confirm Pix, cancel unpaid (verified 2026-11-02); editing, fulfilment statuses, refunds, invoices, labels and internal notes pending"
+      "note": "_partial_: list, detail, confirm Pix, cancel unpaid, fulfilment steps + tracking, internal notes, refunds (verified 2026-11-02); editing orders, invoices and labels pending"
     },
     "View orders": {
       "status": "done",
       "note": "/admin/orders: tabs by status with counts, newest first, 25 per page, overdue Pix flagged; /admin/orders/:number: items, totals, customer (incl. CPF), delivery, history (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     },
     "Update order status": {
-      "status": "todo",
-      "note": "_partial_: pending_payment → paid / cancelled only"
+      "status": "done",
+      "note": "Pix confirm/cancel, preparing → shipped/ready → delivered/picked up (forward only), refunds; staff can do everything but cancel and refund (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     },
     "Cancel orders": {
-      "status": "todo",
-      "note": "_partial_: unpaid Pix orders (owner/admin, reason required, stock released, audited; verified 2026-11-02); paid orders need the refund flow"
+      "status": "done",
+      "note": "unpaid orders: cancel with a reason, stock released; paid orders: a full refund (\"Reembolsado\"), units back on sale by default before they leave the store (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     },
     "User roles": {
       "status": "done",
@@ -692,7 +732,15 @@
     },
     "Activity logs": {
       "status": "todo",
-      "note": "_partial_: auditLogs records admin sign-in/out, Pix confirmations, cancellations and role changes (order changes and their entries in one transaction); no viewer in the admin yet"
+      "note": "_partial_: auditLogs records sign-in/out, Pix confirmations, cancellations (admin and automatic), fulfilment steps, tracking edits, notes, refunds, role changes and 2FA resets (each order change in the same transaction as its entry); no viewer in the admin yet"
+    },
+    "Process refunds": {
+      "status": "done",
+      "note": "owner/admin record full or partial refunds with reason and stock returns (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Add internal notes": {
+      "status": "done",
+      "note": "owner/admin/staff (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     }
   },
   "16": {
@@ -774,7 +822,7 @@
     },
     "Two-factor authentication for administrators": {
       "status": "todo",
-      "note": "_server gate done_: with ADMIN_REQUIRE_MFA=true (production default) admin sessions require a second factor (tested with an emulator SMS factor). TOTP enrolment/sign-in screens deferred until the real Firebase project (Identity Platform) exists — owner decision 2026-11-01; until then production admin sign-in is refused"
+      "note": "_TOTP built 2026-11-02_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Verified against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP): to be verified on the first deploy (owner decision 2026-11-02)"
     },
     "Role-based access control": {
       "status": "done",
@@ -782,7 +830,7 @@
     },
     "Audit logs": {
       "status": "done",
-      "note": "auditLogs: admin sign-in/out, Pix confirmations, cancellations, role changes; each order change and its entry are written in one transaction (integration-tested 2026-11-02)"
+      "note": "auditLogs: admin sign-in/out, Pix confirmations, cancellations (admin and the expiry job as a system actor), fulfilment, tracking, notes, refunds, role changes, 2FA resets; order changes and their entries are written in one transaction (integration-tested 2026-11-02)"
     },
     "Session management": {
       "status": "todo",
@@ -806,7 +854,7 @@
   "19": {
     "Automated testing": {
       "status": "todo",
-      "note": "_in progress_: 53 unit tests (`npm test`) + 8 emulator integration tests (`npm run test:integration`); e2e pending"
+      "note": "_in progress_: 132 unit tests (`npm test`) + 65 emulator integration tests (`npm run test:integration`); e2e pending"
     }
   },
   "20": {
@@ -902,6 +950,10 @@
     },
     "Product search and filtering": {
       "status": "done"
+    },
+    "Refund and return system": {
+      "status": "todo",
+      "note": "_refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built"
     }
   }
 }

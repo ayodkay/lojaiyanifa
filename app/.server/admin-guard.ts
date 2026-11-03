@@ -18,7 +18,7 @@ export const ADMIN_HEADERS = { "Cache-Control": "private, no-store", "X-Robots-T
 export const REFUSAL_MESSAGE: Record<AdminRefusal, string> = {
   not_admin: "Esta conta não tem acesso ao painel.",
   email_unverified: "Confirme o seu e-mail antes de usar o painel.",
-  mfa_required: "O painel exige verificação em duas etapas, que ainda não está disponível nesta versão.",
+  mfa_required: "O painel exige verificação em duas etapas (código de um app autenticador). Entre novamente para configurá-la ou digitar o código.",
 };
 
 export const requireAdmin: MiddlewareFunction<Response> = async ({ request, context }, next) => {

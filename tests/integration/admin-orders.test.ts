@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   cancelPendingOrder,
   confirmPixPayment,
   countOrders,
+  expireOverdueOrders,
+  ExpiryRunError,
   getOrderForAdmin,
   listOrders,
   OrderNotFoundError,
@@ -25,6 +27,7 @@ const deps: OrderDeps = {
   catalog: catalogOf([
     catalogProduct("colar", { name: "Colar", sku: "COLAR-1", priceCents: 12990, prismicStock: 50 }),
     catalogProduct("pulseira", { name: "Pulseira", sku: "PULS-1", priceCents: 4500, prismicStock: null }),
+    catalogProduct("brinco", { name: "Brinco", sku: "BRINCO-1", priceCents: 3000, prismicStock: 10 }),
   ]),
   payment: { pix: { key: "123e4567-e12b-12d1-a456-426655440000", merchantName: "Loja Iyanifa", merchantCity: "Rio de Janeiro" }, expiryHours: 24 },
   shipping: shippingSettingsSchema.parse({
@@ -67,7 +70,7 @@ describe("admin orders list", () => {
     expect(numbers(await listOrders("pending_payment", null))).toEqual([1004, 1001]);
     expect(numbers(await listOrders("paid", null))).toEqual([1002]);
     expect(numbers(await listOrders("cancelled", null))).toEqual([1003]);
-    expect(await countOrders()).toEqual({ pending_payment: 2, paid: 1, cancelled: 1, all: 4 });
+    expect(await countOrders()).toEqual({ pending_payment: 2, paid: 1, processing: 0, shipped: 0, delivered: 0, cancelled: 1, partially_refunded: 0, refunded: 0, all: 4 });
   });
 
   it("returns the row the list shows, straight from the order checkout wrote", async () => {
@@ -85,6 +88,7 @@ describe("admin orders list", () => {
       itemCount: 3,
       totalCents: 3 * 12990 + 2500,
       shippingMethod: "flat_rate",
+      fulfillmentStage: "unfulfilled",
     });
   });
 
@@ -103,7 +107,7 @@ describe("admin orders list", () => {
 
   it("returns an empty first page and zero counts when there are no orders", async () => {
     expect(await listOrders("pending_payment", null)).toEqual({ rows: [], nextBefore: null });
-    expect(await countOrders()).toEqual({ pending_payment: 0, paid: 0, cancelled: 0, all: 0 });
+    expect(await countOrders()).toEqual({ pending_payment: 0, paid: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, partially_refunded: 0, refunded: 0, all: 0 });
   });
 });
 
@@ -183,6 +187,28 @@ describe("confirming and cancelling Pix orders", () => {
     expect((await auditOf()).length).toBe(1);
   });
 
+  it("reports a lost race as 'not pending' even when the database only says the transaction was closed", async () => {
+    // The emulator sometimes closes the losing transaction instead of retrying it into OrderNotPendingError.
+    await createOrder(checkout(2), deps);
+    const closed = () => Object.assign(new Error("3 INVALID_ARGUMENT: Transaction is invalid or closed."), { code: 3 });
+    const spy = vi.spyOn(db(), "runTransaction").mockImplementationOnce(async () => {
+      await confirmPixPayment(1001, owner); // the winner (its own transaction runs for real)
+      throw closed();
+    });
+
+    await expect(cancelPendingOrder(1001, owner, { reason: "other", note: "x" })).rejects.toMatchObject({ name: "OrderNotPendingError", status: "paid" });
+    spy.mockRestore();
+  });
+
+  it("passes the database's error on when the order is still pending (nothing was settled)", async () => {
+    await createOrder(checkout(2), deps);
+    const spy = vi.spyOn(db(), "runTransaction").mockRejectedValueOnce(Object.assign(new Error("14 UNAVAILABLE: connection reset"), { code: 14 }));
+
+    await expect(confirmPixPayment(1001, owner)).rejects.toThrow("14 UNAVAILABLE: connection reset");
+    spy.mockRestore();
+    expect((await getOrderForAdmin(1001))!.status).toBe("pending_payment");
+  });
+
   it("fails loudly, writing nothing, when the stock document can't cover the reservation", async () => {
     await createOrder(checkout(2), deps);
     await db().doc("inventory/COLAR-1").update({ reserved: 1 }); // e.g. a hand edit in the console
@@ -203,5 +229,107 @@ describe("confirming and cancelling Pix orders", () => {
 
     expect((await getOrderForAdmin(1001))!.status).toBe("paid");
     expect(await stockOf("PULS-1")).toBeNull();
+  });
+});
+
+describe("the Pix expiry job", () => {
+  beforeEach(clearFirestore);
+
+  // deps.payment.expiryHours = 24
+  const t0 = new Date("2026-11-02T12:00:00.000Z");
+  const at = (hours: number) => new Date(t0.getTime() + hours * 3_600_000);
+  const cancellations = async () =>
+    (await db().collection("auditLogs").where("action", "==", "order.cancelled").get()).docs.map((d) => ({ target: d.get("target"), actor: d.get("actor") }));
+
+  it("cancels only pending orders past their deadline, releases their stock, and records the system as the actor", async () => {
+    await createOrder(checkout(2), deps, { now: t0 }); // 1001, due at +24h
+    await createOrder(checkout(3), deps, { now: at(2) }); // 1002, due at +26h
+    await createOrder(checkout(1), deps, { now: t0 }); // 1003, due at +24h but paid
+    await confirmPixPayment(1003, owner, at(1));
+    expect(await stockOf("COLAR-1")).toEqual({ onHand: 49, reserved: 5 });
+
+    const run = await expireOverdueOrders(at(25));
+
+    expect(run).toEqual({ expired: [1001], skipped: [], failed: [], more: false });
+    expect(await stockOf("COLAR-1")).toEqual({ onHand: 49, reserved: 3 });
+    const order = (await getOrderForAdmin(1001))!;
+    expect(order.status).toBe("cancelled");
+    expect(order.updatedAt).toBe(at(25).toISOString());
+    expect(order.cancellation).toEqual({
+      at: at(25).toISOString(),
+      reason: "payment_not_received",
+      note: "Prazo de pagamento vencido (cancelamento automático)",
+      by: null,
+    });
+    expect(order.timeline.at(-1)).toEqual({ at: at(25).toISOString(), status: "cancelled", by: "system", actor: null, note: order.cancellation!.note });
+    expect((await getOrderForAdmin(1002))!.status).toBe("pending_payment");
+    expect((await getOrderForAdmin(1003))!.status).toBe("paid");
+    expect(await cancellations()).toEqual([{ target: "orders/1001", actor: { type: "system", name: "pix-expiry" } }]);
+  });
+
+  it("never cancels before the deadline, and cancels from the deadline on", async () => {
+    await createOrder(checkout(2), deps, { now: t0 });
+    const deadline = at(24);
+
+    expect(await expireOverdueOrders(new Date(deadline.getTime() - 1))).toEqual({ expired: [], skipped: [], failed: [], more: false });
+    expect((await getOrderForAdmin(1001))!.status).toBe("pending_payment");
+
+    expect((await expireOverdueOrders(deadline)).expired).toEqual([1001]);
+    expect(await stockOf("COLAR-1")).toEqual({ onHand: 50, reserved: 0 });
+  });
+
+  it("changes nothing when it runs again", async () => {
+    await createOrder(checkout(2), deps, { now: t0 });
+    await expireOverdueOrders(at(25));
+
+    expect(await expireOverdueOrders(at(26))).toEqual({ expired: [], skipped: [], failed: [], more: false });
+    expect(await stockOf("COLAR-1")).toEqual({ onHand: 50, reserved: 0 });
+    expect(await cancellations()).toHaveLength(1);
+  });
+
+  it("when an admin confirms the payment while the job runs, exactly one of them wins", async () => {
+    await createOrder(checkout(2), deps, { now: t0 });
+
+    const [confirmed, job] = await Promise.allSettled([confirmPixPayment(1001, owner, at(25)), expireOverdueOrders(at(25))]);
+
+    // The job never fails because someone else got there first — even when the emulator
+    // closes its transaction under contention instead of answering OrderNotPendingError.
+    expect(job.status).toBe("fulfilled");
+    const status = (await getOrderForAdmin(1001))!.status;
+    if (status === "paid") {
+      expect(confirmed.status).toBe("fulfilled");
+      expect((job as PromiseFulfilledResult<Awaited<ReturnType<typeof expireOverdueOrders>>>).value.expired).toEqual([]);
+      expect(await stockOf("COLAR-1")).toEqual({ onHand: 48, reserved: 0 });
+    } else {
+      expect(status).toBe("cancelled");
+      expect((confirmed as PromiseRejectedResult).reason).toBeInstanceOf(OrderNotPendingError);
+      expect(await stockOf("COLAR-1")).toEqual({ onHand: 50, reserved: 0 });
+    }
+    expect((await db().collection("auditLogs").get()).size).toBe(1);
+  });
+
+  it("keeps going when one order can't be cancelled, then fails loudly naming it", async () => {
+    await createOrder(checkout(2), deps, { now: t0 }); // 1001: COLAR-1
+    await createOrder(checkout(1, { items: [{ productId: "brinco", sku: "BRINCO-1", quantity: 1 }] }), deps, { now: at(1) }); // 1002
+    await db().doc("inventory/COLAR-1").update({ reserved: 1 }); // can't cover 1001's reservation of 2
+
+    const error = await expireOverdueOrders(at(26)).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ExpiryRunError);
+    const { run } = error as ExpiryRunError;
+    expect(run.expired).toEqual([1002]);
+    expect(run.failed).toEqual([{ number: 1001, error: expect.stringMatching(/inventory\/COLAR-1 can't release 2 for order 1001/) }]);
+    expect((error as Error).message).toMatch(/1 order\(s\) could not be cancelled: 1001/);
+    expect((await getOrderForAdmin(1001))!.status).toBe("pending_payment");
+    expect(await stockOf("COLAR-1")).toEqual({ onHand: 50, reserved: 1 });
+    expect(await stockOf("BRINCO-1")).toEqual({ onHand: 10, reserved: 0 });
+  });
+
+  it("works through a backlog in batches, oldest deadline first", async () => {
+    for (let h = 0; h < 3; h++) await createOrder(checkout(1), deps, { now: at(h) }); // 1001–1003, due at +24/+25/+26h
+
+    expect(await expireOverdueOrders(at(30), 2)).toEqual({ expired: [1001, 1002], skipped: [], failed: [], more: true });
+    expect(await expireOverdueOrders(at(30), 2)).toEqual({ expired: [1003], skipped: [], failed: [], more: false });
+    expect(await stockOf("COLAR-1")).toEqual({ onHand: 50, reserved: 0 });
   });
 });

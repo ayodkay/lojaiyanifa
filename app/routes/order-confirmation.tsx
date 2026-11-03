@@ -14,7 +14,7 @@ import { formatBrPhone, formatCep } from "~/lib/br";
 import { cart } from "~/lib/client-store";
 import { NO_STORE, noStore } from "~/lib/http";
 import { formatBRL } from "~/lib/money";
-import { ORDER_STATUS_LABEL } from "~/lib/orders";
+import { type CustomerOrderView, type FulfillmentStep, orderStatusLabel } from "~/lib/orders";
 import { seoMeta } from "~/lib/seo";
 import { whatsappHref } from "~/lib/shell";
 
@@ -57,6 +57,72 @@ export function meta({ loaderData }: Route.MetaArgs) {
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 
+const STEPS: readonly FulfillmentStep[] = ["processing", "shipped", "delivered"];
+
+/** Paid orders: where the order is, and how to follow the parcel. */
+function Progress({ order }: { order: CustomerOrderView }) {
+  const { fulfillment: f, shipping } = order;
+  const reached = { processing: f.processingAt, shipped: f.shippedAt, delivered: f.deliveredAt };
+  const readyForPickup = shipping.method === "pickup" && f.stage === "shipped";
+  return (
+    <section aria-labelledby="acompanhe" className="space-y-4">
+      <h2 id="acompanhe" className="text-2xl">
+        Acompanhe o seu pedido
+      </h2>
+      <ol className="space-y-2">
+        <li>
+          <span aria-hidden="true">✓</span> Pagamento confirmado
+        </li>
+        {STEPS.map((step) => (
+          <li key={step} className={reached[step] ? undefined : "text-muted"}>
+            <span aria-hidden="true">{reached[step] ? "✓" : "○"}</span> {orderStatusLabel(step, shipping.method)}
+            {reached[step] ? <> — {dateTime.format(new Date(reached[step]))}</> : <span className="sr-only"> (ainda não)</span>}
+          </li>
+        ))}
+      </ol>
+      {readyForPickup && shipping.pickupAddress && (
+        <p>
+          Já pode retirar em: <strong>{shipping.pickupAddress}</strong>
+        </p>
+      )}
+      {(f.carrier || f.trackingCode) && (
+        <p>
+          Enviado por {f.carrier}
+          {f.trackingCode && (
+            <>
+              {" "}
+              · código <span className="font-mono">{f.trackingCode}</span>
+            </>
+          )}
+          {f.trackingUrl && (
+            <>
+              {" "}
+              ·{" "}
+              <a href={f.trackingUrl} target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-4">
+                Rastrear a entrega
+              </a>
+            </>
+          )}
+        </p>
+      )}
+      {order.refunds.length > 0 && (
+        <div className="space-y-1 border-t border-line pt-4">
+          <h3 className="font-medium">{order.status === "refunded" ? "Valor devolvido" : "Reembolso parcial"}</h3>
+          <ul>
+            {order.refunds.map((r) => (
+              <li key={r.at}>
+                {formatBRL(r.amountCents)} devolvidos em {dateTime.format(new Date(r.at))}
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted">Ficou com alguma dúvida sobre o reembolso? Fale com a loja.</p>
+        </div>
+      )}
+      <p className="text-muted">Guarde este link para acompanhar o pedido.</p>
+    </section>
+  );
+}
+
 export default function OrderConfirmation({ loaderData }: Route.ComponentProps) {
   const { order, qrDataUrl, whatsapp } = loaderData;
   const [params, setParams] = useSearchParams();
@@ -86,10 +152,16 @@ export default function OrderConfirmation({ loaderData }: Route.ComponentProps) 
       />
       <p className="eyebrow mt-8">Pedido nº {order.number}</p>
       <h1 className="mb-3 mt-3 text-4xl md:text-5xl">
-        {pending ? "Pedido recebido! Agora é só pagar com Pix." : cancelled ? "Pedido cancelado" : "Obrigado pela sua compra!"}
+        {pending
+          ? "Pedido recebido! Agora é só pagar com Pix."
+          : cancelled
+            ? "Pedido cancelado"
+            : order.status === "refunded"
+              ? "Pedido reembolsado"
+              : "Obrigado pela sua compra!"}
       </h1>
       <p className="text-muted">
-        Situação: <strong className="text-ink">{ORDER_STATUS_LABEL[order.status]}</strong>
+        Situação: <strong className="text-ink">{orderStatusLabel(order.status, order.shipping.method)}</strong>
       </p>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_22rem]">
@@ -115,12 +187,7 @@ export default function OrderConfirmation({ loaderData }: Route.ComponentProps) 
             </p>
           </section>
         ) : (
-          <section aria-labelledby="proximos" className="space-y-3">
-            <h2 id="proximos" className="text-2xl">
-              Próximos passos
-            </h2>
-            <p className="text-muted">Guarde este link para acompanhar o pedido.</p>
-          </section>
+          <Progress order={order} />
         )}
 
         <aside aria-labelledby="resumo" className="h-fit space-y-6 border border-line bg-surface p-6">

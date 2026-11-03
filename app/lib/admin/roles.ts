@@ -15,13 +15,18 @@ export const ROLE_LABEL: Record<AdminRole, string> = {
 };
 
 /** Only capabilities that exist in the admin today; add rows as features land. */
-export type Capability = "orders.view" | "orders.confirm_payment" | "orders.cancel";
+export type Capability = "orders.view" | "orders.confirm_payment" | "orders.cancel" | "orders.fulfill" | "orders.add_note" | "orders.refund";
 
 const ALLOWED: Record<Capability, readonly AdminRole[]> = {
   "orders.view": ["owner", "admin", "staff"],
   "orders.confirm_payment": ["owner", "admin", "staff"],
   // Cancelling gives stock back and ends the sale: owner and admin only.
   "orders.cancel": ["owner", "admin"],
+  // Preparing, shipping and handing over orders, tracking codes, internal notes: the whole team.
+  "orders.fulfill": ["owner", "admin", "staff"],
+  "orders.add_note": ["owner", "admin", "staff"],
+  // Recording a refund changes the money and the stock: owner and admin only (like cancelling).
+  "orders.refund": ["owner", "admin"],
 };
 
 export function can(role: AdminRole, capability: Capability): boolean {

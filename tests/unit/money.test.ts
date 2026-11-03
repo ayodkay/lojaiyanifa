@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { formatBRL, percentOff, toCents, toDecimalString } from "~/lib/money";
+import { formatBRL, parseDecimalToCents, percentOff, toCents, toDecimalString } from "~/lib/money";
+
+describe("parseDecimalToCents", () => {
+  it("reads a number input's value exactly, without floating point", () => {
+    expect(parseDecimalToCents("129.90")).toBe(12990);
+    expect(parseDecimalToCents("129.9")).toBe(12990);
+    expect(parseDecimalToCents("130")).toBe(13000);
+    expect(parseDecimalToCents("0.29")).toBe(29); // 0.29 * 100 is 28.999… in floating point
+    expect(parseDecimalToCents(" 25.00 ")).toBe(2500);
+  });
+
+  it("refuses commas, signs, exponents, empty and over-precise values", () => {
+    for (const value of ["", "129,90", "-5", "+5", "1e3", "12.345", ".5", "5.", "1.234,56", "abc", "1 000"]) {
+      expect(parseDecimalToCents(value)).toBeNull();
+    }
+  });
+});
+
 
 describe("money", () => {
   it("converts reais to integer centavos without float drift", () => {

@@ -1,7 +1,8 @@
 // Admin orders: list tabs and URL parameters, the cancel form, and the shapes
 // the pages receive. Shared by the server (app/.server/admin-orders.ts) and the pages.
+import type { RefundReason, RestockLine } from "~/lib/admin/refunds";
 import type { Cents } from "~/lib/money";
-import type { CustomerOrderView, OrderStatus } from "~/lib/orders";
+import type { CustomerOrderView, FulfillmentStage, OrderStatus } from "~/lib/orders";
 import type { ShippingMethodId } from "~/lib/store-settings";
 
 /** Order numbers in URLs: digits only, else the page is a 404. */
@@ -46,23 +47,54 @@ export interface AdminTimelineEntry {
   note: string | null;
 }
 
+/** Internal note on an order: only the team sees it. */
+export interface AdminOrderNote {
+  id: string;
+  at: string;
+  by: OrderActor;
+  text: string;
+}
+
+/** A refund recorded by the team (the money went back through the bank). */
+export interface AdminOrderRefund {
+  id: string;
+  at: string;
+  by: OrderActor;
+  amountCents: Cents;
+  reason: RefundReason;
+  note: string | null;
+  /** Units put back on sale. */
+  restock: RestockLine[];
+}
+
 /** Everything the admin may see about an order, including the CPF (needed for the nota fiscal). Dates are ISO strings. */
 export interface AdminOrderView extends Omit<CustomerOrderView, "customer" | "payment"> {
   updatedAt: string;
   customer: { name: string; email: string; phone: string; cpf: string; uid: string | null };
   payment: CustomerOrderView["payment"] & { confirmedAt: string | null; confirmedBy: OrderActor | null };
-  cancellation: { at: string; reason: CancelReason; note: string | null; by: OrderActor } | null;
+  /** `by` is null when the store cancelled on its own (the Pix deadline passed). */
+  cancellation: { at: string; reason: CancelReason; note: string | null; by: OrderActor | null } | null;
   timeline: AdminTimelineEntry[];
+  notes: AdminOrderNote[];
+  refunds: AdminOrderRefund[];
+  /** Units of each stock-tracked SKU that a refund can still put back on sale. */
+  restockable: Record<string, number>;
 }
 
-/** Tabs: the statuses the store can produce today, plus everything. */
-export const ORDER_FILTERS = ["pending_payment", "paid", "cancelled", "all"] as const;
+/** Tabs: the statuses the store can produce today, in the order an order goes through them, plus everything. */
+export const ORDER_FILTERS = ["pending_payment", "paid", "processing", "shipped", "delivered", "cancelled", "partially_refunded", "refunded", "all"] as const;
 export type OrderFilter = (typeof ORDER_FILTERS)[number];
 
 export const ORDER_FILTER_LABEL: Record<OrderFilter, string> = {
   pending_payment: "Aguardando pagamento",
   paid: "Pagos",
+  processing: "Em preparação",
+  // Pickup orders ready at the store are here too; their rows say "Pronto para retirada".
+  shipped: "Enviados",
+  delivered: "Entregues",
   cancelled: "Cancelados",
+  partially_refunded: "Reembolso parcial",
+  refunded: "Reembolsados",
   all: "Todos",
 };
 
@@ -85,4 +117,6 @@ export interface AdminOrderRow {
   itemCount: number;
   totalCents: Cents;
   shippingMethod: ShippingMethodId;
+  /** Shown next to statuses that don't tell the shipping stage (a partial refund). */
+  fulfillmentStage: FulfillmentStage;
 }

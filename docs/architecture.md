@@ -88,13 +88,21 @@ app's `Cache-Control` headers, which both CDNs honour).
   `scripts/admin/grant-role.mjs` (emulator by default; `--production --project`
   for a real project), which also revokes the account's sessions — a live
   cookie keeps the claims it was minted with. `/admin/users` comes later.
-- **Admin 2FA**: with `ADMIN_REQUIRE_MFA=true` (the default; production) admin
-  sessions require the `firebase.sign_in_second_factor` claim — verified with an
-  emulator SMS factor. The TOTP enrolment/sign-in screens are not built yet
-  (owner decision 2026-11-01: build them on the real project, since the Auth
-  emulator only implements SMS second factors). TOTP MFA requires "Firebase
-  Authentication with Identity Platform" on the project. Until the screens
-  exist, production admin sign-in is refused (fail-closed).
+- **Admin 2FA (TOTP, built 2026-11-02)**: with `ADMIN_REQUIRE_MFA=true` (the
+  default; production) admin sessions require the `firebase.sign_in_second_factor`
+  claim. On `/admin/login` (`app/.client/firebase.ts`): an account with an
+  authenticator app gets `auth/multi-factor-auth-required` after its password and
+  types the 6-digit code (`getMultiFactorResolver` → `TotpMultiFactorGenerator`);
+  an admin without one is refused by the server (`mfa_required`) while the page
+  still holds the password sign-in, and enrols: Firebase creates the secret, the
+  QR code is drawn in the browser (the secret never reaches our server), the first
+  code proves the app works, then the admin signs in again with a code. An account
+  whose only second factor is SMS is refused with its own message (the admin
+  accepts authenticator apps only). Lost phone: `scripts/admin/reset-mfa.mjs`
+  removes the account's second factors and revokes its sessions (audited as
+  `mfa.reset`). Needs "Firebase Authentication with Identity Platform" with TOTP
+  enabled (owner: enabled on `lojaiyanifa`). The Auth emulator has no TOTP, so the
+  code exchange itself is verified on the first deploy (owner decision 2026-11-02).
 - **Emulator guard**: pointed at an emulator the Admin SDK accepts unsigned
   tokens, so a production build refuses to start with `FIRESTORE_EMULATOR_HOST` /
   `FIREBASE_AUTH_EMULATOR_HOST` set, except inside the functions emulator.
@@ -149,7 +157,7 @@ All money is stored as **integer centavos** (BRL). All timestamps are Firestore
 | `newsletter/{emailHash}` | sha256(email) | subscription + consent record |
 | `mail/{id}` | auto | email outbox |
 | `settings/{store,payment,shipping,tax,email}` | fixed | commerce settings edited in admin |
-| `auditLogs/{id}` | auto | who did what, when: `{ at, action, actor, target, details }`; actor = `{ uid, email, role }` (app) or `{ type: "script", name, by }` (scripts). Actions: `admin.signed_in`, `admin.signed_out`, `order.payment_confirmed`, `order.cancelled`, `role.changed` |
+| `auditLogs/{id}` | auto | who did what, when: `{ at, action, actor, target, details }`; actor = `{ uid, email, role }` (app), `{ type: "system", name }` (scheduled jobs, e.g. `pix-expiry`) or `{ type: "script", name, by }` (scripts). Actions: `admin.signed_in`, `admin.signed_out`, `order.payment_confirmed`, `order.cancelled`, `order.fulfillment_updated`, `order.tracking_updated`, `order.note_added`, `order.refunded`, `role.changed`, `mfa.reset` |
 | `checkoutAttempts/{sha256(key)}` | checkout key hash | idempotency: maps a checkout attempt to its order number |
 | `redirects/{encodedPath}` | path | old URL → new URL (301) |
 
@@ -189,11 +197,40 @@ so two admins or a future expiry job can't settle it twice), checks every reserv
 SKU's stock document covers the reservation (corrupt counts fail loudly, nothing
 written), moves the stock, updates the order and writes the audit entry.
 - Timeline entry: `{ at, status, by: "customer" | "admin" | "system", actor: { uid, email } | null, note }`.
+  For a fulfilment step on a partially refunded order, `status` is the step taken (the order keeps its status).
 - Paid: `payment.status = "confirmed"`, `payment.confirmedAt`, `payment.confirmedBy`.
 - Cancelled: `cancellation: { at, reason: "payment_not_received" | "customer_request" | "other", note, by }`;
-  `payment.status` stays `"pending"` (it was never confirmed). The customer's order
-  page says the order was cancelled and how to ask for a refund.
-- Not built yet: processing/shipped/delivered, refunds, the Pix expiry job.
+  `by` is null when the expiry job cancelled it. `payment.status` stays `"pending"` (it was
+  never confirmed). The customer's order page says the order was cancelled and how to ask for a refund.
+
+Built 2026-11-02:
+- **Pix expiry** (`expireOverdueOrders`, scheduled function `expirePixOrders` every 15 min,
+  America/Sao_Paulo): orders still `pending_payment` with `expiresAt <= now` (fixed at checkout
+  from `settings/payment.expiryHours`) are cancelled through the same transaction as an admin
+  cancellation (`payment_not_received`, actor `system`), oldest first, 100 per run. One bad order
+  doesn't stop the others; the run then throws `ExpiryRunError` so it is logged. A static Pix code
+  can still be paid after the deadline: the admin page tells the team to refund it or agree a new order.
+- **Fulfilment** (`app/.server/order-fulfillment.ts`): `fulfillment: { stage: unfulfilled | processing |
+  shipped | delivered, carrier, trackingCode, trackingUrl, processingAt, shippedAt, deliveredAt }`.
+  Steps go forward only and "processing" may be skipped; a pickup order's "shipped" means ready at
+  the store and "delivered" picked up. The status follows the stage unless the order is
+  `partially_refunded` (owner decision 2026-11-02: a partial refund has its own status and shipping
+  goes on). Tracking (carrier, code, https link) is optional and editable once shipped. Staff may do all of it.
+- **Internal notes**: `notes: [{ id, at, by, text }]` on the order, append-only, max 200, never in the customer view.
+- **Refunds** (`app/.server/order-refunds.ts`, owner/admin): the money goes back through the bank app; the
+  admin records `refunds: [{ id, key, at, by, amountCents, reason, note, restock: [{ sku, quantity }] }]` and
+  `payment.refundedCents` (must equal the sum — a mismatch fails loudly). Full → `refunded` (ends shipping and
+  further refunds); less → `partially_refunded`. Units go back on sale per item (`onHand += quantity`), at most
+  what the order took from stock (its `reservations`) minus earlier restocks; by default every unit while the
+  order is still in the store (delivery: before it ships; pickup: until picked up), none after (owner decision
+  2026-11-02). Each form rendering carries a one-time `key`, so a double submit records one refund. A Pix paid
+  twice by the customer is not an order refund: return it through the bank and add an internal note.
+- **Races**: every order change is one transaction that re-checks the state. When a losing transaction fails
+  without saying why (the emulator closes it: `3 INVALID_ARGUMENT: Transaction is invalid or closed`), the
+  caller re-reads the order: if it changed so the action no longer applies, it reports the normal domain error
+  (409 "this order changed" in the admin), otherwise the original error.
+- Orders written before 2026-11-02 have no `fulfillment`, `notes`, `refunds` or `payment.refundedCents`; they read
+  as unfulfilled with none (only when pending, paid or cancelled — anything else without `fulfillment` is corrupt).
 
 ## 5. Payments — static Pix (owner decision, 2026-10-31)
 
@@ -270,3 +307,10 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-01 | Admin 2FA: the server requires a second factor now (`ADMIN_REQUIRE_MFA`); TOTP screens are built on the real Firebase project; production admin sign-in is refused until then | Owner |
 | 2026-11-02 | Admin accounts need a verified e-mail; admin sign-in posts the ID token to the `/admin/login` action (no generic `/api/session`) | Proposed |
 | 2026-11-02 | Admin orders list defaults to "Aguardando pagamento" (the Pix work queue); staff may confirm Pix but not cancel (role table above) | Proposed |
+| 2026-11-02 | A partial refund gives the order its own status (`partially_refunded`); shipping goes on in `fulfillment.stage` | Owner |
+| 2026-11-02 | Refunds return stock per item: by default every unit before the order leaves the store, none after | Owner |
+| 2026-11-02 | TOTP is verified on a first deploy to `lojaiyanifa` with checkout closed (no payment settings); nothing deploys without the owner's go | Owner |
+| 2026-11-02 | Pix expiry job every 15 minutes; automatic cancellations are `payment_not_received` by `system` | Proposed |
+| 2026-11-02 | Fulfilment steps only go forward ("processing" may be skipped); pickup orders read "Pronto para retirada" / "Retirado"; tracking optional, https links only | Proposed |
+| 2026-11-02 | Internal notes are append-only (no edit/delete), team-wide, max 200 per order | Proposed |
+| 2026-11-02 | Refund forms carry a one-time key (double submit = one refund); refunding needs a "returned via the bank" confirmation; a duplicated Pix is a note, not a refund | Proposed |

@@ -39,7 +39,8 @@ describe("admin order URL parameters", () => {
   it("falls back to the work queue for unknown tabs", () => {
     expect(parseOrderFilter("paid")).toBe("paid");
     expect(parseOrderFilter("all")).toBe("all");
-    expect(parseOrderFilter("refunded")).toBe("pending_payment");
+    for (const tab of ["processing", "shipped", "delivered", "partially_refunded", "refunded"]) expect(parseOrderFilter(tab)).toBe(tab);
+    for (const unknown of ["REFUNDED", "unfulfilled", "x", ""]) expect(parseOrderFilter(unknown)).toBe("pending_payment");
     expect(parseOrderFilter(null)).toBe("pending_payment");
   });
 });

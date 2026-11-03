@@ -211,9 +211,9 @@ One of the most important parts of an e-commerce website.
 - [ ] Installment payments — **N/A**: owner decision 2026-10-31 — Pix only (no installments) at launch
 - [x] Payment status tracking — pending → confirmed by an admin; shown in /admin and on the customer order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Payment confirmation — manual Pix confirmation in /admin/orders/:number (owner/admin/staff): one transaction marks the order paid, turns the stock reservation into a sale, writes history + audit log; repeated or conflicting confirmations refused, incl. a confirm-vs-cancel race (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
-- [ ] Failed payment handling — _partial_: overdue Pix orders are flagged and owner/admin can cancel them (stock released); the automatic expiry job (cancel after settings/payment.expiryHours) is not built yet
-- [ ] Refund processing
-- [ ] Partial refunds
+- [x] Failed payment handling — unpaid Pix orders are cancelled automatically once their deadline (settings/payment.expiryHours) passes: scheduled function expirePixOrders every 15 min, same transaction as an admin cancellation (stock released, history + audit as "system"); admins can still cancel by hand (verified 2026-11-02: 6 emulator integration tests incl. a race with an admin confirmation; the built function carries the schedule). The Cloud Scheduler trigger itself first runs after the first deploy
+- [x] Refund processing — the owner returns the money in the bank app and records it in /admin/orders/:number (owner/admin): one transaction writes the refund, the new status, the units chosen to go back on sale, history + audit; a double submit records it once (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Partial refunds — any amount up to what remains; the order becomes "Reembolsado parcialmente" and shipping goes on (owner decision 2026-11-02); partial refunds add up to a full one, which ends the order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Fraud detection
 - [ ] Secure payment gateway integration
 - [ ] Payment receipts
@@ -248,24 +248,24 @@ One of the most important parts of an e-commerce website.
 - [x] Unique order number — transactional counter from 1001; concurrency-tested (integration)
 - [x] Order creation — one transaction: re-price, stock reservation, number, Pix (verified 2026-11-01 (browser + live action on the dev server) + 11 integration tests)
 - [x] Order confirmation — confirmation page; e-mail pending (§15)
-- [ ] Order status — _partial_: pending_payment → paid / cancelled from /admin (verified 2026-11-02); processing → shipped → delivered not built yet
-- [ ] Pending orders — _partial_: /admin/orders work queue (default tab, overdue Pix flagged) with confirm/cancel (verified 2026-11-02); automatic expiry job pending
+- [x] Order status — pending_payment → paid → processing → shipped → delivered (pickup: ready → picked up); cancelled (admin or expiry job); refunded / partially_refunded (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Pending orders — "Aguardando pagamento" work queue with overdue Pix flagged; the expiry job cancels unpaid orders after expiryHours (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Paid orders — confirming the Pix moves the order to paid and sells the reserved stock; "Pagos" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
-- [ ] Processing orders
-- [ ] Shipped orders
-- [ ] Delivered orders
+- [x] Processing orders — "Em preparação" step and tab; may be skipped (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Shipped orders — "Enviados" tab; flat-rate orders take carrier + tracking code + https link, pickup orders become "Pronto para retirada" (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Delivered orders — "Entregues" tab; marking needs a confirmation box (pickup: "Retirado") (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Cancelled orders — owner/admin cancel unpaid orders with a reason; stock released; the customer page says "Pedido cancelado" with a contact link; "Cancelados" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests). Cancelling a paid order belongs to refunds (§7)
-- [ ] Refunded orders
+- [x] Refunded orders — "Reembolsados" and "Reembolso parcial" tabs; a partially refunded row also shows its shipping stage (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Order history
-- [ ] Order tracking number
+- [x] Order tracking number — carrier + code + https link, editable after shipping, shown on the customer's order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Shipping carrier integration
 - [ ] Order notifications
 - [ ] Invoice generation
 - [ ] Return management
 - [ ] Exchange management
-- [ ] Refund management
+- [x] Refund management — refund history per order (amount, reason, note, units back on sale, who, when); customers see amounts and dates only (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Partial fulfillment
-- [ ] Order notes
+- [x] Order notes — internal notes on each order: team only, never on the customer page, can't be edited or deleted, max 200 per order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Order export
 
 ### 10. Shipping and Delivery
@@ -280,7 +280,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Real-time shipping rates — Melhor Envio later (owner decision 2026-11-01); needs account, origin CEP, product weights/dimensions
 - [ ] Shipping carrier integration — Melhor Envio later (owner decision 2026-11-01)
 - [ ] Delivery estimates — needs the owner's flat-rate transit days
-- [ ] Tracking integration
+- [ ] Tracking integration — _manual tracking built_: carrier + code + link typed by the team and shown to the customer (2026-11-02); carrier API tracking waits for Melhor Envio
 - [ ] Shipping labels
 - [ ] Delivery notifications
 - [x] Local pickup (optional) — Mercadão de Madureira – Anexo, Galeria K, Lojas 219-220 (verified order 1002)
@@ -374,15 +374,15 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Inventory history
 - [ ] Multiple warehouse support
 - [ ] SKU management
-- [ ] Order management — _partial_: list, detail, confirm Pix, cancel unpaid (verified 2026-11-02); editing, fulfilment statuses, refunds, invoices, labels and internal notes pending
+- [ ] Order management — _partial_: list, detail, confirm Pix, cancel unpaid, fulfilment steps + tracking, internal notes, refunds (verified 2026-11-02); editing orders, invoices and labels pending
 - [x] View orders — /admin/orders: tabs by status with counts, newest first, 25 per page, overdue Pix flagged; /admin/orders/:number: items, totals, customer (incl. CPF), delivery, history (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Edit orders
-- [ ] Update order status — _partial_: pending_payment → paid / cancelled only
-- [ ] Cancel orders — _partial_: unpaid Pix orders (owner/admin, reason required, stock released, audited; verified 2026-11-02); paid orders need the refund flow
-- [ ] Process refunds
+- [x] Update order status — Pix confirm/cancel, preparing → shipped/ready → delivered/picked up (forward only), refunds; staff can do everything but cancel and refund (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Cancel orders — unpaid orders: cancel with a reason, stock released; paid orders: a full refund ("Reembolsado"), units back on sale by default before they leave the store (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
+- [x] Process refunds — owner/admin record full or partial refunds with reason and stock returns (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Print invoices
 - [ ] Print shipping labels
-- [ ] Add internal notes
+- [x] Add internal notes — owner/admin/staff (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Customer management
 - [ ] View customers
 - [ ] Edit customer information
@@ -394,7 +394,7 @@ The administrative system is what allows the business owner to manage the entire
 - [x] User roles — owner / admin / staff as Firebase custom claims, granted with scripts/admin/grant-role.mjs (revokes the account's sessions so changes apply at once), enforced on the server (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Admin permissions — capability table (docs/architecture.md §3) checked in every admin loader/action; staff can confirm Pix but not cancel: the page hides it and a crafted POST gets 403 (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Multiple administrators — any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02); added with scripts/admin/grant-role.mjs until /admin/users exists
-- [ ] Activity logs — _partial_: auditLogs records admin sign-in/out, Pix confirmations, cancellations and role changes (order changes and their entries in one transaction); no viewer in the admin yet
+- [ ] Activity logs — _partial_: auditLogs records sign-in/out, Pix confirmations, cancellations (admin and automatic), fulfilment steps, tracking edits, notes, refunds, role changes and 2FA resets (each order change in the same transaction as its entry); no viewer in the admin yet
 - [ ] Store settings
 - [ ] Payment settings
 - [ ] Shipping settings
@@ -451,7 +451,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] HTTPS / SSL certificate
 - [ ] Secure password hashing
 - [ ] Secure authentication — _admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending
-- [ ] Two-factor authentication for administrators — _server gate done_: with ADMIN_REQUIRE_MFA=true (production default) admin sessions require a second factor (tested with an emulator SMS factor). TOTP enrolment/sign-in screens deferred until the real Firebase project (Identity Platform) exists — owner decision 2026-11-01; until then production admin sign-in is refused
+- [ ] Two-factor authentication for administrators — _TOTP built 2026-11-02_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Verified against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP): to be verified on the first deploy (owner decision 2026-11-02)
 - [x] Role-based access control — owner/admin/staff claims + per-action capability checks on the server (unit, integration and Chrome tests, 2026-11-02)
 - [ ] Protection against SQL injection
 - [ ] Protection against XSS
@@ -464,7 +464,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Secure API endpoints
 - [ ] Database backups
 - [ ] Security monitoring
-- [x] Audit logs — auditLogs: admin sign-in/out, Pix confirmations, cancellations, role changes; each order change and its entry are written in one transaction (integration-tested 2026-11-02)
+- [x] Audit logs — auditLogs: admin sign-in/out, Pix confirmations, cancellations (admin and the expiry job as a system actor), fulfilment, tracking, notes, refunds, role changes, 2FA resets; order changes and their entries are written in one transaction (integration-tested 2026-11-02)
 - [ ] Session management — _admin done_: 12-hour admin sessions; Sair revokes every session of the account; role changes revoke; dead cookies cleared (verified 2026-11-02). Customer sessions pending
 - [ ] Account lockout policies — Firebase Auth throttles repeated failed sign-ins (auth/too-many-requests; message mapped on /admin/login, not triggered in tests)
 - [ ] Secrets management
@@ -508,7 +508,7 @@ Especially important if you're selling in Brazil.
 - [ ] Performance monitoring
 - [ ] Automated backups
 - [ ] Staging environment
-- [ ] Automated testing — _in progress_: 53 unit tests (`npm test`) + 8 emulator integration tests (`npm run test:integration`); e2e pending
+- [ ] Automated testing — _in progress_: 132 unit tests (`npm test`) + 65 emulator integration tests (`npm run test:integration`); e2e pending
 - [ ] API documentation
 - [ ] Scalability
 - [ ] Uptime monitoring
@@ -653,7 +653,7 @@ This is how I would organize the actual website's pages and routes.
 #### Admin dashboard
 - [ ] Transactional emails
 - [ ] Customer support
-- [ ] Refund and return system
+- [ ] Refund and return system — _refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built
 - [ ] Security
 - [ ] Legal pages and compliance
 - [ ] Mobile responsiveness

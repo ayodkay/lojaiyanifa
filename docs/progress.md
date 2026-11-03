@@ -208,39 +208,146 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - TOTP flows (not built); real verification/password-reset e-mails (emulator only); the composite index in
   production; the admin layout on a phone (the automation viewport stays 1536 px).
 
+## Session 4 — 2026-11-02 (evening): TOTP, Pix expiry, fulfilment + notes, refunds
+
+### Owner decisions
+- The real Firebase project **`lojaiyanifa`** exists with Identity Platform + TOTP enabled (owner, 2026-11-02). The
+  gitignored `.env` already holds its public web config (`FIREBASE_WEB_API_KEY`, `FIREBASE_AUTH_DOMAIN`).
+- TOTP is verified on a **first deploy to `lojaiyanifa` with checkout closed** (no `settings/payment` there, so checkout
+  answers "pagamento não configurado"). **Nothing is deployed without the owner's explicit go.**
+- A **partial refund has its own status** (`partially_refunded`, as designed); shipping goes on in `fulfillment.stage`.
+- **Refund stock per item**: by default every unit while the order is still in the store, none after it left.
+- Diagnose-before-fix for the transaction-race failure, then the re-read fix (both approved in chat).
+
+### Done and verified
+- **#1 TOTP screens** (`app/.client/firebase.ts`, `app/routes/admin.login.tsx`, `app/lib/admin/totp.ts`): code step after
+  the password; enrolment (QR drawn in the browser, manual key, `otpauth://` link for the phone with the app); SMS-only
+  accounts refused; errors mapped from the SDK's real codes. **Verified in Chrome** on a second dev server
+  (:5174, `ADMIN_REQUIRE_MFA=true`): owner without a factor → enrolment screen; "Configurar agora" against the emulator
+  → `auth/invalid-argument` shown as "Não foi possível configurar…"; Cancelar → clean password screen; an emulator
+  account with an SMS factor → "Esta conta usa outro tipo de verificação…"; wrong password / customer messages
+  unchanged; on :5173 (MFA off) sign-out → sign-in → `/admin/orders`. Two flaws found in Chrome and fixed (stale
+  messages after a new attempt/Cancelar; fallback verb). **Not verifiable locally:** the TOTP exchange itself.
+  `scripts/admin/reset-mfa.mjs` (lost phone: removes factors, revokes sessions, audits `mfa.reset`): 8 CLI cases on the
+  emulator.
+- **#2 Pix expiry job** (`expireOverdueOrders` in `app/.server/admin-orders.ts`; scheduled `expirePixOrders` in
+  `server/app.ts`, every 15 min, America/Sao_Paulo, max 1 instance, no retries): 6 integration tests (only overdue pending
+  orders, deadline boundary, idempotent, race with a confirmation, one corrupt order doesn't stop the rest, batches);
+  the built module exports it with the right schedule metadata. New index `orders (status ASC, expiresAt ASC)`.
+- **#3 Fulfilment + internal notes** (`app/.server/order-fulfillment.ts`, `app/lib/admin/fulfillment.ts`, order page,
+  list tabs, customer page): 11 unit + 10 integration tests; in Chrome on order 1001 (written before today → the legacy
+  read path) and new order 1006 (pickup): note added; preparing; ship form refused a code without carrier and an
+  `http:` link (server-side), then shipped with tracking; pickup "Pronto para retirada"; customer page progress +
+  pickup address.
+- **#4 Refunds** (`app/.server/order-refunds.ts`, `app/lib/admin/refunds.ts`, `parseDecimalToCents` in `app/lib/money.ts`):
+  8 unit + 9 integration tests; in Chrome: partial refund on 1001 (R$ 10,00, 1 × VES-005 back) → "Reembolsado
+  parcialmente", then shipped (status kept, stage "Enviado" shown in the list); 1006 partial refund → customer page
+  "Reembolso parcial — R$ 5,00 devolvidos em…" without the internal reason. Found in Chrome and fixed: a pickup order
+  "ready for pickup" defaulted to 0 units back (it is still in the store) → `restockByDefault(stage, method)`.
+- **Race robustness**: `settlePendingOrder`, `takeFulfillmentStep` and `recordRefund` re-read the order after a failed
+  transaction and report the domain error (409) when the order changed meanwhile — tested with a stubbed "transaction
+  closed" error; mutation-checked.
+- **Totals**: unit 132 (24 new), integration 65 (27 new), tsc 0, lint 0 errors / 63 warnings (same as before),
+  `npm run build` passes (13 packages, still no browser Firebase SDK in the server bundle). Mutations caught: 10/10
+  (M1–M10). Checklist 105 → 121 done.
+
+### Found in session 4
+- **Firestore emulator + concurrent transactions**: the losing transaction is sometimes closed with
+  `3 INVALID_ARGUMENT: Transaction is invalid or closed` after ~8–12 s instead of being retried (≈1 race run in 6,
+  fresh emulators too). Oops on the way: I first blamed my long-running test emulator; a fresh-emulator failure refuted
+  that. Fixed in code (re-read, above). Whether production Firestore can return this is unverified.
+- Run integration tests on **fresh** emulators (`npm run test:integration`, or
+  `firebase --config firebase.test.json emulators:exec --only firestore,auth --project demo-lojaiyanifa "npx vitest run --config vitest.integration.config.ts <file>"`).
+  The command string runs in a shell: no `|` inside it (`-t race|wins` became a pipe). Vitest here hides console
+  output of passing tests — use `--reporter=verbose` for per-test durations instead of logging.
+- `TaskStop` on a background shell leaves its children running (emulator java, react-router dev): find them by command
+  line and stop those PIDs only.
+- Vite optimizes `qrcode` for the browser the first time a server loads the login page and **reloads that page**:
+  a click right then is lost. Cookies are shared across `localhost` ports, so a session from :5173 shows on :5174.
+- The Chrome extension disconnected once mid-test; reconnected later without changes on our side.
+- `reset-mfa.mjs` printed one Node warning once (cut off by `tail`); not reproduced.
+
+### Not verified (session 4)
+- The TOTP code exchange (real project only); the Cloud Scheduler trigger and the new composite index in production;
+  staff's view of refunds in Chrome (capability unit-tested; the page hides the form, the action checks
+  `orders.refund`); the automatic-cancellation text on the admin order page (data path integration-tested; not opened
+  in Chrome: running the job on the dev data would also cancel the owner's order 1003).
+
 ## Handoff for the next session (read this first)
-**State:** storefront, cart, checkout, orders and Pix codes (sessions 1–2) plus the admin: sign-in with roles,
-orders list, order detail, confirm Pix / cancel unpaid orders — all verified, production build included.
-The admin does NOT work in production yet: see "Owner actions" and the TOTP item below.
-Checklist: 105 done / 13 N/A (`ecommerce_master_build_prompt.md`). Tests: `npm test` (108 unit),
-`npm run test:integration` (38, own emulator ports via `firebase.test.json`), `npm run typecheck`, `npm run lint`.
+**State:** storefront, cart, checkout, orders and Pix codes (sessions 1–2); admin sign-in with roles (session 3);
+session 4: TOTP screens (verification pending on the real project), Pix expiry job, fulfilment (preparing → shipped /
+ready → delivered / picked up) with tracking, internal notes, full/partial refunds with stock returns — verified as
+listed above. **Not committed yet** (session 4 work is in the working tree; commit only when the owner asks).
+Checklist: 121 done / 13 N/A (`ecommerce_master_build_prompt.md`). Tests: `npm test` (132 unit),
+`npm run test:integration` (65, own emulator ports via `firebase.test.json`), `npm run typecheck`, `npm run lint`.
 **Git:** `master` = `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin →
-handoff fixes; pushed to `origin/master` by the owner. Commit only when the owner asks; add files by path,
+handoff fixes (`246acfa`); pushed to `origin/master` by the owner. Commit only when the owner asks; add files by path,
 never `git add .`.
 
 **This machine:**
 - Emulators need Java 21: prefix shell commands with `PATH="/c/Program Files/Microsoft/jdk-21.0.13.21-hotspot/bin:$PATH"`.
 - Dev Firestore emulator :8180 (Docker owns 8080), Auth :9099; integration tests use :8280/:9098.
 - The session-1 orphan emulator is gone: `npm run emulators` (with UI on :4000) should start again — not tried.
-- A dev server + emulators started from Claude's session 2 may still run (`emulators:exec … react-router dev
-  --port 5173`); probe `http://localhost:5173/healthz`. Its data is temporary: orders 1001 paid, 1002/1004/1005
-  cancelled (test orders), **1003 is the owner's own test order — leave it alone**. Re-seed users/settings with
-  `node scripts/dev/seed-emulator.mjs` (emulator only). A fresh start: `npm run dev:emulated`.
+- A dev server + emulators started from Claude's session 2 still ran at the end of session 4 (PIDs 33300/12220/41396/24628,
+  `emulators:exec … react-router dev --port 5173`, started 2026-11-01 13:52); probe `http://localhost:5173/healthz`.
+  Its data is temporary test data: 1001 partially refunded (R$ 10,00) + shipped with test tracking + a test note;
+  1002/1004/1005 cancelled; **1003 is the owner's own test order (still pending, past its deadline) — leave it alone,
+  and never run the expiry job against this dev data**; 1006 (session 4, pickup) paid, ready for pickup, R$ 5,00
+  refunded. Two `mfa.reset` audit entries come from session-4 script tests; the temporary `sms@example.com` user was
+  deleted. Re-seed users/settings with `node scripts/dev/seed-emulator.mjs` (emulator only). A fresh start:
+  `npm run dev:emulated`. Session 4's second dev server (:5174) and test emulators were stopped.
 - `npm run build` works. It deletes `build\` first: if it fails with EBUSY, some process (a shell, Explorer, an
   emulator serving `build\functions`) is sitting in that folder — Resource Monitor → CPU → Associated Handles →
   search `build\functions` names it.
 - Never put the owner's personal data (phone, Pix key, names, e-mail) in committed files — `.env.local` /
   Firestore only; grep before finishing (session 3: 0 hits).
 
-**Owner actions before production admin works:** create the Firebase project (Blaze) and upgrade Auth to Identity
-Platform with TOTP MFA enabled; set `FIREBASE_WEB_API_KEY` / `FIREBASE_AUTH_DOMAIN` for the function; create the
-owner account (console → Authentication → Add user), run
-`node scripts/admin/grant-role.mjs --production --project <id> --email <owner e-mail> --role owner`, then verify the
-e-mail from the sign-in page. Then build the TOTP screens (next item) and test them there.
+**Deploy readiness check (2026-11-03): not ready, one blocker in our build.**
 
-**Not built yet (in order):** TOTP enrolment + sign-in screens (needs the real project) → Pix expiry job (cancel
-unpaid after `expiryHours` through the same transaction as `cancelPendingOrder`, with `by: "system"`) →
-fulfilment statuses (processing/shipped/delivered) + internal notes → refunds (record full/partial; cancelling
-paid orders) → transactional e-mails (SMTP provider needed) → activity-log viewer → `/admin/users` → admin
-dashboard → customer accounts (CPF required at sign-up) → coupons → Melhor Envio. Terms/privacy pages are Prismic
-content the owner must publish (checkout links to them).
+- **The blocker:** production config never reaches the function.
+  - `env.ts` requires `SITE_URL` and `PRISMIC_REPO`.
+  - The Firebase CLI loads only `.env` / `.env.<projectId>` from the functions source folder (`build/functions`).
+  - `build-functions.mjs` copies only `.env.local` there, which the CLI uses for the emulator and never deploys.
+  - Deployed as-is, every page would return 500.
+- **Second problem:** `FIREBASE_WEB_API_KEY` / `FIREBASE_AUTH_DOMAIN` can't be deployed under those names. firebase-tools
+  15.24.0 rejects keys starting with `FIREBASE_` (`lib/functions/env.js`).
+- **Proposed fix (waiting for the owner's go):**
+  - Rename the two variables to `WEB_API_KEY` / `WEB_AUTH_DOMAIN`.
+  - Add a gitignored root file `.env.lojaiyanifa` with the production values: `SITE_URL=https://lojaiyanifa.web.app`,
+    `PRISMIC_REPO`, `PRISMIC_LOCALE`, the web config and `ADMIN_REQUIRE_MFA=true`.
+  - The build script copies it into `build/functions/`. It refuses emulator variables, `GOOGLE_APPLICATION_CREDENTIALS`,
+    reserved keys, a non-https `SITE_URL` and MFA off.
+  - No Prismic token or secret is needed: the Content API answers without a token (HTTP 200, 2026-11-03).
+- **Also found on 2026-11-03:**
+  - The root `.env` (owner's, gitignored) is read by nothing. It holds the web config plus dev values.
+  - The owner set `.firebaserc`'s default to `lojaiyanifa`. Every npm script still passes `--project demo-lojaiyanifa`.
+    Proposed: restore the demo default and add a `prod` alias.
+  - A service-account key sits in the repo root. It is gitignored by `*-firebase-adminsdk-*.json`.
+    `grant-role.mjs --production` takes Google credentials from the shell environment (or gcloud ADC), never from `.env`.
+- **Single admin account:** the owner only (e-mail kept out of the repo). Proposed: drop `/admin/users`.
+
+**Owner actions before the first deploy (TOTP check):**
+1. Google credentials for the admin scripts: the owner downloaded a service-account key; `gcloud auth application-default
+   login` also works.
+2. Blaze plan, then a Firestore database in `southamerica-east1`. The location can't be changed later. Create it
+   **before** running `grant-role`, which writes to `auditLogs` after setting the claim.
+3. Turn on Email/Password sign-in and create the owner account (console → Authentication → Add user).
+4. With `GOOGLE_APPLICATION_CREDENTIALS` set in the same shell, run
+   `node scripts/admin/grant-role.mjs --production --project lojaiyanifa --email <owner e-mail> --role owner`.
+
+**Deploy, after the fix and the owner's go:**
+1. `firebase deploy --only firestore --project lojaiyanifa`, then wait until both indexes are "Enabled". The expiry job's
+   query needs one of them.
+2. `firebase deploy --only hosting,functions --project lojaiyanifa`. Not a bare deploy: `firebase.json` also lists
+   Storage, which the app doesn't use.
+3. Leave `settings/payment` absent so checkout stays closed.
+4. On `https://lojaiyanifa.web.app/admin/login`: verify the e-mail, enrol TOTP (back it up on a second device), sign in
+   with a code, sign out.
+5. Check the order tabs (indexes) and `curl -I` an `/assets/*` file (immutable cache header).
+
+**Not built yet (in order):** first deploy + TOTP verification (above) → transactional e-mails (SMTP provider and a
+verified sender domain needed; shipped/refunded/cancelled events are ready to hook in) → activity-log viewer
+(`auditLogs`) → `/admin/users` → admin dashboard → customer accounts (CPF required at sign-up) → coupons → Melhor
+Envio. **Needed before launch but not on this list:** `/admin/settings` (today the production Pix key could only be
+entered in the Firebase console) and `/admin/inventory` (stock adjustments). Terms/privacy pages are Prismic content
+the owner must publish (checkout links to them).

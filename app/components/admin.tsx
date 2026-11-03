@@ -1,6 +1,7 @@
 // Small pieces shared by the admin pages.
 import { cx } from "~/components/ui";
-import { ORDER_STATUS_LABEL, type OrderStatus } from "~/lib/orders";
+import { orderStatusLabel, type OrderStatus } from "~/lib/orders";
+import type { ShippingMethodId } from "~/lib/store-settings";
 
 const STATUS_TONE: Record<OrderStatus, string> = {
   pending_payment: "border-warning/50 text-warning",
@@ -13,10 +14,11 @@ const STATUS_TONE: Record<OrderStatus, string> = {
   partially_refunded: "border-line-strong text-muted",
 };
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
+/** `method` names pickup orders' steps as the customer lives them ("Pronto para retirada", "Retirado"). */
+export function OrderStatusBadge({ status, method }: { status: OrderStatus; method: ShippingMethodId }) {
   return (
     <span className={cx("inline-block whitespace-nowrap rounded-[var(--radius-control)] border px-2.5 py-0.5 text-xs font-medium", STATUS_TONE[status])}>
-      {ORDER_STATUS_LABEL[status]}
+      {orderStatusLabel(status, method)}
     </span>
   );
 }

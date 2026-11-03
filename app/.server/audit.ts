@@ -7,17 +7,32 @@ import type { AdminRole } from "~/lib/admin/roles";
 
 import { db } from "./firebase";
 
-export type AuditAction = "admin.signed_in" | "admin.signed_out" | "order.payment_confirmed" | "order.cancelled";
+export type AuditAction =
+  | "admin.signed_in"
+  | "admin.signed_out"
+  | "order.payment_confirmed"
+  | "order.cancelled"
+  | "order.fulfillment_updated"
+  | "order.tracking_updated"
+  | "order.note_added"
+  | "order.refunded";
 
+/** A signed-in admin. */
 export interface AuditActor {
   uid: string;
   email: string;
   role: AdminRole;
 }
 
+/** The store acting on its own (a scheduled job). Scripts write `{ type: "script", name, by }` themselves. */
+export interface SystemActor {
+  type: "system";
+  name: string;
+}
+
 export interface AuditEntry {
   action: AuditAction;
-  actor: AuditActor;
+  actor: AuditActor | SystemActor;
   /** Document path the action is about, e.g. "orders/1001" or "users/<uid>". */
   target: string;
   details?: Record<string, unknown>;
@@ -28,7 +43,9 @@ const AUDIT_LOGS = "auditLogs";
 const record = (entry: AuditEntry, at: Date) => ({
   at: Timestamp.fromDate(at),
   action: entry.action,
-  actor: { uid: entry.actor.uid, email: entry.actor.email, role: entry.actor.role },
+  actor: "type" in entry.actor
+    ? { type: entry.actor.type, name: entry.actor.name }
+    : { uid: entry.actor.uid, email: entry.actor.email, role: entry.actor.role },
   target: entry.target,
   details: entry.details ?? {},
 });

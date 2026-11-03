@@ -19,6 +19,7 @@ import { type PaymentSettings, type ShippingSettings, shippingOptions } from "~/
 
 import { db } from "./firebase";
 import { availableFrom, inventoryRef } from "./inventory";
+import { fulfillmentOf, iso, NEW_FULFILLMENT, rawRefundsOf, refundedCentsOf } from "./order-doc";
 import { buildPixPayment, pixTxid } from "./pix";
 import { getContent } from "./prismic";
 import { getPaymentSettings, getShippingSettings } from "./settings";
@@ -153,8 +154,21 @@ export async function createOrder(
       },
       lines,
       totals: { subtotalCents: quote.subtotalCents, shippingCents: option.priceCents, discountCents: 0, totalCents, savingsCents: quote.savingsCents },
-      payment: { method: "pix", status: "pending", amountCents: pix.amountCents, txid: pix.txid, brCode: pix.brCode, keyType: pix.keyType, confirmedAt: null, confirmedBy: null },
+      payment: {
+        method: "pix",
+        status: "pending",
+        amountCents: pix.amountCents,
+        txid: pix.txid,
+        brCode: pix.brCode,
+        keyType: pix.keyType,
+        confirmedAt: null,
+        confirmedBy: null,
+        refundedCents: 0,
+      },
       reservations,
+      fulfillment: NEW_FULFILLMENT,
+      notes: [],
+      refunds: [],
       consents: { termsAcceptedAt: ts },
       accessTokenHash: sha256(input.idempotencyKey),
       timeline: [{ at: ts, status, by: "customer", note: null }],
@@ -164,8 +178,6 @@ export async function createOrder(
     return { number, accessToken: input.idempotencyKey, reused: false };
   });
 }
-
-const iso = (value: unknown): string => (value as Timestamp).toDate().toISOString();
 
 function toCustomerView(d: DocumentData): CustomerOrderView {
   return {
@@ -177,7 +189,16 @@ function toCustomerView(d: DocumentData): CustomerOrderView {
     shipping: d.shipping,
     lines: d.lines,
     totals: d.totals,
-    payment: { method: "pix", status: d.payment.status, amountCents: d.payment.amountCents, txid: d.payment.txid, brCode: d.payment.brCode },
+    payment: {
+      method: "pix",
+      status: d.payment.status,
+      amountCents: d.payment.amountCents,
+      txid: d.payment.txid,
+      brCode: d.payment.brCode,
+      refundedCents: refundedCentsOf(d),
+    },
+    fulfillment: fulfillmentOf(d),
+    refunds: rawRefundsOf(d).map((r) => ({ at: iso(r.at), amountCents: r.amountCents as number })),
   };
 }
 
