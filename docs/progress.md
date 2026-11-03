@@ -390,10 +390,10 @@ checkout → order confirmation → auth/session → admin → shipping → emai
     `/robots.txt` and `/favicon.ico` itself, before the app.
   - Effect: crawlers don't get the Disallow rules (`/admin`, `/account`, `/cart`…) or the Sitemap line. Admin pages
     still send `noindex` and need a session.
-  - Fixed in the evening (below); deploy pending.
+  - Fixed and deployed in the evening (below).
 - **`/healthz` never reaches the function in production.**
   - Google's front end answers with its own "Error 404 (Not Found)!!1" page; Cloud Run reserves paths ending in `z`.
-  - It works in dev and in the emulator. Renamed `/health` in the evening (below); deploy pending.
+  - It works in dev and in the emulator. Renamed `/health` and deployed in the evening (below).
 - **`npm run preview` was broken (verified).** With the deployed build, the functions emulator printed `Failed to load
   function definition from source: FirebaseError: Failed to load environment variables from .env.local.`, and every
   page answered 404 "Function southamerica-east1-ssr does not exist".
@@ -468,10 +468,24 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - **Dev server** (:5173) picked up the change: `/health` 200, `/healthz` 404.
 - **Totals:** unit tests 143 (18 files); tsc 0 errors; lint 0 errors, 63 warnings; build OK.
 
+### Deployed and verified (evening)
+- **Commit** `7f99658`, then `npm run build` from the clean tree.
+- **Deploy:** `firebase deploy --only functions:ssr,hosting --project prod` (no `--force`), exit 0. Both hooks ran,
+  and the hosting hook wrote the production robots.txt. `ssr` was updated and hosting released, with no prompt and no
+  invoker warning.
+- **Live** (`https://lojaiyanifa.web.app`):
+  - `/robots.txt` 200 `text/plain`, identical to the deployed file.
+  - `/favicon.ico` 301 → `/favicon.svg`.
+  - `/health` 200 JSON (`no-store`).
+  - `/`, `/products/alaka` and `/sitemap.xml` 200; `/admin` 302 → login; an `/assets/*` file `immutable`.
+  - `/healthz` still gets Google's own 404 (expected).
+- **Seen in the function log:** a scanner probed the site at 20:58Z (`/.env` variants, `/phpinfo`,
+  `/wp-login.php`…), and every probe got the store's 404. React Router writes each unmatched URL to the log with a
+  stack trace (severity unset): noise to filter out of any future log alert.
+
 ### Not verified (evening)
-- Production, until the deploy: `/robots.txt` should answer 200 with the rules, `/favicon.ico` 301 → `/favicon.svg`,
-  and `/health` 200 JSON.
-- The hosting hook inside a real `firebase deploy`.
+- The function log after the deploy: at 21:58Z, `firebase functions:log` showed nothing after 21:36Z, not even the
+  live checks. The new revision serves: `/health` exists only in the new code.
 
 ## Handoff for the next session (read this first)
 **State:**
@@ -482,23 +496,25 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Session 5: production config for the deployed functions; `.firebaserc` `prod` alias; `/admin/users` dropped.
   In the afternoon: first production deploy, owner role, TOTP turned on in the project, `npm run preview` fixed.
   In the evening: `/robots.txt` as a static file written at deploy time, `/favicon.ico` as a Hosting redirect;
-  `/healthz` renamed `/health`.
+  `/healthz` renamed `/health`. Deployed that evening from `7f99658`.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
 absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below). The evening's
-`/robots.txt`, `/favicon.ico` and `/health` change is not deployed yet.
+`/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`.
 
 **Checks:**
-- Checklist: 120 done / 14 N/A (`ecommerce_master_build_prompt.md`). "Robots.txt" went back to todo on 2026-11-03:
-  production answers it with a 404. Fixed in code that evening; mark it done once production serves the file.
+- Checklist: 121 done / 14 N/A (`ecommerce_master_build_prompt.md`). "Robots.txt" went back to todo on 2026-11-03,
+  when production answered it with a 404, and was done again that evening, once production served the file.
 - `npm test` (143 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`).
 - `npm run typecheck` and `npm run lint`.
 
 **Git:**
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
-  fixes → `867bed1` session 4 → `2438821` session-5 config (what is deployed) → `1b3c384` preview fix + deploy
-  notes → the evening's robots.txt + favicon + `/health` change (see `git log`).
+  fixes → `867bed1` session 4 → `2438821` session-5 config → `1b3c384` preview fix + deploy notes → `7f99658`
+  robots.txt, favicon, `/health` (what is deployed) → the evening's post-deploy notes (see `git log`).
+- Deployed: `ssr` and hosting from `7f99658` (2026-11-03 evening). `expirePixOrders` was last deployed from
+  `2438821`; its code hasn't changed since.
 - Pushed to `origin/master` up to `246acfa` by the owner, who pushes the later commits.
 - Commit only when the owner asks. Add files by path, never `git add .`.
 
@@ -589,12 +605,8 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 - `/admin/inventory`: stock adjustments.
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 
-**Known issues in production (session 5, "Found"):**
-- `/robots.txt` answers an empty 404, so its crawl rules and Sitemap line aren't served. Fixed in code on the evening
-  of 2026-11-03 (a static file from the hosting predeploy hook); it goes live with the next hosting deploy.
-- `/healthz` can't be reached in production (Cloud Run reserves paths ending in `z`). Renamed `/health` the same
-  evening; it goes live with the next `ssr` deploy. Uptime checks should probe `/health`.
-- `/favicon.ico` answers an empty 404 (the same Functions Framework rule as `/robots.txt`). Fixed in code the same
-  evening (a Hosting redirect to `/favicon.svg`); it goes live with the next hosting deploy.
+**Known issues:**
+- Production: none open. `/robots.txt`, `/favicon.ico` and `/healthz` (session 5, "Found") were fixed and deployed on
+  the evening of 2026-11-03. Uptime checks should probe `/health`.
 - `npm run preview`'s admin sign-in still fails on the CSP (`connect-src` doesn't allow the Auth emulator).
   `docs/security.md`, "Known gaps".

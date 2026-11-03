@@ -432,7 +432,7 @@ The administrative system is what allows the business owner to manage the entire
 - [x] Heading hierarchy — one h1 per page, h2 sections
 - [ ] Image alt text — _implemented_ (Prismic alt or product name; placeholders aria-hidden); needs real images to verify
 - [x] XML sitemap — products, categories, pages, lastmod from Prismic (verified 34 URLs)
-- [ ] Robots.txt — _fixed in code 2026-11-03 (evening), deploy pending_: the app can't serve it in production (the Cloud Functions Framework answers /robots.txt and /favicon.ico itself with an empty 404; verified from its source), so the hosting predeploy hook scripts/robots-txt.mjs writes build/client/robots.txt from SITE_URL and Hosting serves it before the rewrite. Verified in the Hosting emulator; done once production serves it. Rules: private areas blocked; everything blocked on non-production sites
+- [x] Robots.txt — _deployed 2026-11-03_: the app can't serve it in production (the Cloud Functions Framework answers /robots.txt and /favicon.ico itself with an empty 404; verified from its source), so the hosting predeploy hook scripts/robots-txt.mjs writes build/client/robots.txt from SITE_URL and Hosting serves it before the rewrite. Verified live: 200 text/plain, identical to the deployed file. Rules: private areas blocked; everything blocked on non-production sites
 - [x] Canonical URLs — filters/sort dropped, pagination kept (verified)
 - [x] Structured data / Schema.org — WebSite+SearchAction, Organization, CollectionPage (verified)
 - [x] Product structured data — Offer/AggregateOffer only when a price exists (verified)
