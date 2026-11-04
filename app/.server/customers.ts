@@ -21,6 +21,8 @@ import { adminAuth, db } from "./firebase";
 import { queueMailInTransaction } from "./mail/outbox";
 import { iso } from "./order-doc";
 import { toCustomerView } from "./orders";
+import { ownsOrder } from "./ownership";
+import { customerReviews, deleteCustomerReviews } from "./reviews";
 
 const customerRef = (uid: string) => db().collection("customers").doc(uid);
 const addressesRef = (uid: string) => customerRef(uid).collection("addresses");
@@ -170,11 +172,7 @@ export interface AccountOrderSummary {
 
 const ORDER_QUERY_LIMIT = 200;
 
-/** Whether this order belongs to the signed-in customer (see the top of this file). */
-export function ownsOrder(user: CustomerUser, order: DocumentData): boolean {
-  if (order.customer?.uid === user.uid) return true;
-  return user.emailVerified && typeof order.customer?.email === "string" && order.customer.email.toLowerCase() === user.email;
-}
+export { ownsOrder };
 
 /** The customer's orders, newest first. Single-field equality queries: no composite index needed. */
 export async function listCustomerOrders(user: CustomerUser): Promise<AccountOrderSummary[]> {
@@ -227,11 +225,12 @@ export async function setWishlist(uid: string, ids: unknown, now = new Date()): 
 
 /** Everything the store keeps about the account (LGPD art. 18, II and V), as one JSON document. */
 export async function exportCustomerData(user: CustomerUser, now = new Date()): Promise<Record<string, unknown>> {
-  const [profileSnap, addresses, wishlist, orderList] = await Promise.all([
+  const [profileSnap, addresses, wishlist, orderList, reviews] = await Promise.all([
     customerRef(user.uid).get(),
     listAddresses(user.uid),
     getWishlist(user.uid),
     listCustomerOrders(user),
+    customerReviews(user.uid),
   ]);
   const p = profileSnap.data();
   const orders = await Promise.all(
@@ -260,15 +259,26 @@ export async function exportCustomerData(user: CustomerUser, now = new Date()): 
     addresses,
     wishlist,
     orders,
+    reviews: reviews.map((r) => ({
+      productId: r.productId,
+      rating: r.rating,
+      title: r.title ?? null,
+      text: r.text,
+      displayName: r.displayName,
+      videoUrl: r.videoUrl ?? null,
+      status: r.status,
+      createdAt: iso(r.createdAt),
+    })),
   };
 }
 
 /**
- * Deletes the account (LGPD art. 18, VI): profile, consents, addresses and wishlist, then the sign-in itself. Orders
+ * Deletes the account (LGPD art. 18, VI): reviews, profile, consents, addresses and wishlist, then the sign-in itself. Orders
  * stay, as the law requires (fiscal and consumer records), and so does the audit entry, which holds only the UID.
  */
 export async function deleteCustomerAccount(user: CustomerUser, now = new Date()): Promise<{ ordersKept: number }> {
   const orders = await listCustomerOrders(user);
+  await deleteCustomerReviews(user.uid, now); // approved ones leave the product's stats too
   const addresses = await addressesRef(user.uid).get();
   const batch = db().batch();
   for (const doc of addresses.docs) batch.delete(doc.ref);

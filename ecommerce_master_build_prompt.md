@@ -71,7 +71,7 @@ The homepage is the main entry point of your store.
 - [ ] Promotional banners — _implemented_ with start/end scheduling and cache capped at next boundary; needs Prismic content to verify
 - [x] Discounts and special offers — "Ofertas" section + /offers list products with original_price > price (verified 2026-11-01 with Búzios/Alaká: Alaká listed, Búzios not)
 - [ ] Benefits section (free shipping, secure payment, etc.) — _implemented_ from Prismic; footer trust strip verified
-- [ ] Customer reviews or testimonials — _testimonials implemented_ (Prismic, real customers only); reviews pending
+- [ ] Customer reviews or testimonials — _reviews on product pages built 2026-11-04_ (moderated, verified on a dev stack); the homepage's testimonials come from Prismic (real customers only) and need content
 - [ ] Newsletter subscription — pending (needs Firestore + consent + Turnstile)
 - [ ] Social media links — _implemented_ (Prismic settings → footer); needs content
 - [ ] Footer with important links — _rendered_; the texts of /about, /privacy, /terms, /cookies, /shipping, /returns, /warranty and /faq were written and placed in Prismic's Migration Release on 2026-11-04 (content/prismic/); the links stop returning 404 when the owner publishes that release
@@ -124,7 +124,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Product dimensions — _model + UI ready_; needs content
 - [ ] Product weight — _model + UI ready_; needs content
 - [ ] Materials and ingredients (where applicable) — _implemented_; needs content
-- [ ] Product reviews and ratings — pending
+- [x] Product reviews and ratings — average, distribution and the approved reviews on the product page, written at /products/:uid/review by signed-in customers (verified 2026-11-04: Chrome on a dev stack + integration)
 - [ ] Customer questions and answers — pending
 - [ ] Related products — _implemented_ (editor picks, then same category); needs categories/picks
 - [ ] Frequently bought together — _implemented_; needs content
@@ -311,18 +311,18 @@ One of the most important parts of an e-commerce website.
 
 ### 12. Reviews and Social Proof
 
-- [ ] Product ratings
-- [ ] Written reviews
-- [ ] Verified purchase badges
-- [ ] Customer photos
-- [ ] Customer videos
-- [ ] Review moderation
-- [ ] Review reporting
-- [ ] Review sorting
-- [ ] Helpful review voting
-- [ ] Average rating calculation
+- [x] Product ratings — 1–5 stars per review; average and distribution per product (verified 2026-11-04: Chrome + integration)
+- [x] Written reviews — title, text, display name; one per customer and product, editable (back to moderation) (verified 2026-11-04: Chrome + integration)
+- [x] Verified purchase badges — "Compra verificada" when the customer has a paid order with the product (integration: a pending order doesn't count, a confirmed one does; Chrome showed the unverified case)
+- [ ] Customer photos — **blocked**: needs a Cloud Storage bucket for the project and an upload path that checks the files and strips their metadata (GPS); not improvised
+- [x] Customer videos — a YouTube or Vimeo link, shown after approval with youtube-nocookie / Vimeo dnt (verified 2026-11-04 on a dev stack)
+- [x] Review moderation — /admin/reviews (owner/admin): publish, refuse with a reason the customer sees, delete, answer publicly; audited; stats change in the same transaction (verified 2026-11-04: Chrome + integration)
+- [x] Review reporting — "Denunciar" with a reason, once per customer; "Denunciadas" tab (verified 2026-11-04: Chrome + integration)
+- [x] Review sorting — most helpful, newest, highest, lowest (unit-tested; rendered 2026-11-04)
+- [x] Helpful review voting — "Útil", once per signed-in customer, never on one's own review (verified 2026-11-04: Chrome + integration)
+- [x] Average rating calculation — productStats (count, sum, distribution) of approved reviews, updated transactionally on approve/refuse/delete/edit and on account deletion (integration 2026-11-04)
 - [ ] Testimonials
-- [ ] Trust indicators
+- [x] Trust indicators — stars, review count and "Compra verificada" on product pages (2026-11-04), plus the factual trust strip (Pix, secure checkout, support channel)
 
 ### 13. Customer Support
 
@@ -436,7 +436,7 @@ The administrative system is what allows the business owner to manage the entire
 - [x] Canonical URLs — filters/sort dropped, pagination kept (verified)
 - [x] Structured data / Schema.org — WebSite+SearchAction, Organization, CollectionPage (verified)
 - [x] Product structured data — Offer/AggregateOffer only when a price exists (verified)
-- [ ] Review structured data — pending (with reviews)
+- [x] Review structured data — AggregateRating + up to 5 Review on the Product JSON-LD, only when approved reviews exist (verified 2026-11-04 on a dev stack)
 - [x] Breadcrumb structured data
 - [x] Open Graph metadata — verified on product page
 - [x] Social sharing previews — server-rendered OG/Twitter tags (WhatsApp/Facebook read them without JS)

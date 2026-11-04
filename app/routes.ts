@@ -12,6 +12,7 @@ export default [
     route("categories/:uid", "routes/category.tsx", { id: "category" }),
     route("collections/:uid", "routes/category.tsx", { id: "collection" }),
     route("products/:uid", "routes/product.tsx"),
+    route("products/:uid/review", "routes/review.tsx"),
     route("search", "routes/search.tsx"),
     route("offers", "routes/offers.tsx"),
     // Shopping
@@ -54,6 +55,7 @@ export default [
     route("orders/:number", "routes/admin.order.tsx"),
     route("support", "routes/admin.support.tsx"),
     route("support/:number", "routes/admin.ticket.tsx"),
+    route("reviews", "routes/admin.reviews.tsx"),
     route("discounts", "routes/admin.discounts.tsx"),
     route("discounts/new", "routes/admin.discount.tsx", { id: "admin-discount-new" }),
     route("discounts/:id", "routes/admin.discount.tsx", { id: "admin-discount-edit" }),
@@ -68,6 +70,7 @@ export default [
   route("api/products", "routes/api.products.ts"),
   route("api/cart/quote", "routes/api.cart.quote.ts"),
   route("api/wishlist", "routes/api.wishlist.ts"),
+  route("api/reviews", "routes/api.reviews.ts"),
   route("health", "routes/health.ts"),
   // Files under /assets/ that Hosting doesn't have: a short 404 that nothing keeps (see the route file).
   route("assets/*", "routes/missing-asset.ts"),

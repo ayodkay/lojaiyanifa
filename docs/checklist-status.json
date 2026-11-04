@@ -62,7 +62,7 @@
     },
     "Customer reviews or testimonials": {
       "status": "todo",
-      "note": "_testimonials implemented_ (Prismic, real customers only); reviews pending"
+      "note": "_reviews on product pages built 2026-11-04_ (moderated, verified on a dev stack); the homepage's testimonials come from Prismic (real customers only) and need content"
     },
     "Newsletter subscription": {
       "status": "todo",
@@ -244,8 +244,8 @@
       "note": "_implemented_; needs content"
     },
     "Product reviews and ratings": {
-      "status": "todo",
-      "note": "pending"
+      "status": "done",
+      "note": "average, distribution and the approved reviews on the product page, written at /products/:uid/review by signed-in customers (verified 2026-11-04: Chrome on a dev stack + integration)"
     },
     "Customer questions and answers": {
       "status": "todo",
@@ -855,6 +855,52 @@
       "note": "start/end per promotion, in Brasília time (unit-tested 2026-11-04)"
     }
   },
+  "12": {
+    "Product ratings": {
+      "status": "done",
+      "note": "1–5 stars per review; average and distribution per product (verified 2026-11-04: Chrome + integration)"
+    },
+    "Written reviews": {
+      "status": "done",
+      "note": "title, text, display name; one per customer and product, editable (back to moderation) (verified 2026-11-04: Chrome + integration)"
+    },
+    "Verified purchase badges": {
+      "status": "done",
+      "note": "\"Compra verificada\" when the customer has a paid order with the product (integration: a pending order doesn't count, a confirmed one does; Chrome showed the unverified case)"
+    },
+    "Customer photos": {
+      "status": "todo",
+      "note": "**blocked**: needs a Cloud Storage bucket for the project and an upload path that checks the files and strips their metadata (GPS); not improvised"
+    },
+    "Customer videos": {
+      "status": "done",
+      "note": "a YouTube or Vimeo link, shown after approval with youtube-nocookie / Vimeo dnt (verified 2026-11-04 on a dev stack)"
+    },
+    "Review moderation": {
+      "status": "done",
+      "note": "/admin/reviews (owner/admin): publish, refuse with a reason the customer sees, delete, answer publicly; audited; stats change in the same transaction (verified 2026-11-04: Chrome + integration)"
+    },
+    "Review reporting": {
+      "status": "done",
+      "note": "\"Denunciar\" with a reason, once per customer; \"Denunciadas\" tab (verified 2026-11-04: Chrome + integration)"
+    },
+    "Review sorting": {
+      "status": "done",
+      "note": "most helpful, newest, highest, lowest (unit-tested; rendered 2026-11-04)"
+    },
+    "Helpful review voting": {
+      "status": "done",
+      "note": "\"Útil\", once per signed-in customer, never on one's own review (verified 2026-11-04: Chrome + integration)"
+    },
+    "Average rating calculation": {
+      "status": "done",
+      "note": "productStats (count, sum, distribution) of approved reviews, updated transactionally on approve/refuse/delete/edit and on account deletion (integration 2026-11-04)"
+    },
+    "Trust indicators": {
+      "status": "done",
+      "note": "stars, review count and \"Compra verificada\" on product pages (2026-11-04), plus the factual trust strip (Pix, secure checkout, support channel)"
+    }
+  },
   "13": {
     "Contact page": {
       "status": "done",
@@ -1018,8 +1064,8 @@
       "note": "Offer/AggregateOffer only when a price exists (verified)"
     },
     "Review structured data": {
-      "status": "todo",
-      "note": "pending (with reviews)"
+      "status": "done",
+      "note": "AggregateRating + up to 5 Review on the Product JSON-LD, only when approved reviews exist (verified 2026-11-04 on a dev stack)"
     },
     "Breadcrumb structured data": {
       "status": "done"

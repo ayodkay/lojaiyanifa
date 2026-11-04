@@ -23,6 +23,11 @@ export type AuditAction =
   // Promotions and coupons (/admin/discounts).
   | "promotion.created"
   | "promotion.updated"
+  // Review moderation (deletions by a customer deleting their account are audited with the customer as actor).
+  | "review.approved"
+  | "review.rejected"
+  | "review.deleted"
+  | "review.replied"
   // Support tickets (the team's answers and status changes).
   | "ticket.replied"
   | "ticket.closed"

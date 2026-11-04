@@ -821,6 +821,24 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Seen: the admin's own `__session` counts as a signed-in customer at checkout (order 1002 shows "Cliente com conta",
   linked to the dev owner). Expected with one session cookie per browser; harmless.
 
+### F. Reviews and social proof (§12)
+- `app/lib/reviews.ts` (form, sorting, stats maths), `app/.server/reviews.ts` (submit with "compra verificada",
+  moderation with stats in the same transaction, helpful votes, reports, admin lists, deletion with the account),
+  `app/.server/ownership.ts` (the order-ownership rule, moved out of customers.ts to avoid an import cycle).
+  Audit actions `review.*`; capability `reviews.moderate` (owner/admin).
+- Pages: `/products/:uid/review` (signed-in), `POST /api/reviews` (helpful / report), `/admin/reviews` ("Avaliações"),
+  the reviews section on product pages (`app/components/reviews.tsx`), Product JSON-LD `AggregateRating` + `Review`
+  only with approved reviews. Account export and deletion include reviews.
+- Tests: unit 242 (6 new), integration 113 (5 new); 3 of 3 mutations caught.
+- Chrome (fresh dev stack): customer sign-in with `redirectTo` straight to the form; review with a YouTube link →
+  pending (not on the page); owner publishes → stars, 5,0 average, distribution, youtube-nocookie player, JSON-LD
+  rating; "Útil" twice → 1; report → "Denunciadas 1".
+- **Found: Vite caches a route file that `routes.ts` names before the file exists** (as in session 2). I registered
+  `admin.reviews.tsx` a moment before writing it, so my dev stack had to be restarted — and **Q's old :5173 dev
+  server, which hot-reloads this working tree, shows "Failed to load url … wishlist.tsx" since batch C**. Not
+  restarted on purpose: it runs inside `emulators:exec`, so stopping it would end its emulators and lose Q's dev data
+  (order 1003). Restart it whenever convenient (`npm run dev:emulated`). Lesson: write the route file first.
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.

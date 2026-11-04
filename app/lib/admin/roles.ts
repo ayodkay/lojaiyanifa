@@ -26,7 +26,8 @@ export type Capability =
   | "settings.edit"
   | "support.view"
   | "support.reply"
-  | "discounts.manage";
+  | "discounts.manage"
+  | "reviews.moderate";
 
 const ALLOWED: Record<Capability, readonly AdminRole[]> = {
   "orders.view": ["owner", "admin", "staff"],
@@ -47,6 +48,8 @@ const ALLOWED: Record<Capability, readonly AdminRole[]> = {
   "support.reply": ["owner", "admin", "staff"],
   // Promotions change what customers pay: owner and admin (docs/architecture.md §3).
   "discounts.manage": ["owner", "admin"],
+  // What gets published about the products: owner and admin (docs/architecture.md §3, "reviews moderation").
+  "reviews.moderate": ["owner", "admin"],
 };
 
 export function can(role: AdminRole, capability: Capability): boolean {
