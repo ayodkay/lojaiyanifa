@@ -3,9 +3,14 @@
 //
 // Each due e-mail is claimed in a transaction (pending → sending, with a 10-minute lease), so two runs can't send it
 // twice; a run that dies mid-send leaves the lease to expire and the e-mail goes out again (at least once).
-// Failures are retried with backoff (2, 4, 8, 16 min); an SMTP 5xx answer (e.g. the address doesn't exist) or a
-// rendering error fails at once. E-mails that couldn't go out within 72 hours expire instead of reaching a customer
-// days late. Without SMTP configuration nothing is claimed: the e-mails wait and every run logs an error.
+// Whose problem a failure is decides what happens (sendErrorKind):
+// - the e-mail's — the server refused its recipient or its content: a 4xx is retried with backoff (2, 4, 8, 16 min),
+//   a 5xx fails at once, and so does a rendering error;
+// - the service's — login (wrong key, IP not authorized in Brevo), sender, connection, TLS, timeouts: every e-mail
+//   would fail the same way, so none is charged an attempt: the e-mail goes back, the run stops, and the next runs try
+//   again (one try per run) until it's fixed.
+// E-mails that couldn't go out within 72 hours expire instead of reaching a customer days late. Without SMTP
+// configuration nothing is claimed: the e-mails wait and every run logs an error.
 import { type DocumentData, Timestamp } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 
@@ -21,6 +26,8 @@ import { type MailContext, type MailOrder, renderMail } from "./render";
 export const MAX_ATTEMPTS = 5;
 export const MAX_AGE_MS = 72 * 3_600_000;
 export const LEASE_MS = 10 * 60_000;
+/** After a service problem (login, connection), the e-mail that met it waits this long, so the next runs try others. */
+export const SERVICE_RETRY_MS = 5 * 60_000;
 /** Wait before attempt n + 1 after n failed attempts: 2, 4, 8, 16 minutes. */
 export const backoffMs = (attempts: number): number => 2 ** attempts * 60_000;
 
@@ -97,16 +104,29 @@ export interface MailRun {
   retrying: string[];
   failed: string[];
   expired: string[];
-  /** Due e-mails left untouched because SMTP isn't configured. */
+  /** Due e-mails left untouched: SMTP isn't configured, or the run stopped at a service problem (`blocked`). */
   waiting: number;
+  /** Why the run stopped early: the SMTP service refused the login or the connection (not one e-mail's fault). */
+  blocked: string | null;
 }
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 500);
-/** SMTP 5xx: the server refused this message for good (unknown mailbox, rejected content). */
-const isPermanent = (error: unknown) => {
-  const code = (error as { responseCode?: unknown } | null)?.responseCode;
-  return typeof code === "number" && code >= 500 && code < 600;
-};
+export type SendErrorKind = "permanent" | "retry" | "service";
+
+/**
+ * Whose problem a failed send is, from nodemailer's error (its code and SMTP command, smtp-connection):
+ * - this e-mail's: the server refused the recipient (EENVELOPE at RCPT TO) or the content (EMESSAGE), or nodemailer
+ *   refused our data (an invalid recipient): "permanent" for a 5xx or a local refusal, "retry" for a 4xx;
+ * - the service's ("service"): everything else — the login (EAUTH: wrong key, IP not authorized), the sender
+ *   (MAIL FROM), the DATA command, the connection, TLS, timeouts, unknown errors. Those fail every e-mail alike.
+ */
+export function sendErrorKind(error: unknown): SendErrorKind {
+  const e = (typeof error === "object" && error !== null ? error : {}) as { code?: unknown; command?: unknown; responseCode?: unknown; message?: unknown };
+  const aboutThisMail =
+    e.code === "EMESSAGE" || (e.code === "EENVELOPE" && (e.command === "RCPT TO" || (e.command === "API" && !String(e.message).startsWith("Invalid sender"))));
+  if (!aboutThisMail) return "service";
+  return typeof e.responseCode === "number" && e.responseCode >= 400 && e.responseCode < 500 ? "retry" : "permanent";
+}
 
 type Claim = { kind: "send"; mail: DocumentData; attempts: number } | { kind: "expired" } | { kind: "failed" } | { kind: "skip" };
 
@@ -118,7 +138,7 @@ export async function sendQueuedMail(options: {
   batch?: number;
 }): Promise<MailRun> {
   const now = options.now ?? new Date();
-  const run: MailRun = { sent: [], retrying: [], failed: [], expired: [], waiting: 0 };
+  const run: MailRun = { sent: [], retrying: [], failed: [], expired: [], waiting: 0, blocked: null };
   const due = await db()
     .collection(MAIL_COLLECTION)
     .where("status", "in", ["pending", "sending"] satisfies MailStatus[])
@@ -132,7 +152,7 @@ export async function sendQueuedMail(options: {
   }
   const { config, transport, context } = options;
 
-  for (const doc of due.docs) {
+  for (const [index, doc] of due.docs.entries()) {
     const ts = Timestamp.fromDate(now);
     const claim = await db().runTransaction<Claim>(async (tx) => {
       const snap = await tx.get(doc.ref);
@@ -185,7 +205,23 @@ export async function sendQueuedMail(options: {
       await doc.ref.update({ status: "sent", sentAt: Timestamp.now(), updatedAt: Timestamp.now(), messageId: info.messageId ?? null, subject: message.subject, lastError: null });
       run.sent.push(doc.id);
     } catch (error) {
-      const last = attempts >= MAX_ATTEMPTS || isPermanent(error);
+      const kind = sendErrorKind(error);
+      if (kind === "service") {
+        // Not this e-mail's fault: it goes back as it was (the attempt isn't counted) and waits a little, so the next
+        // runs try the others first; this run stops here — the rest would fail the same way.
+        await doc.ref.update({
+          status: "pending",
+          attempts: attempts - 1,
+          nextAttemptAt: Timestamp.fromMillis(now.getTime() + SERVICE_RETRY_MS),
+          lastError: errorText(error),
+          subject: message.subject,
+          updatedAt: Timestamp.now(),
+        });
+        run.blocked = errorText(error);
+        run.waiting = due.docs.length - index;
+        break;
+      }
+      const last = attempts >= MAX_ATTEMPTS || kind === "permanent";
       await doc.ref.update({
         status: last ? "failed" : "pending",
         nextAttemptAt: Timestamp.fromMillis(now.getTime() + backoffMs(attempts)),

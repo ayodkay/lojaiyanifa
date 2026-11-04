@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { escapeHtml, html, safeUrl } from "~/.server/mail/html";
 import { type MailContext, type MailOrder, renderMail } from "~/.server/mail/render";
-import { backoffMs, mailConfig, smtpOptions } from "~/.server/mail/send";
+import { backoffMs, mailConfig, sendErrorKind, smtpOptions } from "~/.server/mail/send";
 import { stepMail } from "~/.server/order-fulfillment";
 import { orderTokenMatches } from "~/.server/orders";
 
@@ -176,6 +176,33 @@ describe("SMTP configuration", () => {
 
   it("waits 2, 4, 8 then 16 minutes between attempts", () => {
     expect([1, 2, 3, 4].map((n) => backoffMs(n) / 60_000)).toEqual([2, 4, 8, 16]);
+  });
+});
+
+/** Built like nodemailer's errors (smtp-connection _formatError): the response appended, its code, the SMTP command. */
+const smtpError = (text: string, code: string, command: string, response?: string) =>
+  Object.assign(new Error(response ? `${text}: ${response}` : text), { code, command }, response ? { response, responseCode: Number(/^\d+/.exec(response)![0]) } : {});
+
+describe("sendErrorKind", () => {
+  it("charges the e-mail only when the server refused its recipient or its content: 5xx for good, 4xx retried", () => {
+    expect(sendErrorKind(smtpError("Recipient command failed", "EENVELOPE", "RCPT TO", "550 5.1.1 User unknown"))).toBe("permanent");
+    expect(sendErrorKind(smtpError("Can't send mail - all recipients were rejected", "EENVELOPE", "RCPT TO", "550 5.1.1 User unknown"))).toBe("permanent");
+    expect(sendErrorKind(smtpError("Message failed", "EMESSAGE", "DATA", "552 5.3.4 Message too big"))).toBe("permanent");
+    expect(sendErrorKind(smtpError('Invalid recipient "x"', "EENVELOPE", "API"))).toBe("permanent");
+    expect(sendErrorKind(smtpError("Recipient command failed", "EENVELOPE", "RCPT TO", "450 4.2.1 Mailbox busy"))).toBe("retry");
+    expect(sendErrorKind(smtpError("Message failed", "EMESSAGE", "DATA", "451 4.3.0 Try again later"))).toBe("retry");
+  });
+
+  it("puts the login, the sender, the connection and anything unknown on the service, even with a 5xx", () => {
+    expect(sendErrorKind(smtpError("Invalid login", "EAUTH", "AUTH PLAIN", "525 5.7.1 Unauthorized IP address"))).toBe("service");
+    expect(sendErrorKind(smtpError("Invalid login", "EAUTH", "AUTH PLAIN", "535 5.7.8 Authentication failed"))).toBe("service");
+    expect(sendErrorKind(smtpError("Mail command failed", "EENVELOPE", "MAIL FROM", "550 5.7.1 Sender not allowed"))).toBe("service");
+    expect(sendErrorKind(smtpError('Invalid sender "x"', "EENVELOPE", "API"))).toBe("service");
+    expect(sendErrorKind(smtpError("Data command failed", "EENVELOPE", "DATA", "554 5.7.1 Rejected"))).toBe("service");
+    expect(sendErrorKind(smtpError("Connection closed unexpectedly", "ECONNECTION", "CONN"))).toBe("service");
+    expect(sendErrorKind(Object.assign(new Error("connect ETIMEDOUT"), { code: "ETIMEDOUT" }))).toBe("service");
+    expect(sendErrorKind(new Error("boom"))).toBe("service");
+    expect(sendErrorKind("not an error")).toBe("service");
   });
 });
 

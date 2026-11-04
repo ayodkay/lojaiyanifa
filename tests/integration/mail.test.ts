@@ -175,17 +175,18 @@ describe("sendQueuedMail", () => {
     expect(transport.sent).toHaveLength(2);
   });
 
-  it("retries a temporary failure with backoff, then gives up after the last attempt", async () => {
+  it("retries a temporary refusal of the e-mail (4xx) with backoff, then gives up after the last attempt", async () => {
     await createOrder(order(), deps, { now: t0 });
     await clearStoreNotice();
-    const down = recorder(() => Object.assign(new Error("connect ETIMEDOUT"), { code: "ETIMEDOUT" }));
+    const busy = "Recipient command failed: 450 4.2.1 Mailbox busy";
+    const down = recorder(() => Object.assign(new Error(busy), { code: "EENVELOPE", command: "RCPT TO", responseCode: 450 }));
     let now = at(1);
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const run = await sendQueuedMail({ config, transport: down, context: ctx, now });
       const [mail] = await outbox();
       if (attempt < MAX_ATTEMPTS) {
         expect(run.retrying).toHaveLength(1);
-        expect(mail).toMatchObject({ status: "pending", attempts: attempt, lastError: "connect ETIMEDOUT" });
+        expect(mail).toMatchObject({ status: "pending", attempts: attempt, lastError: busy });
         expect(mail!.nextAttemptAt.toMillis() - now.getTime()).toBe(2 ** attempt * 60_000);
         // Not due yet: a run right away leaves it alone.
         expect((await sendQueuedMail({ config, transport: down, context: ctx, now })).retrying).toEqual([]);
@@ -197,18 +198,49 @@ describe("sendQueuedMail", () => {
     }
   });
 
-  it("fails at once when the SMTP server refuses the message for good (5xx)", async () => {
+  it("fails at once when the SMTP server refuses the e-mail's recipient for good (5xx)", async () => {
     await createOrder(order(), deps, { now: t0 });
     await clearStoreNotice();
-    const refusing = recorder(() => Object.assign(new Error("550 mailbox unavailable"), { responseCode: 550 }));
+    const unknown = "Recipient command failed: 550 5.1.1 mailbox unavailable";
+    const refusing = recorder(() => Object.assign(new Error(unknown), { code: "EENVELOPE", command: "RCPT TO", responseCode: 550 }));
     expect((await sendQueuedMail({ config, transport: refusing, context: ctx, now: at(1) })).failed).toHaveLength(1);
-    expect((await outbox())[0]).toMatchObject({ status: "failed", attempts: 1, lastError: "550 mailbox unavailable" });
+    expect((await outbox())[0]).toMatchObject({ status: "failed", attempts: 1, lastError: unknown });
+  });
+
+  it("a refused login isn't the e-mails' fault: no attempt is used, the run stops, and they go out once it's fixed", async () => {
+    await createOrder(order(), deps, { now: t0 });
+    const reason = "Invalid login: 525 5.7.1 Unauthorized IP address";
+    let tries = 0;
+    const blocked = recorder(() => {
+      tries++;
+      return Object.assign(new Error(reason), { code: "EAUTH", command: "AUTH PLAIN", responseCode: 525 });
+    });
+    expect(await sendQueuedMail({ config, transport: blocked, context: ctx, now: at(1) })).toEqual({ sent: [], retrying: [], failed: [], expired: [], waiting: 2, blocked: reason });
+    expect(tries).toBe(1); // the run stopped: the other e-mail would have met the same refusal
+    // An hour-long outage, a run every 2 minutes: at most one try per run, and no e-mail is charged an attempt.
+    for (let minute = 3; minute <= 61; minute += 2) {
+      const before = tries;
+      await sendQueuedMail({ config, transport: blocked, context: ctx, now: at(minute) });
+      expect(tries - before).toBeLessThanOrEqual(1);
+    }
+    expect((await outbox()).map((m) => [m.status, m.attempts, m.lastError])).toEqual([
+      ["pending", 0, reason],
+      ["pending", 0, reason],
+    ]);
+    // Fixed (e.g. the IP authorized in Brevo): both go out within the next few runs.
+    const transport = recorder();
+    for (let minute = 63; minute <= 71; minute += 2) await sendQueuedMail({ config, transport, context: ctx, now: at(minute) });
+    expect(transport.sent).toHaveLength(2);
+    expect((await outbox()).map((m) => [m.status, m.attempts])).toEqual([
+      ["sent", 1],
+      ["sent", 1],
+    ]);
   });
 
   it("without SMTP configuration claims nothing: the e-mails wait, counted", async () => {
     await createOrder(order(), deps, { now: t0 });
     const run = await sendQueuedMail({ config: null, transport: null, context: ctx, now: at(1) });
-    expect(run).toEqual({ sent: [], retrying: [], failed: [], expired: [], waiting: 2 });
+    expect(run).toEqual({ sent: [], retrying: [], failed: [], expired: [], waiting: 2, blocked: null });
     expect((await outbox()).map((m) => [m.status, m.attempts])).toEqual([
       ["pending", 0],
       ["pending", 0],

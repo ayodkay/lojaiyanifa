@@ -861,16 +861,38 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   INVALID_ARGUMENT (not retried by the SDK) to a transaction that lost a slow lock race, where production answers
   ABORTED (retried). If it comes back, capture the full error before changing the test or the order code.
 
+### H. Brevo live check and a sender fix (afternoon, with the owner)
+- The owner published the Migration Release (verified: the 7 pages and the FAQ answer 200 on both hosts), restored
+  and partly filled the settings document, and created the Brevo account (domain records checked by DNS lookup).
+- The SMTP settings were in a root `.env`, which nothing reads (dev reads `.env.local`, deployed functions read
+  `.env.lojaiyanifa`). `.env.example` (committed) also held the real SMTP login and key: never committed (no commit on
+  any branch has an SMTP-key-shaped string); restored to its placeholders. With the owner's yes, the settings were
+  copied into `.env.local` and, without the key, `.env.lojaiyanifa` (passes the predeploy rules). The root `.env` is
+  unused and can be deleted.
+- Live send through the production path (one fake order on the test emulator; its two e-mails to `MAIL_STORE_TO`
+  only): refused at login, `525 5.7.1 Unauthorized IP address`, three times, also after the owner turned Brevo's IP
+  blocking off. Open: see the handoff, step 4. The check is now a command: `npm run test:mail-live`
+  (`tests/mail-live/`, its own vitest config; the unit and integration runs never include it).
+- **Bug the live send found (batch B):** every SMTP 5xx counted as "this e-mail is refused for good", but Brevo also
+  answers 5xx at login, so a blocked IP or a wrong key would have failed every e-mail at once, for good. Now
+  `sendErrorKind` (nodemailer's code and SMTP command, checked in its source) decides: only a refused recipient
+  (RCPT TO) or content (EMESSAGE) is the e-mail's problem (5xx final, 4xx retried); login, sender, connection, TLS and
+  timeouts are the service's: the e-mail goes back without using an attempt, waits 5 minutes, the run stops
+  (`blocked`, logged as an error) and the next runs try again until the 72-hour expiry. Unit tests (classifier) and an
+  integration test (an hour-long login outage, then recovery); mutation check: each of 5 mutations caught by the unit
+  or the integration tests. Seen live: the refused runs left both e-mails pending with no attempt used.
+
 ## Handoff for the next session (read this first)
 
 **Session 6 (night of 2026-11-04) — branch `feat/accounts-support-promos-legal`, not merged, not pushed, not deployed.**
 Commits on top of master `1b17582`: `d7129be` texts → Prismic, `9c734eb` Brevo e-mail, `33ff768` accounts, `68c6d1f`
 support, `b2fd334` discounts, `3db05c5` reviews, and the cookie-consent/handoff commit after it (`git log`).
-Checks at the end: unit 244, integration 113 (fresh emulators; one intermittent failure, see G), typecheck clean,
-lint 0 errors, build OK.
+Checks at the end (after H): unit 246, integration 114 (fresh emulators; one intermittent failure earlier, see G),
+typecheck clean, lint 0 errors, build OK.
 
 **What the owner does next, in this order:**
-1. **Prismic → Migration release** ("migration-api-release"): read the 7 pages and the FAQ (lawyer review
+1. **Done 2026-11-04** (the 7 pages and the FAQ answer 200 on both hosts).
+   **Prismic → Migration release** ("migration-api-release"): read the 7 pages and the FAQ (lawyer review
    recommended for terms, privacy, returns, warranty), edit freely, then **Publish**. This alone fixes the 404s that
    checkout links to; it needs no deploy. Choices the texts make that are business decisions (change them if wrong):
    exchanges for size/colour at the customer's shipping cost; a re-delivery may be charged when the address was wrong
@@ -880,9 +902,8 @@ lint 0 errors, build OK.
    "Edited" beside the release version): publishing that draft later would empty the FAQ.
 3. **Store settings in Prismic** (company name, CNPJ/CPF, address, support e-mail, WhatsApp, hours): the settings
    document is **archived** ("Untitled Nov 1", `audNGREAACoAomV3`). Restore it and fill it in. The three product-page
-   policy summaries are ready in `content/prismic/settings.md`: paste them by hand, or — only if the restored document
-   is still empty — run `node scripts/prismic/seed-content.mjs --apply --adopt settings=audNGREAACoAomV3` **before**
-   typing anything (the Migration API replaces a document's content).
+   policy summaries are ready in `content/prismic/settings.md`: paste them by hand. **2026-11-04: restored and partly
+   filled by the owner**, so the `--adopt` route is closed (the Migration API would replace what was typed).
 4. **Brevo** (e-mail): add `lojaiyanifa.com.br` as a sender domain and put Brevo's DNS records in Cloudflare
    (DNS only, not proxied); create an SMTP key (SMTP & API → SMTP); then
    `firebase functions:secrets:set SMTP_PASSWORD --project prod` (paste the key), and add to `.env.lojaiyanifa`:
@@ -890,6 +911,13 @@ lint 0 errors, build OK.
    `MAIL_STORE_TO=<the store's inbox>`, optionally `MAIL_REPLY_TO`. Not ready yet? Set the secret to `unset`: e-mails
    wait (each run logs how many) and expire after 72 h. Optional: Firebase console → Authentication → Templates → SMTP
    settings → the same Brevo relay, so verification/reset e-mails come from the store's domain.
+   **Status 2026-11-04:** account, sender domain and DNS done (Zoho MX; Brevo code; DKIM `brevo1`/`brevo2`; DMARC
+   `p=reject`); settings in `.env.local` (dev) and `.env.lojaiyanifa` (production, without the key). **Open:** Brevo
+   refuses the SMTP login from the owner's machine with `525 5.7.1 Unauthorized IP address`, even after the owner
+   turned IP blocking off: check Brevo → Security → Authorized IPs in the account the SMTP login belongs to. Cloud
+   Functions have no fixed IP, so production needs the blocking off. Check again with `npm run test:mail-live` (one
+   fake order; its 2 e-mails go to `MAIL_STORE_TO` only). Still to do: the production secret
+   (`firebase functions:secrets:set SMTP_PASSWORD --project prod`).
 5. **Deploy the branch** (after reviewing/merging it; only on the owner's go):
    `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
    `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then

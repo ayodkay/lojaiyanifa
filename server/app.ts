@@ -92,7 +92,7 @@ export const sendMailOutbox = onSchedule(
   },
   async () => {
     const run = await runMailOutbox(smtpPassword.value());
-    if (run.waiting > 0) {
+    if (run.waiting > 0 && !run.blocked) {
       console.error(`[mail] ${run.waiting} e-mail(s) waiting: SMTP not configured (MAIL_FROM, SMTP_USER, secret SMTP_PASSWORD)`);
       return;
     }
@@ -100,6 +100,12 @@ export const sendMailOutbox = onSchedule(
     if (run.retrying.length) parts.push(`retrying ${run.retrying.join(", ")}`);
     if (run.failed.length) parts.push(`failed ${run.failed.join(", ")}`);
     if (run.expired.length) parts.push(`expired ${run.expired.join(", ")}`);
+    if (run.blocked) {
+      // Login or connection refused (a wrong SMTP key, an IP not authorized in Brevo…): nothing is lost, the e-mails
+      // wait for the next runs (up to 72 hours), but nobody receives them until it's fixed.
+      console.error(`[mail] SMTP refused: ${run.blocked} — ${run.waiting} e-mail(s) wait for the next run; ${parts.join("; ")}`);
+      return;
+    }
     if (run.sent.length || run.retrying.length || run.failed.length || run.expired.length) console.log(`[mail] ${parts.join("; ")}`);
   },
 );

@@ -289,9 +289,13 @@ store's handling days to the carrier's business days. CEP lookup uses ViaCEP.
 - **Sender:** the scheduled function `sendMailOutbox` (every 2 minutes, one instance) — not a Firestore trigger,
   whose first deploy needs Eventarc permissions to propagate. Each due e-mail is claimed in a transaction
   (`pending → sending`, 10-minute lease: at-least-once), rendered from the order **as it is at send time**
-  (`render.ts`, pt-BR, every value HTML-escaped, HTML + text), and sent over SMTP with nodemailer. Retries after
-  2, 4, 8, 16 minutes (5 attempts); an SMTP 5xx or a rendering error fails at once; e-mails older than 72 hours
-  expire unsent. Without configuration nothing is claimed and each run logs an error with the count waiting.
+  (`render.ts`, pt-BR, every value HTML-escaped, HTML + text), and sent over SMTP with nodemailer. A failure counts
+  against the e-mail only when the server refused its recipient or its content (`sendErrorKind`): a 4xx is retried
+  after 2, 4, 8, 16 minutes (5 attempts), a 5xx — or a rendering error — fails at once. Login, sender, connection,
+  TLS and timeout errors are the service's: the e-mail goes back without using an attempt (tried again 5 minutes
+  later), the run stops (`blocked`, logged as an error), and nothing is lost before the 72-hour expiry. E-mails older
+  than 72 hours expire unsent. Without configuration nothing is claimed and each run logs an error with the count
+  waiting. Live check from a dev machine: `npm run test:mail-live` (one fake order's e-mails, to `MAIL_STORE_TO` only).
 - **SMTP:** Brevo's relay (`smtp-relay.brevo.com`, 587 with STARTTLS required, or 465). `MAIL_FROM` (a sender on a
   domain verified in Brevo), optional `MAIL_REPLY_TO` (default: the Prismic support e-mail), `SMTP_USER` in
   `.env.<project-id>`; the SMTP key in Secret Manager as `SMTP_PASSWORD` (the functions predeploy hook refuses it in
@@ -398,3 +402,4 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-04 | Not built (owner decisions needed): gift cards (selling them, balances, state rules on validity), loyalty points, referral rewards | Proposed |
 | 2026-11-04 | Reviews: signed-in customers, one per product, all moderated before publication (owner/admin), never refused for being negative (the terms promise it); "Compra verificada" from a paid order; review structured data only when approved reviews exist; a Firestore failure on a product page shows "avaliações indisponíveis" (logged) instead of breaking the page | Proposed |
 | 2026-11-04 | Cookie consent: the store uses only essential cookies and browser storage, so the notice informs without blocking the page; analytics/marketing stay off unless the visitor turns them on in "Preferências de cookies" (footer); any future analytics or advertising tool must check `hasConsent()` (`app/lib/consent.ts`) before loading; the choice is stored in `li.consent.v1` with a version, and raising `CONSENT_VERSION` asks everyone again | Proposed |
+| 2026-11-04 | Mail sender: only a refused recipient or content counts against an e-mail; login, sender and connection errors (Brevo answers 5xx at login, e.g. 525 for an IP it doesn't authorize) put the e-mail back without using an attempt and stop the run, so a misconfiguration delays e-mails (up to 72 h) instead of failing them all for good. Found by the first live send | Owner (approved the fix) |

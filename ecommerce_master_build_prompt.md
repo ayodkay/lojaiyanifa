@@ -568,7 +568,7 @@ These aren't necessary for every store, but can make it significantly more power
 | Manage business operations |
 - [ ] CRM
 | Manage customer relationships |
-- [ ] Email service — _Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested with a fake transport); needs the owner's Brevo account, verified sender domain, MAIL_FROM/SMTP_USER and the SMTP_PASSWORD secret
+- [ ] Email service — _Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested; a refused login or connection keeps e-mails waiting instead of failing them). The owner's Brevo account, sender domain (DKIM, DMARC) and settings are in place (2026-11-04), but Brevo still refuses the SMTP login from the owner's machine (525 Unauthorized IP), see docs/progress.md; production also needs the SMTP_PASSWORD secret. Check with npm run test:mail-live
 | Send transactional emails |
 - [ ] WhatsApp
 | Customer communication |
