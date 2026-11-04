@@ -591,11 +591,45 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   404 `no-store` `text/plain` with `nosniff`; the real CSS → 200 from Hosting; `/nao-existe-teste` still the 404 page;
   `/health` 200; `/admin/login` 200 with its 21 files 200.
 
+### Deployed and verified
+- Commit `6a5d29a`, then `npm run build` from the clean tree, then
+  `firebase deploy --only functions:ssr,hosting --project prod` (no `--force`), 03:49–03:51 UTC. Exit 0; both hooks
+  ran; `ssr` was updated, then hosting released (52 files, 1 uploaded: the new manifest); no prompt and no invoker
+  warning.
+- Live checks:
+  - A made-up `/assets/` name, requested twice → 404 `no-store` `text/plain`, `x-cache: MISS` both times. The name the
+    CDN had kept before the deploy (`HIT`, `max-age=600`) now gets the same answer: the release cleared it. Firebase
+    passes an explicit `Cache-Control` through on a 404.
+  - `/`, a product page and `/health` 200; `/admin` and `/admin/settings` 302 → login; `/admin/login` 200 with its 21
+    files 200; `/checkout` shows the closed notice; `/robots.txt` identical to the deployed file; `/favicon.ico` 301;
+    the entry script and the new manifest `immutable`; the store's 404 page unchanged (`max-age=600`).
+  - A fresh load of `/admin/login` in the owner's Chrome: styled, both buttons enabled, its files 200, no console
+    errors.
+
 ### Not verified
-- Production: not deployed. After the next deploy, a made-up `/assets/` name must answer `no-store` (until then:
-  `max-age=600`).
+- The function log after this deploy: the Logs Explorer query in the handoff ("Redeploying") with
+  `timestamp>="2026-11-04T03:49:00Z"`.
 - The deploy gap itself stays: a page loaded in those seconds is still broken, but a reload now fixes it. Closing the
   gap means keeping the previous build's files in each upload (not planned).
+
+### Found later: why only the custom domain stayed broken
+- The owner saw it again, only on `https://lojaiyanifa.com.br` (proxied by Cloudflare); `web.app` worked. Reproduced
+  in the owner's Chrome: `/admin/login` unstyled, both buttons grey. No service worker.
+- The browser used two files from its own cache as 404s, `root-CgE-lJYb.css` and `root-Bi_S0IFU.js`. Read back with
+  `fetch(…, { cache: "only-if-cached" })`: the store's 404 page, `cache-control: max-age=14400`, `date` 01:50:17 GMT,
+  `cf-cache-status: HIT`, `age: 253`.
+- So: during the deploy of `2b7e6ec` (about 01:46 GMT) a request for the new files reached the function before Hosting
+  had them. Cloudflare's edge kept that 404 (Firebase's `max-age=600`). At 01:50 the owner's browser got it from the
+  edge, and Cloudflare's Browser Cache TTL (4 hours) raised `max-age=600` to `max-age=14400`. The browser keeps those
+  404s until about 05:46 GMT (02:46 in Brazil): F5 doesn't help, Ctrl+Shift+R does.
+- Cloudflare raises every shorter `max-age` on the files it caches to 4 hours (`/robots.txt` and `/favicon.svg`:
+  `max-age=3600` on `web.app`, `14400` on the custom domain). Since `6a5d29a`, a missing `/assets/` file is `no-store`
+  there too (`cf-cache-status: BYPASS`), so a deploy can no longer leave a 4-hour 404.
+- Cloudflare doesn't cache the HTML pages today (`cf-cache-status: DYNAMIC`), so the `Cloudflare-CDN-Cache-Control`
+  header in `docs/architecture.md` §2 has no effect. If HTML caching is turned on there, every deploy must purge it: a
+  cached page points to files the new deploy no longer has.
+- Recommended, in the Cloudflare dashboard (owner): Caching → Configuration → Browser Cache TTL → "Respect Existing
+  Headers", so Cloudflare stops stretching short cache times.
 
 ## Handoff for the next session (read this first)
 **State:**
@@ -610,13 +644,14 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   At night: `/admin/settings` (Pix payment, delivery, and a switch that opens and closes checkout), deployed from
   `2b7e6ec`.
   After midnight (2026-11-04): a missing `/assets/` file gets a short `no-store` 404 instead of the store's 404 page,
-  which was kept for 10 minutes. Not deployed.
+  which was kept for 10 minutes. Deployed from `6a5d29a`.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
 absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below). The evening's
 `/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`, and `/admin/settings`
-that night, from `2b7e6ec`: production checkout stays closed until the owner opens it there.
+that night, from `2b7e6ec`: production checkout stays closed until the owner opens it there. The missing-asset 404
+followed on 2026-11-04, from `6a5d29a`.
 
 **Checks:**
 - Checklist: 124 done / 368 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
@@ -629,10 +664,11 @@ that night, from `2b7e6ec`: production checkout stays closed until the owner ope
 **Git:**
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
   fixes → `867bed1` session 4 → `2438821` session-5 config → `1b3c384` preview fix + deploy notes → `7f99658`
-  robots.txt, favicon, `/health` → the evening's post-deploy notes → `2b7e6ec` `/admin/settings` (what is deployed)
-  → `e0a9c87` the night's post-deploy notes → the missing-asset 404 (see `git log`).
-- Deployed: `ssr` and hosting from `2b7e6ec` (2026-11-03 night). `expirePixOrders` was last deployed from
-  `2438821`; its code hasn't changed since. The missing-asset 404 (2026-11-04) is not deployed.
+  robots.txt, favicon, `/health` → the evening's post-deploy notes → `2b7e6ec` `/admin/settings` → `e0a9c87` the
+  night's post-deploy notes → `6a5d29a` the missing-asset 404 (what is deployed) → its post-deploy notes (see
+  `git log`).
+- Deployed: `ssr` and hosting from `6a5d29a` (2026-11-04, 03:51 UTC). `expirePixOrders` was last deployed from
+  `2438821`; its code hasn't changed since.
 - Pushed to `origin/master` on 2026-11-04, on the owner's ask, through the commit that wrote this line;
   `git status -sb` shows anything newer. Push only when the owner asks.
 - Commit only when the owner asks. Add files by path, never `git add .`.
@@ -715,7 +751,8 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
    2026-11-03); saving the Pix and delivery settings doesn't open it.
 4. Check: `/`, a product page, `/admin` → 302, `/robots.txt` (200, the rules), `/favicon.ico` (301 → `/favicon.svg`),
    `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header) and a made-up one (404, `no-store`),
-   and the function log in the Logs Explorer, with this query (put in the deploy's UTC start time):
+   all on `web.app` and on the custom domain (`https://lojaiyanifa.com.br`, through Cloudflare), and the function log
+   in the Logs Explorer, with this query (put in the deploy's UTC start time):
    `resource.type="cloud_run_revision" AND resource.labels.service_name="ssr" AND timestamp>="2026-11-03T21:30:00Z"`
    Don't rely on `firebase functions:log`: on 2026-11-03 it showed a stale slice of the log.
 5. Stop and report if pages answer 500, or if the deploy warns "Unable to set the invoker" (a Google Workspace
@@ -738,8 +775,10 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 
 **Known issues:**
-- Production (2026-11-04, "Found"): the store's 404 page has none of the security headers; a page loaded during a
-  deploy loses its files, and until the missing-asset 404 is deployed a reload doesn't help for 10 minutes.
+- Production (2026-11-04, "Found"): the store's 404 page has none of the security headers. A page loaded during a
+  deploy loses its files; since `6a5d29a` (deployed) a reload fixes it.
+- The custom domain `https://lojaiyanifa.com.br` goes through Cloudflare, whose Browser Cache TTL is 4 hours
+  (2026-11-04, "Found later"). Check it after every deploy, not just `web.app`.
   `/robots.txt`, `/favicon.ico` and `/healthz` (session 5, "Found") were fixed and deployed on the evening of
   2026-11-03. Uptime checks should probe `/health`.
 - `npm run preview`'s admin sign-in still fails on the CSP (`connect-src` doesn't allow the Auth emulator).
