@@ -398,7 +398,7 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   function definition from source: FirebaseError: Failed to load environment variables from .env.local.`, and every
   page answered 404 "Function southamerica-east1-ssr does not exist".
 - **A stray `firebase init` process** (PID 47288, started 00:15 on 2026-11-03) was running on this machine. Claude
-  didn't start it and left it alone.
+  didn't start it and left it alone. It was gone by the late evening.
 
 ### Preview fix: done and verified
 - **The fix:** `emulatorEnvFile` (`scripts/functions-env.mjs`) drops the lines whose names have a prefix the CLI
@@ -492,6 +492,13 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   21:36:53Z, while the Logs Explorer has entries from 21:37Z on, from the same revision. It returned an older slice
   of the log instead of the newest entries; why is unverified. Use the Logs Explorer (handoff, "Redeploying").
 
+### Progress check (late evening)
+- Checklist: 121 done, **371 open**, 14 N/A (506 items). `scripts/checklist-update.mjs` prints "N with notes": that
+  is the open items that have a note (99), not all open items.
+- Six open notes contradicted this record and were corrected, statuses unchanged: "Footer with important links",
+  "Buy now button", "Proceed to checkout button", "Payment processing", "Payment confirmation", "Automated testing".
+- The old dev server stack (33300, 12220, 44052, 13692, 3280) still runs; the stray `firebase init` (47288) is gone.
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
@@ -509,9 +516,11 @@ absent). The owner role is granted and TOTP is on. Next: the owner's first sign-
 `/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`.
 
 **Checks:**
-- Checklist: 121 done / 14 N/A (`ecommerce_master_build_prompt.md`). "Robots.txt" went back to todo on 2026-11-03,
-  when production answered it with a 404, and was done again that evening, once production served the file.
-- `npm test` (143 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`).
+- Checklist: 121 done / 371 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
+  count is the open items that have a note, not all open items. "Robots.txt" went back to todo on 2026-11-03, when
+  production answered it with a 404, and was done again that evening, once production served the file.
+- `npm test` (143 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`; last run
+  2026-11-03 morning, and the evening's route changes touch no integration test).
 - `npm run typecheck` and `npm run lint`.
 
 **Git:**

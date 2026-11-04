@@ -74,7 +74,7 @@ The homepage is the main entry point of your store.
 - [ ] Customer reviews or testimonials — _testimonials implemented_ (Prismic, real customers only); reviews pending
 - [ ] Newsletter subscription — pending (needs Firestore + consent + Turnstile)
 - [ ] Social media links — _implemented_ (Prismic settings → footer); needs content
-- [ ] Footer with important links — _rendered_; several target pages (/about, /privacy…) not built yet
+- [ ] Footer with important links — _rendered_; the target pages (/about, /privacy…) are routes that return 404 until their Prismic pages are published
 - [ ] Recently viewed products — _implemented_ (localStorage + /api/products); browser flow not verified yet
 - [x] Trust badges — factual trust strip: Pix, secure checkout, support channel (verified)
 
@@ -116,7 +116,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Size guide (if applicable) — _implemented_ (dialog); needs content
 - [x] Quantity selector — adds the chosen quantity (verified 2026-11-01 with Búzios/Alaká)
 - [x] Add to cart button — adds to the cart with confirmation; disabled without price/SKU; refuses a 51st line (verified 2026-11-01 with Búzios/Alaká)
-- [ ] Buy now button — _implemented_; checkout not built yet
+- [ ] Buy now button — _implemented_; checkout exists since session 2 (verified there on the dev server); this button's path to checkout not verified in a browser
 - [ ] Add to wishlist — _implemented_ (localStorage); /wishlist page pending
 - [ ] Shipping cost calculator — pending (Melhor Envio + store rates)
 - [ ] Estimated delivery date — pending (with shipping quotes)
@@ -166,7 +166,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Display estimated taxes — **blocked**: the owner/accountant must define which tax information to show and its source; not invented
 - [x] Display total price — = subtotal until shipping/discounts join at checkout (verified 2026-11-01 with Búzios/Alaká)
 - [x] Continue shopping button — "Continuar comprando" → /collections/all (verified)
-- [ ] Proceed to checkout button — _rendered_; enabled only when every line is purchasable (disabled state verified); /checkout not built yet
+- [ ] Proceed to checkout button — _rendered_; enabled only when every line is purchasable (disabled state verified); /checkout exists since session 2 (orders 1001/1002 verified on the dev server)
 - [x] Save cart between sessions — localStorage; survives reloads (verified in browser)
 - [ ] Cart persistence across devices (optional) — needs sign-in (carts/{uid})
 - [x] Stock validation — server quote: Firestore inventory + Prismic seed (unit + emulator tests); in the browser: 5 → 3 auto-adjust with notice, sold out blocks checkout (verified 2026-11-01 with Búzios/Alaká)
@@ -193,8 +193,8 @@ One of the most important parts of an e-commerce website.
 - [ ] Terms and conditions acceptance — _checkbox required and enforced server-side_; /terms page content pending in Prismic (link 404s until published)
 - [ ] Privacy policy acceptance where required — _same checkbox_; /privacy content pending in Prismic (legal review)
 - [x] Place order button — disabled while submitting; double submit returns the same order (verified 2026-11-01 (browser + live action on the dev server))
-- [ ] Payment processing — Pix code generated per order; manual confirmation in the admin pending
-- [ ] Payment confirmation — pending (admin confirms Pix)
+- [ ] Payment processing — Pix code generated per order (session 2) and payment confirmed by hand in the admin (session 3), both verified on the dev server; production checkout still closed (settings/payment absent)
+- [ ] Payment confirmation — the admin confirms a Pix payment by hand (built and verified on the dev server, session 3: reservation → sale, stock as computed); the customer's order page after a confirmation not verified; no confirmation e-mail (transactional e-mails not built); not exercised in production (checkout closed)
 - [x] Error handling — per-field Portuguese errors + focus (browser), changed cart → 409 with review link, store not configured → 503 notice (verified 2026-11-01 (browser + live action on the dev server) + integration tests)
 - [x] Order confirmation page — QR + copia e cola + copy button + summary; guest secret link, wrong secret → 404 (verified 2026-11-01 (browser + live action on the dev server))
 
@@ -508,7 +508,7 @@ Especially important if you're selling in Brazil.
 - [ ] Performance monitoring
 - [ ] Automated backups
 - [ ] Staging environment
-- [ ] Automated testing — _in progress_: 132 unit tests (`npm test`) + 65 emulator integration tests (`npm run test:integration`); e2e pending
+- [ ] Automated testing — _in progress_: 143 unit tests (`npm test`) + 65 emulator integration tests (`npm run test:integration`); e2e pending
 - [ ] API documentation
 - [ ] Scalability
 - [ ] Uptime monitoring

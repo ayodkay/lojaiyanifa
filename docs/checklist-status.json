@@ -74,7 +74,7 @@
     },
     "Footer with important links": {
       "status": "todo",
-      "note": "_rendered_; several target pages (/about, /privacy…) not built yet"
+      "note": "_rendered_; the target pages (/about, /privacy…) are routes that return 404 until their Prismic pages are published"
     },
     "Recently viewed products": {
       "status": "todo",
@@ -213,7 +213,7 @@
     },
     "Buy now button": {
       "status": "todo",
-      "note": "_implemented_; checkout not built yet"
+      "note": "_implemented_; checkout exists since session 2 (verified there on the dev server); this button's path to checkout not verified in a browser"
     },
     "Add to wishlist": {
       "status": "todo",
@@ -392,7 +392,7 @@
     },
     "Proceed to checkout button": {
       "status": "todo",
-      "note": "_rendered_; enabled only when every line is purchasable (disabled state verified); /checkout not built yet"
+      "note": "_rendered_; enabled only when every line is purchasable (disabled state verified); /checkout exists since session 2 (orders 1001/1002 verified on the dev server)"
     },
     "Save cart between sessions": {
       "status": "done",
@@ -490,11 +490,11 @@
     },
     "Payment processing": {
       "status": "todo",
-      "note": "Pix code generated per order; manual confirmation in the admin pending"
+      "note": "Pix code generated per order (session 2) and payment confirmed by hand in the admin (session 3), both verified on the dev server; production checkout still closed (settings/payment absent)"
     },
     "Payment confirmation": {
       "status": "todo",
-      "note": "pending (admin confirms Pix)"
+      "note": "the admin confirms a Pix payment by hand (built and verified on the dev server, session 3: reservation → sale, stock as computed); the customer's order page after a confirmation not verified; no confirmation e-mail (transactional e-mails not built); not exercised in production (checkout closed)"
     },
     "Error handling": {
       "status": "done",
@@ -854,7 +854,7 @@
   "19": {
     "Automated testing": {
       "status": "todo",
-      "note": "_in progress_: 132 unit tests (`npm test`) + 65 emulator integration tests (`npm run test:integration`); e2e pending"
+      "note": "_in progress_: 143 unit tests (`npm test`) + 65 emulator integration tests (`npm run test:integration`); e2e pending"
     }
   },
   "20": {
