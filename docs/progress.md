@@ -545,9 +545,21 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - The old dev server (:5173) hot-reloaded the change. Its emulator has no `settings/store`, so its checkout now shows
   as closed (handoff, "This machine").
 
+### Deployed (night)
+- Commit `2b7e6ec`, then `npm run build` from the clean tree, then
+  `firebase deploy --only functions:ssr,hosting --project prod` (no `--force`). Exit 0; both hooks ran, `ssr` was
+  updated and hosting released, with no prompt and no invoker warning.
+- Live checks:
+  - `/admin/settings` 302 → login (`private, no-store`).
+  - `/checkout` 200 with the closed notice (production has no `settings/store`).
+  - `/health`, `/` and a product page 200; `/admin` 302.
+  - `/robots.txt` identical to the deployed file; `/favicon.ico` 301; an asset `immutable`.
+
 ### Not verified (night)
-- Production: not deployed. The owner's first use there: sign in (TOTP), save Pix and delivery, read the test code
-  without paying, then open checkout.
+- The page in production: it needs the owner's first sign-in (TOTP). Then: save Pix and delivery, read the test code
+  without paying, and open checkout when ready.
+- The function log after this deploy: the Logs Explorer query in the handoff ("Redeploying"); `firebase functions:log`
+  is unreliable.
 
 ## Handoff for the next session (read this first)
 **State:**
@@ -559,14 +571,14 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   In the afternoon: first production deploy, owner role, TOTP turned on in the project, `npm run preview` fixed.
   In the evening: `/robots.txt` as a static file written at deploy time, `/favicon.ico` as a Hosting redirect;
   `/healthz` renamed `/health`. Deployed that evening from `7f99658`.
-  At night: `/admin/settings` (Pix payment, delivery, and a switch that opens and closes checkout), verified on a dev
-  stack; not deployed yet.
+  At night: `/admin/settings` (Pix payment, delivery, and a switch that opens and closes checkout), deployed from
+  `2b7e6ec`.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
 absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below). The evening's
-`/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`. `/admin/settings`
-(night) is not deployed: production checkout is still closed only because `settings/payment` is absent.
+`/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`, and `/admin/settings`
+that night, from `2b7e6ec`: production checkout stays closed until the owner opens it there.
 
 **Checks:**
 - Checklist: 124 done / 368 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
@@ -579,9 +591,9 @@ absent). The owner role is granted and TOTP is on. Next: the owner's first sign-
 **Git:**
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
   fixes → `867bed1` session 4 → `2438821` session-5 config → `1b3c384` preview fix + deploy notes → `7f99658`
-  robots.txt, favicon, `/health` (what is deployed) → the evening's post-deploy notes → the night's `/admin/settings`
-  (see `git log`).
-- Deployed: `ssr` and hosting from `7f99658` (2026-11-03 evening). `expirePixOrders` was last deployed from
+  robots.txt, favicon, `/health` → the evening's post-deploy notes → `2b7e6ec` `/admin/settings` (what is deployed)
+  → the night's post-deploy notes (see `git log`).
+- Deployed: `ssr` and hosting from `2b7e6ec` (2026-11-03 night). `expirePixOrders` was last deployed from
   `2438821`; its code hasn't changed since.
 - Pushed to `origin/master` on 2026-11-03, on the owner's ask, through the commit that wrote this line;
   `git status -sb` shows anything newer. Push only when the owner asks.
@@ -646,6 +658,8 @@ absent). The owner role is granted and TOTP is on. Next: the owner's first sign-
    `scripts/admin/reset-mfa.mjs --production`.
 3. Sign out, sign in with a code, open the order tabs (they need the indexes).
 4. If TOTP fails: stop and report. Never set `ADMIN_REQUIRE_MFA=false` to get in.
+5. Then Configurações: save the Pix and delivery settings, read the R$ 1,00 test code in the bank app without paying,
+   and open checkout when the store should start selling.
 Then the checklist item "Two-factor authentication for administrators" can be marked done.
 
 **Redeploying, on the owner's go:**
@@ -658,9 +672,8 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
    - Don't run a bare deploy: `firebase.json` also lists Storage, which the app doesn't use.
    - `--force` is no longer needed for the cleanup policy, which now exists. Don't add it by habit: it also approves
      deleting functions that are missing from the source.
-3. Opening checkout: once `/admin/settings` is deployed, checkout stays closed until the owner opens it in
-   Configurações (`settings/store`); saving the Pix and delivery settings doesn't open it. Until that deploy, the old
-   rule holds: leave `settings/payment` absent.
+3. Opening checkout: it stays closed until the owner opens it in Configurações (`settings/store`, deployed
+   2026-11-03); saving the Pix and delivery settings doesn't open it.
 4. Check: `/`, a product page, `/admin` → 302, `/robots.txt` (200, the rules), `/favicon.ico` (301 → `/favicon.svg`),
    `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header), and the function log in the Logs
    Explorer, with this query (put in the deploy's UTC start time):
@@ -682,8 +695,6 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 `/admin/users` was dropped on 2026-11-03: single admin account.
 
 **Needed before launch but not on this list:**
-- `/admin/settings`: built on the night of 2026-11-03, not deployed yet. Once deployed, the owner enters the Pix key
-  and delivery there, reads the test code, and opens checkout.
 - `/admin/inventory`: stock adjustments.
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 
