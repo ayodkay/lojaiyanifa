@@ -52,7 +52,7 @@ Design: docs/architecture.md §3. How each control is implemented and tested:
 | Password never in a URL if submitted before hydration | login form: `method="post"`, password input has no `name` | rendered HTML check |
 | Production can't run in emulator (unsigned-token) mode | `assertNoEmulatorInProduction` in `app/.server/firebase.ts` | unit |
 | Audit trail | `auditLogs` (order changes and their entry in one transaction) | integration + emulator check after Chrome run |
-| Security headers (CSP, `nosniff`, `X-Frame-Options`, HSTS, …) on every page, unknown paths included: they match a catch-all route, so the root middleware runs (built 2026-11-04) | `app/.server/security.ts`, `app/routes/not-found.tsx` | unit (routing; a 404 for every method) + the production build in the emulators |
+| Security headers (CSP, `nosniff`, `X-Frame-Options`, HSTS, …) on every page, unknown paths included: they match a catch-all route, so the root middleware runs (built and deployed 2026-11-04; before, a path no route matched got none of them) | `app/.server/security.ts`, `app/routes/not-found.tsx` | unit (routing; a 404 for every method) + the production build in the emulators + live, both hosts |
 | Admin pages never cached or indexed | `Cache-Control: private, no-store` + `X-Robots-Tag` set by the admin middleware; `noindex` meta | curl |
 | Second factor: TOTP code after the password; enrolment before first use (built 2026-11-02) | `app/.client/firebase.ts`, `app/routes/admin.login.tsx` | Chrome with `ADMIN_REQUIRE_MFA=true` (enrolment screen, emulator error mapped, SMS-only account refused); the code exchange itself on the real project: the owner's first sign-in, enrolment then a code, worked on 2026-11-04 |
 | TOTP secret never reaches our server; QR drawn in the browser (data: image, allowed by the CSP) | `startTotpEnrollment` + lazy `qrcode` import | code review; the server bundle has no browser SDK (build check) |
@@ -65,11 +65,6 @@ Design: docs/architecture.md §3. How each control is implemented and tested:
 
 ## Known gaps (updated 2026-11-04)
 
-- **The 404 page for unknown paths has no security headers in production** (found 2026-11-04):
-  when no route matched, React Router answered before the root middleware ran, so that page went
-  out without the CSP, `X-Content-Type-Options`, `X-Frame-Options` or HSTS. Fixed in code the same
-  day (a catch-all route, `app/routes/not-found.tsx`; verified on the production build in the
-  emulators), not deployed yet. Low risk meanwhile: the page shows nothing the visitor typed.
 - **CSP on admin pages** still allows inline scripts (`'unsafe-inline'`, needed on
   CDN-cached public pages for React Router's hydration scripts). Admin/account
   pages are never cached, so they could use a per-request nonce instead — not done.

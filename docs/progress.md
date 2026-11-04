@@ -655,9 +655,24 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   `Referrer-Policy`, COOP, `Permissions-Policy`, the CSP and HSTS (before: none). An unknown product (which already
   had them), `/`, the missing-asset 404, `/health` and `/admin/login` (23 of 23 files) are unchanged.
 
+### Deployed and verified
+- Commit `58d92bd`, then `npm run build` from the clean tree, then
+  `firebase deploy --only functions:ssr,hosting --project prod` (no `--force`), 06:34–06:35 UTC. Exit 0; both hooks
+  ran; `ssr` was updated, then hosting released. 55 files, 41 uploaded: the new route made the bundler re-split the
+  shared code into two new chunks (`rolldown-runtime-…`, `components-…`), so most JavaScript file names changed; the
+  CSS didn't. No prompt and no invoker warning.
+- Live checks on `web.app` and on the custom domain:
+  - `/nao-existe-teste`, `/admin/xyz-teste` and a POST to `/nao-existe-teste` → 404, the store's 404 page, with
+    `nosniff`, `X-Frame-Options: DENY`, the CSP and HSTS (before: none); `max-age=600` as before.
+  - An unknown product the same; `/` and a product page 200; `/admin` 302; `/health` 200; `/robots.txt` identical to
+    the deployed file; `/favicon.ico` 301; a made-up asset 404 `no-store`; `/admin/login` 200, its 23 files 200 and
+    `immutable`.
+- The custom domain's 404 page in the owner's Chrome: styled, and no console message at all while it loaded (nothing
+  blocked by the CSP).
+
 ### Not verified
-- Production: not deployed. After the deploy, `/nao-existe-teste` must carry `X-Content-Type-Options` and the CSP on
-  both hosts.
+- The function log after this deploy: the Logs Explorer query in the handoff ("Redeploying") with
+  `timestamp>="2026-11-04T06:34:00Z"`.
 
 ## Handoff for the next session (read this first)
 **State:**
@@ -673,14 +688,15 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   `2b7e6ec`.
   After midnight (2026-11-04): a missing `/assets/` file gets a short `no-store` 404 instead of the store's 404 page,
   which was kept for 10 minutes. Deployed from `6a5d29a`. The owner's first production sign-in with TOTP worked.
-  Then the 404 page for unknown paths gets the security headers (a catch-all route). Not deployed.
+  Then the 404 page for unknown paths gets the security headers (a catch-all route). Deployed from `58d92bd`.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` and the custom domain `https://lojaiyanifa.com.br` (through
 Cloudflare) serve the store with checkout closed (the switch in Configurações is off). The owner role is granted and
 TOTP is on; the owner's first sign-in with it worked on 2026-11-04. Next: Configurações (below). The evening's
 `/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`, and
-`/admin/settings` that night, from `2b7e6ec`. The missing-asset 404 followed on 2026-11-04, from `6a5d29a`.
+`/admin/settings` that night, from `2b7e6ec`. On 2026-11-04 the missing-asset 404 followed, from `6a5d29a`, and the
+catch-all 404 route, from `58d92bd`.
 
 **Checks:**
 - Checklist: 125 done / 367 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
@@ -694,10 +710,10 @@ TOTP is on; the owner's first sign-in with it worked on 2026-11-04. Next: Config
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
   fixes → `867bed1` session 4 → `2438821` session-5 config → `1b3c384` preview fix + deploy notes → `7f99658`
   robots.txt, favicon, `/health` → the evening's post-deploy notes → `2b7e6ec` `/admin/settings` → `e0a9c87` the
-  night's post-deploy notes → `6a5d29a` the missing-asset 404 (what is deployed) → its post-deploy notes, 2FA done →
-  the catch-all 404 route (see `git log`).
-- Deployed: `ssr` and hosting from `6a5d29a` (2026-11-04, 03:51 UTC). `expirePixOrders` was last deployed from
-  `2438821`; its code hasn't changed since. The catch-all 404 route (2026-11-04) is not deployed.
+  night's post-deploy notes → `6a5d29a` the missing-asset 404 → its post-deploy notes, 2FA done → `58d92bd` the
+  catch-all 404 route (what is deployed) → its post-deploy notes (see `git log`).
+- Deployed: `ssr` and hosting from `58d92bd` (2026-11-04, 06:35 UTC). `expirePixOrders` was last deployed from
+  `2438821`; its code hasn't changed since.
 - Pushed to `origin/master` on 2026-11-04, on the owner's ask, through the commit that wrote this line;
   `git status -sb` shows anything newer. Push only when the owner asks.
 - Commit only when the owner asks. Add files by path, never `git add .`.
@@ -802,9 +818,8 @@ the indexes; only "Aguardando pagamento" has been seen).
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 
 **Known issues:**
-- Production (2026-11-04, "Found"): the 404 page for unknown paths has none of the security headers until the
-  catch-all route is deployed. A page loaded during a deploy loses its files; since `6a5d29a` (deployed) a reload
-  fixes it.
+- Production (2026-11-04, "Found"): a page loaded during a deploy loses its files; since `6a5d29a` (deployed) a
+  reload fixes it. The 404 page's missing security headers were fixed and deployed the same day (`58d92bd`).
 - The custom domain `https://lojaiyanifa.com.br` goes through Cloudflare (Browser Cache TTL "Respect Existing
   Headers" since 2026-11-04, "Found later"). Check it after every deploy, not just `web.app`.
   `/robots.txt`, `/favicon.ico` and `/healthz` (session 5, "Found") were fixed and deployed on the evening of
