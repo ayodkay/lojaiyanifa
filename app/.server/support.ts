@@ -11,7 +11,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { type DocumentData, type Query, Timestamp } from "firebase-admin/firestore";
 
-import type { ContactInput, TicketStatus, TicketTopic } from "~/lib/support";
+import { type ContactInput, REPLY_MAX, type TicketStatus, type TicketTopic } from "~/lib/support";
 
 import { writeAuditInTransaction } from "./audit";
 import type { CustomerUser } from "./customer-session";
@@ -23,7 +23,6 @@ import type { AdminUser } from "./session";
 export const FIRST_TICKET_NUMBER = 1001;
 export const TICKETS_PAGE_SIZE = 25;
 export const MAX_MESSAGES = 100;
-export const REPLY_MAX = 4000;
 export const RATE_LIMITS = { perIp: 5, perEmail: 5, global: 60 } as const;
 
 const tickets = () => db().collection("tickets");

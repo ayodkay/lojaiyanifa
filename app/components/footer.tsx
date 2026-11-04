@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 
+import { openConsentPreferences } from "~/lib/consent";
 import { formatHours, isOpenNow, type Shell, whatsappHref } from "~/lib/shell";
 
 import { ChatIcon, PixIcon, ShieldIcon, WhatsAppIcon } from "./icons";
@@ -114,8 +115,12 @@ export function Footer({ shell }: { shell: Shell }) {
               { label: "Política de privacidade", href: "/privacy" },
               { label: "Termos de uso", href: "/terms" },
               { label: "Política de cookies", href: "/cookies" },
+              { label: "Garantia", href: "/warranty" },
             ]}
           />
+          <button type="button" onClick={openConsentPreferences} className="mt-2 text-sm text-ink-soft hover:text-ink hover:underline">
+            Preferências de cookies
+          </button>
           {(contact.email || contact.phone || contact.whatsappNumber || hours.length > 0) && (
             <div className="mt-8 space-y-1 text-sm text-ink-soft">
               {contact.email && (

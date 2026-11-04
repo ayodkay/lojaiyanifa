@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { normalizeBrPhone } from "~/lib/br";
 
+export const REPLY_MAX = 4000; // the longest answer to a ticket: checked on the server, maxLength in the admin form
 export const TICKET_TOPICS = ["order", "payment", "shipping", "returns", "product", "privacy", "complaint", "other"] as const;
 export type TicketTopic = (typeof TICKET_TOPICS)[number];
 

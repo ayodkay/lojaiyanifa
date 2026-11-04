@@ -475,20 +475,20 @@ The administrative system is what allows the business owner to manage the entire
 Especially important if you're selling in Brazil.
 - [ ] Privacy policy — _text written 2026-11-04_ (content/prismic/pages/privacy.md: controller, data per situation, the sensitive-data clause for religious items, LGPD bases, processors, transfers, retention, rights, ANPD) and placed in Prismic's Migration Release; /privacy goes live when the owner publishes it — lawyer review recommended
 - [ ] Terms and conditions — _text written 2026-11-04_ (content/prismic/pages/terms.md) and placed in Prismic's Migration Release; /terms goes live when the owner publishes it — lawyer review recommended
-- [ ] Cookie policy — _text written 2026-11-04_ (content/prismic/pages/cookies.md; lists the real cookie and browser storage keys) and placed in Prismic's Migration Release; live when the owner publishes it
-- [ ] Cookie consent management
+- [ ] Cookie policy — _text written 2026-11-04_ and placed in Prismic's Migration Release (true for production today); the repo's version also lists the browser keys this branch adds (coupon, wishlist sync, cookie choices) and the preferences link: send it after deploying (seed-content --apply --overwrite cookies) — see docs/progress.md handoff
+- [x] Cookie consent management — a non-blocking notice that says only essential cookies/storage are used, a "Preferências de cookies" dialog (footer link) with analytics/marketing off unless chosen, and hasConsent() for any future tool (verified 2026-11-04: Chrome on a dev stack + unit). Nothing non-essential runs today
 - [ ] Return and refund policy — _text written 2026-11-04_ (content/prismic/pages/returns.md: CDC art. 49 withdrawal with return shipping paid by the store, arts. 18/26 defects, exchanges, Pix refunds) and placed in Prismic's Migration Release; live when the owner publishes it
 - [ ] Shipping policy — _text written 2026-11-04_ (content/prismic/pages/shipping.md) and placed in Prismic's Migration Release; live when the owner publishes it
 - [ ] Warranty policy — _text written 2026-11-04_ (content/prismic/pages/warranty.md: legal warranty 30/90 days, what isn't a defect, how to claim) and placed in Prismic's Migration Release; live when the owner publishes it
 - [ ] Company information — _implemented_ (footer + contact: legal name, CNPJ/CPF, address); needs owner data in Prismic settings
 - [ ] Contact information — _implemented_; needs owner data in Prismic settings
-- [ ] Consumer protection disclosures
-- [ ] LGPD compliance (Brazil)
-- [ ] GDPR compliance (if applicable)
+- [ ] Consumer protection disclosures — _in place_: withdrawal (CDC art. 49) explained in the returns policy, the contact form and the confirmation e-mail; answers within 5 days and immediate confirmation of requests (Decreto 7.962); delivery cost shown before ordering; Procon and CDC references in the terms. _Open_: the owner's company data in Prismic settings (name, CNPJ/CPF, address — Decreto 7.962 art. 2) and publishing the texts
+- [ ] LGPD compliance (Brazil) — _in place_: privacy policy (bases, sensitive-data clause for religious items, processors, rights), data export/deletion, consent records, privacy channel; _open_: lawyer review, Cloud Logging retention ≥ 6 months for access logs (Marco Civil art. 15), confirming the small-agent status / naming a DPO, processors' contracts (Google, Cloudflare, Brevo)
+- [ ] GDPR compliance (if applicable) — **N/A**: the store sells only in Brazil (prices in BRL, Brazilian CPF and CEP required) and doesn't target people in the EU
 - [x] Data access and deletion requests — account holders: download their data (JSON) and delete the account in /account/privacy; anyone: the contact form's topic "Privacidade e dados pessoais" (verified 2026-11-04 on a dev stack)
-- [ ] Consent management — _partial_: terms acceptance (checkout, registration) and the marketing e-mail consent are recorded with time, source and history (2026-11-04); cookie preferences not built
+- [x] Consent management — terms acceptance (checkout, registration), marketing e-mail consent with time/source/history, cookie choices; account holders change them in Minha conta (verified 2026-11-04 on a dev stack + integration)
 - [ ] Tax and invoice requirements
-- [ ] Clear pricing and shipping disclosures
+- [x] Clear pricing and shipping disclosures — prices in R$; delivery cost and every discount itemized in the cart/checkout summary before the order (Decreto 7.962 art. 2 IV); shipping policy text in the release (verified 2026-11-04 on a dev stack)
 - [ ] Clear delivery deadlines
 
 ### 19. Performance and Technical Requirements

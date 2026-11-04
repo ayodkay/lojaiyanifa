@@ -839,7 +839,73 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   restarted on purpose: it runs inside `emulators:exec`, so stopping it would end its emulators and lose Q's dev data
   (order 1003). Restart it whenever convenient (`npm run dev:emulated`). Lesson: write the route file first.
 
+### G. Cookie consent (§18)
+- `app/lib/consent.ts` (`li.consent.v1`, versioned; `hasConsent()` for any future analytics/marketing tool; never
+  assumes consent), `app/components/consent.tsx` (non-blocking notice that says only essential cookies/storage are
+  used; "Preferências de cookies" dialog, analytics/marketing off unless chosen), mounted in the store layout; footer
+  link + "Garantia" added to the footer's legal column. 2 unit tests.
+- Chrome: notice on first visit; dialog (found and fixed: Tailwind's reset left `<dialog>` in the top-left corner →
+  `m-auto`); saved both off → notice gone, choice stored; reopened from the footer with the saved state; Escape
+  closes it.
+- `content/prismic/pages/cookies.md` now also lists the keys this branch adds and the preferences link. **Not sent**:
+  the copy in Prismic's release must stay true for production until the branch is deployed (handoff, step 5).
+- `seed-content.mjs` learns `external` state entries; the archived settings document is recorded as one, so a plain
+  `--apply` skips it with the reason.
+- The final `npm run build` caught a batch D bug that dev mode and typecheck don't: `admin.ticket.tsx` imported
+  `REPLY_MAX` (used by the form) from the server-only `~/.server/support` ("Server-only module referenced by
+  client"). The constant moved to `app/lib/support.ts`; build OK. Lesson: run the build after every batch.
+- Not done: a decision-log line for cookie consent in `docs/architecture.md`.
+
 ## Handoff for the next session (read this first)
+
+**Session 6 (night of 2026-11-04) — branch `feat/accounts-support-promos-legal`, not merged, not pushed, not deployed.**
+Commits on top of master `1b17582`: `d7129be` texts → Prismic, `9c734eb` Brevo e-mail, `33ff768` accounts, `68c6d1f`
+support, `b2fd334` discounts, `3db05c5` reviews, and the cookie-consent/handoff commit after it (`git log`).
+Checks at the end: unit 244, typecheck clean, lint 0 errors, build OK; integration 113 (fresh emulators) last run
+after batch F — batch G changed no server logic except moving one constant, so it was not re-run.
+
+**What the owner does next, in this order:**
+1. **Prismic → Migration release** ("migration-api-release"): read the 7 pages and the FAQ (lawyer review
+   recommended for terms, privacy, returns, warranty), edit freely, then **Publish**. This alone fixes the 404s that
+   checkout links to; it needs no deploy. Choices the texts make that are business decisions (change them if wrong):
+   exchanges for size/colour at the customer's shipping cost; a re-delivery may be charged when the address was wrong
+   or nobody was home; refunds by Pix right after the returned product arrives; the FAQ explains that the bank app
+   shows the Pix account holder's name, not "Loja Iyanifa" (session 2 left that open).
+2. **After publishing, discard the old empty FAQ draft** ("Untitled Nov 2", same document `aukFxxEAACoApfqD`, shown as
+   "Edited" beside the release version): publishing that draft later would empty the FAQ.
+3. **Store settings in Prismic** (company name, CNPJ/CPF, address, support e-mail, WhatsApp, hours): the settings
+   document is **archived** ("Untitled Nov 1", `audNGREAACoAomV3`). Restore it and fill it in. The three product-page
+   policy summaries are ready in `content/prismic/settings.md`: paste them by hand, or — only if the restored document
+   is still empty — run `node scripts/prismic/seed-content.mjs --apply --adopt settings=audNGREAACoAomV3` **before**
+   typing anything (the Migration API replaces a document's content).
+4. **Brevo** (e-mail): add `lojaiyanifa.com.br` as a sender domain and put Brevo's DNS records in Cloudflare
+   (DNS only, not proxied); create an SMTP key (SMTP & API → SMTP); then
+   `firebase functions:secrets:set SMTP_PASSWORD --project prod` (paste the key), and add to `.env.lojaiyanifa`:
+   `MAIL_FROM="Loja Iyanifa <pedidos@lojaiyanifa.com.br>"` (a sender Brevo verified), `SMTP_USER=<Brevo SMTP login>`,
+   `MAIL_STORE_TO=<the store's inbox>`, optionally `MAIL_REPLY_TO`. Not ready yet? Set the secret to `unset`: e-mails
+   wait (each run logs how many) and expire after 72 h. Optional: Firebase console → Authentication → Templates → SMTP
+   settings → the same Brevo relay, so verification/reset e-mails come from the store's domain.
+5. **Deploy the branch** (after reviewing/merging it; only on the owner's go):
+   `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
+   `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then
+   `firebase deploy --only functions,hosting --project prod > <log> 2>&1` — this creates the new scheduled function
+   `sendMailOutbox`, which needs the secret from step 4. Then send the cookie policy that matches the deployed site:
+   `node scripts/prismic/seed-content.mjs --apply --overwrite cookies` and publish the release again. Live checks as in
+   "Redeploying" below, plus `/register`, `/login`, `/contact` (form), `/wishlist`, a product page's reviews section.
+6. Recommended, not built: Cloud Logging retention ≥ 183 days (the privacy policy promises 6 months of access logs,
+   Marco Civil art. 15; the default bucket keeps 30); a Firestore TTL policy on `rateLimits.expiresAt`; Cloudflare
+   Turnstile keys for the contact form; deciding whether `SITE_URL` (links in e-mails, canonical URLs) should become
+   `https://lojaiyanifa.com.br`.
+7. This machine: Q's old dev server on :5173 shows "Failed to load url … wishlist.tsx" since this branch changed
+   `routes.ts` under it; restarting it ends its emulators and their data (order 1003). Start fresh with
+   `npm run dev:emulated` when convenient. Claude's verification stack (`firebase.verify.json`, dev server :5176) may
+   still be running from this session; it holds only test data.
+
+**Still open from tonight's scope (needs the owner):** customer photos in reviews (a Storage bucket + an upload path
+that strips EXIF), gift cards / loyalty points / referrals (rules), NF-e invoices (accountant), live chat (WhatsApp is
+the channel; a widget means a third party + consent), phone support (number), the flat rate's transit days.
+
+**Earlier handoff (sessions 1–5) follows.**
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
 - Session 3: admin sign-in with roles.

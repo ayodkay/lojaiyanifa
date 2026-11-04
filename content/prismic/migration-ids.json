@@ -38,5 +38,11 @@
     "id": "aurgUBEAACgAqYrV",
     "type": "page",
     "complete": true
+  },
+  "settings": {
+    "id": "audNGREAACoAomV3",
+    "type": "settings",
+    "complete": false,
+    "external": "an archived settings document exists (the owner archived it on 2026-11-01); restore it in Prismic and run --adopt settings=audNGREAACoAomV3 to add the policy summaries"
   }
 }

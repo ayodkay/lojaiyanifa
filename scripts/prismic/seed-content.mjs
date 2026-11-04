@@ -101,6 +101,8 @@ try {
     const live = published.get(source.key);
     const saved = state[source.key];
     if (skip.has(source.key)) return { ...source, action: "skip", why: "left out with --skip" };
+    // A document someone else owns, recorded in the state file with why (e.g. the owner's archived settings).
+    if (saved?.external && !adopt.has(source.key)) return { ...source, action: "skip", why: saved.external };
     if (source.type === "settings" && (live || saved?.complete)) {
       return { ...source, action: "skip", why: "the owner's settings document exists; it is never changed by this script" };
     }
