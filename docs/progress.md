@@ -854,15 +854,20 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - The final `npm run build` caught a batch D bug that dev mode and typecheck don't: `admin.ticket.tsx` imported
   `REPLY_MAX` (used by the form) from the server-only `~/.server/support` ("Server-only module referenced by
   client"). The constant moved to `app/lib/support.ts`; build OK. Lesson: run the build after every batch.
-- Not done: a decision-log line for cookie consent in `docs/architecture.md`.
+- Intermittent test, seen once: in the first full integration run at the end, `orders.test.ts` › "never sells the
+  last unit twice, even to simultaneous buyers" got `3 INVALID_ARGUMENT: Transaction is…` (Vitest cut the message)
+  instead of `CartChangedError`, after 8.3 s. No order code had changed since the last green run (`git diff 3db05c5`);
+  the test then passed 3/3 alone and the next full run passed 113/113. Theory, unverified: the emulator answers
+  INVALID_ARGUMENT (not retried by the SDK) to a transaction that lost a slow lock race, where production answers
+  ABORTED (retried). If it comes back, capture the full error before changing the test or the order code.
 
 ## Handoff for the next session (read this first)
 
 **Session 6 (night of 2026-11-04) — branch `feat/accounts-support-promos-legal`, not merged, not pushed, not deployed.**
 Commits on top of master `1b17582`: `d7129be` texts → Prismic, `9c734eb` Brevo e-mail, `33ff768` accounts, `68c6d1f`
 support, `b2fd334` discounts, `3db05c5` reviews, and the cookie-consent/handoff commit after it (`git log`).
-Checks at the end: unit 244, typecheck clean, lint 0 errors, build OK; integration 113 (fresh emulators) last run
-after batch F — batch G changed no server logic except moving one constant, so it was not re-run.
+Checks at the end: unit 244, integration 113 (fresh emulators; one intermittent failure, see G), typecheck clean,
+lint 0 errors, build OK.
 
 **What the owner does next, in this order:**
 1. **Prismic → Migration release** ("migration-api-release"): read the 7 pages and the FAQ (lawyer review
@@ -898,8 +903,8 @@ after batch F — batch G changed no server logic except moving one constant, so
    `https://lojaiyanifa.com.br`.
 7. This machine: Q's old dev server on :5173 shows "Failed to load url … wishlist.tsx" since this branch changed
    `routes.ts` under it; restarting it ends its emulators and their data (order 1003). Start fresh with
-   `npm run dev:emulated` when convenient. Claude's verification stack (`firebase.verify.json`, dev server :5176) may
-   still be running from this session; it holds only test data.
+   `npm run dev:emulated` when convenient. Claude's verification stack (`firebase.verify.json`, dev server :5176) was
+   stopped at the end of the session (its ports no longer answer; :5173 and :8180 were left as they were).
 
 **Still open from tonight's scope (needs the owner):** customer photos in reviews (a Storage bucket + an upload path
 that strips EXIF), gift cards / loyalty points / referrals (rules), NF-e invoices (accountant), live chat (WhatsApp is
