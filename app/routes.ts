@@ -46,4 +46,7 @@ export default [
   route("health", "routes/health.ts"),
   // Files under /assets/ that Hosting doesn't have: a short 404 that nothing keeps (see the route file).
   route("assets/*", "routes/missing-asset.ts"),
+
+  // Every other path: the store's 404 page, through the root middleware like any other route (see the route file).
+  route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;

@@ -359,3 +359,4 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-03 | `/favicon.ico` is a Hosting redirect to `/favicon.svg` (the deployed function can't serve it), written as a `regex` because this machine's Hosting emulator (Windows) never matches a `source` redirect; the route is removed | Owner |
 | 2026-11-03 | Checkout opens and closes only through an explicit switch in `/admin/settings` (`settings/store.checkoutOpen`; absent = closed); saving the Pix or delivery settings never opens it | Owner |
 | 2026-11-04 | A missing `/assets/` file gets a short `no-store` 404 from the function (`app/routes/missing-asset.ts`), not the store's 404 page, which Firebase sent on as `max-age=600` (a page loaded mid-deploy stayed broken for 10 minutes) | Owner |
+| 2026-11-04 | Paths no route takes match a catch-all route (`app/routes/not-found.tsx`) that throws a 404, so they pass through the root middleware (security headers) and render the same 404 page | Owner |

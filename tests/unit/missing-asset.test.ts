@@ -31,6 +31,6 @@ describe("a file under /assets/ that Hosting doesn't have", () => {
     expect(fileFor("/products/alaka")).toBe("routes/product.tsx");
     expect(fileFor("/admin/login")).toBe("routes/admin.login.tsx");
     expect(fileFor("/health")).toBe("routes/health.ts");
-    expect(fileFor("/assetsx/a.css")).toBeUndefined();
+    expect(fileFor("/assetsx/a.css")).toBe("routes/not-found.tsx");
   });
 });
