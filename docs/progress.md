@@ -932,8 +932,12 @@ typecheck clean, lint 0 errors, build OK.
    "Redeploying" below, plus `/register`, `/login`, `/contact` (form), `/wishlist`, a product page's reviews section.
 6. Recommended, not built: Cloud Logging retention ≥ 183 days (the privacy policy promises 6 months of access logs,
    Marco Civil art. 15; the default bucket keeps 30); a Firestore TTL policy on `rateLimits.expiresAt`; Cloudflare
-   Turnstile keys for the contact form; deciding whether `SITE_URL` (links in e-mails, canonical URLs) should become
-   `https://lojaiyanifa.com.br`.
+   Turnstile keys for the contact form.
+   **`SITE_URL` is `https://lojaiyanifa.com.br`** since 2026-11-04 (owner's decision, in `.env.lojaiyanifa`; the
+   predeploy check passes): canonical URLs, the sitemap, robots.txt and e-mail links switch at the next functions +
+   hosting deploy. `lojaiyanifa.web.app` keeps working: the same-origin check compares a form's Origin with the
+   forwarded host (a POST to `/` reached the router, 405, on both hosts). After the deploy, check the canonical link
+   and `/robots.txt` on both hosts (Cloudflare may serve `.com.br` from cache for a while).
 7. This machine: Q's old dev server on :5173 shows "Failed to load url … wishlist.tsx" since this branch changed
    `routes.ts` under it; restarting it ends its emulators and their data (order 1003). Start fresh with
    `npm run dev:emulated` when convenient. Claude's verification stack (`firebase.verify.json`, dev server :5176) was
