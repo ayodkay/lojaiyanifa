@@ -72,6 +72,8 @@ describe("live e-mail through the configured SMTP relay", () => {
     expect(run.blocked, "the SMTP relay refused the login or the connection").toBeNull();
     expect(run.waiting, "SMTP isn't configured in .env.local (MAIL_FROM, SMTP_USER, SMTP_PASSWORD)").toBe(0);
     expect(run.failed).toEqual([]);
-    expect(run.sent).toHaveLength(mails.length);
+    // Exactly the order's two e-mails, both sent (an empty outbox must not pass).
+    expect(mails.map((m) => m.template).sort()).toEqual(["order_placed", "store_new_order"]);
+    expect(run.sent).toHaveLength(2);
   });
 });

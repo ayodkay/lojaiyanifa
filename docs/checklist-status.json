@@ -1213,7 +1213,7 @@
   "22": {
     "Email service": {
       "status": "todo",
-      "note": "_Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested; a refused login or connection keeps e-mails waiting instead of failing them). The owner's Brevo account, sender domain (DKIM, DMARC) and settings are in place (2026-11-04), but Brevo still refuses the SMTP login from the owner's machine (525 Unauthorized IP), see docs/progress.md; production also needs the SMTP_PASSWORD secret. Check with npm run test:mail-live"
+      "note": "_Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested; a refused login or connection keeps e-mails waiting instead of failing them). The owner's Brevo account, sender domain (DKIM, DMARC) and settings are in place; an order confirmation and a store notice went through Brevo from the owner's machine on 2026-11-04 (npm run test:mail-live, after the owner authorized that IP). Not live yet: Brevo accepts only authorized IPs and Cloud Functions have no fixed one (turn the blocking off or add a fixed egress IP), plus the SMTP_PASSWORD secret and the deploy, see docs/progress.md"
     }
   },
   "23": {

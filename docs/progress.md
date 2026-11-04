@@ -871,8 +871,10 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   unused and can be deleted.
 - Live send through the production path (one fake order on the test emulator; its two e-mails to `MAIL_STORE_TO`
   only): refused at login, `525 5.7.1 Unauthorized IP address`, three times, also after the owner turned Brevo's IP
-  blocking off. Open: see the handoff, step 4. The check is now a command: `npm run test:mail-live`
-  (`tests/mail-live/`, its own vitest config; the unit and integration runs never include it).
+  blocking off; **passed once the owner authorized this machine's IP** in Brevo. Production is still affected: see
+  the handoff, step 4. The check is now a command: `npm run test:mail-live` (`tests/mail-live/`, its own vitest
+  config; the unit and integration runs never include it). It prints what it sent: Vitest 5 hides a passing test's
+  console output, so its config sets `silent: false` (the passing run above printed nothing; checked with a marker test).
 - **Bug the live send found (batch B):** every SMTP 5xx counted as "this e-mail is refused for good", but Brevo also
   answers 5xx at login, so a blocked IP or a wrong key would have failed every e-mail at once, for good. Now
   `sendErrorKind` (nodemailer's code and SMTP command, checked in its source) decides: only a refused recipient
@@ -912,12 +914,15 @@ typecheck clean, lint 0 errors, build OK.
    wait (each run logs how many) and expire after 72 h. Optional: Firebase console → Authentication → Templates → SMTP
    settings → the same Brevo relay, so verification/reset e-mails come from the store's domain.
    **Status 2026-11-04:** account, sender domain and DNS done (Zoho MX; Brevo code; DKIM `brevo1`/`brevo2`; DMARC
-   `p=reject`); settings in `.env.local` (dev) and `.env.lojaiyanifa` (production, without the key). **Open:** Brevo
-   refuses the SMTP login from the owner's machine with `525 5.7.1 Unauthorized IP address`, even after the owner
-   turned IP blocking off: check Brevo → Security → Authorized IPs in the account the SMTP login belongs to. Cloud
-   Functions have no fixed IP, so production needs the blocking off. Check again with `npm run test:mail-live` (one
-   fake order; its 2 e-mails go to `MAIL_STORE_TO` only). Still to do: the production secret
-   (`firebase functions:secrets:set SMTP_PASSWORD --project prod`).
+   `p=reject`); settings in `.env.local` (dev) and `.env.lojaiyanifa` (production, without the key). Sending works
+   from the owner's machine since the owner authorized its IP in Brevo (`npm run test:mail-live` passed; it sends one
+   fake order's 2 e-mails to `MAIL_STORE_TO` only). **Open before deploying `sendMailOutbox`:** Brevo now accepts
+   only authorized IPs, and Cloud Functions have no fixed IP, so production would be refused (`525 5.7.1
+   Unauthorized IP address`; the e-mails then wait, and every run logs "SMTP refused"). Either turn Brevo's IP
+   blocking off (Security → Authorized IPs; the first attempt didn't take effect, so check with
+   `npm run test:mail-live` from a non-authorized network, or watch the function's logs after deploying), or give the
+   functions a fixed outgoing IP (VPC connector + Cloud NAT, a monthly cost) and authorize it. And the production
+   secret: `firebase functions:secrets:set SMTP_PASSWORD --project prod`.
 5. **Deploy the branch** (after reviewing/merging it; only on the owner's go):
    `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
    `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then

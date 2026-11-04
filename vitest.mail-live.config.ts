@@ -7,5 +7,6 @@ import integration from "./vitest.integration.config";
 // configs never include that folder.
 export default defineConfig({
   ...integration,
-  test: { ...integration.test, include: ["tests/mail-live/**/*.test.ts"], testTimeout: 120_000 },
+  // silent: false — Vitest 5 hides a passing test's console output here; the check must show what it sent.
+  test: { ...integration.test, include: ["tests/mail-live/**/*.test.ts"], testTimeout: 120_000, silent: false },
 });
