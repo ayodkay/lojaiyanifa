@@ -628,14 +628,21 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Cloudflare doesn't cache the HTML pages today (`cf-cache-status: DYNAMIC`), so the `Cloudflare-CDN-Cache-Control`
   header in `docs/architecture.md` §2 has no effect. If HTML caching is turned on there, every deploy must purge it: a
   cached page points to files the new deploy no longer has.
-- Recommended, in the Cloudflare dashboard (owner): Caching → Configuration → Browser Cache TTL → "Respect Existing
-  Headers", so Cloudflare stops stretching short cache times.
+- Changed by the owner the same night, in the Cloudflare dashboard: Caching → Configuration → Browser Cache TTL →
+  "Respect Existing Headers". Checked at 05:16 GMT: on every path tried (`/robots.txt`, `/favicon.svg`, two assets, a
+  made-up asset, `/`, `/admin/login`, `/health`, the 404 page) the custom domain sends the same `Cache-Control` as
+  `web.app`. In the owner's Chrome the custom domain's admin pages load styled, with no console errors.
+
+### Owner's first production sign-in
+- Done on the custom domain: the authenticator enrolment, then a sign-in with its code (owner confirmed). Seen in the
+  owner's Chrome afterwards: `/admin/login` went straight to `/admin/orders`, signed in as the owner, styled, with no
+  console errors. Checklist: "Two-factor authentication for administrators" is done (125 done / 367 open / 14 N/A).
 
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
 - Session 3: admin sign-in with roles.
-- Session 4: TOTP screens (verification pending on the real project), Pix expiry job, fulfilment (preparing →
+- Session 4: TOTP screens (verified on the real project on 2026-11-04), Pix expiry job, fulfilment (preparing →
   shipped / ready → delivered / picked up) with tracking, internal notes, full/partial refunds with stock returns.
 - Session 5: production config for the deployed functions; `.firebaserc` `prod` alias; `/admin/users` dropped.
   In the afternoon: first production deploy, owner role, TOTP turned on in the project, `npm run preview` fixed.
@@ -644,17 +651,17 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   At night: `/admin/settings` (Pix payment, delivery, and a switch that opens and closes checkout), deployed from
   `2b7e6ec`.
   After midnight (2026-11-04): a missing `/assets/` file gets a short `no-store` 404 instead of the store's 404 page,
-  which was kept for 10 minutes. Deployed from `6a5d29a`.
+  which was kept for 10 minutes. Deployed from `6a5d29a`. The owner's first production sign-in with TOTP worked.
 - Everything is verified as listed above.
 
-**Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
-absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below). The evening's
-`/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`, and `/admin/settings`
-that night, from `2b7e6ec`: production checkout stays closed until the owner opens it there. The missing-asset 404
-followed on 2026-11-04, from `6a5d29a`.
+**Deployed 2026-11-03.** `https://lojaiyanifa.web.app` and the custom domain `https://lojaiyanifa.com.br` (through
+Cloudflare) serve the store with checkout closed (the switch in Configurações is off). The owner role is granted and
+TOTP is on; the owner's first sign-in with it worked on 2026-11-04. Next: Configurações (below). The evening's
+`/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`, and
+`/admin/settings` that night, from `2b7e6ec`. The missing-asset 404 followed on 2026-11-04, from `6a5d29a`.
 
 **Checks:**
-- Checklist: 124 done / 368 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
+- Checklist: 125 done / 367 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
   count is the open items that have a note, not all open items. "Robots.txt" went back to todo on 2026-11-03, when
   production answered it with a 404, and was done again that evening, once production served the file.
 - `npm test` (154 unit) and `npm run test:integration` (71, own emulator ports via `firebase.test.json`; all passed
@@ -724,18 +731,16 @@ followed on 2026-11-04, from `6a5d29a`.
   `prod` alias). Credentials: the service-account key through the shell's `GOOGLE_APPLICATION_CREDENTIALS`.
 - TOTP turned on in the project's Auth config (it was off).
 
-**Owner's first sign-in (next), on `https://lojaiyanifa.web.app/admin/login`:**
-1. Sign in with the password. The page asks to confirm the e-mail and sends the link (from
-   `noreply@lojaiyanifa.firebaseapp.com`; check spam).
-2. After the link, sign in again: the page shows a QR code. Scan it with an authenticator app and type its code.
-   Back the enrolment up on a second device: with one admin account, a lost phone needs
-   `scripts/admin/reset-mfa.mjs --production`.
-3. Sign out, sign in with a code, open the order tabs (they need the indexes).
-4. If TOTP fails: stop and report. Never set `ADMIN_REQUIRE_MFA=false` to get in.
-5. Then Configurações: save the Pix and delivery settings, read the R$ 1,00 test code in the bank app without paying,
-   and open checkout when the store should start selling.
-If the page shows up unstyled with grey buttons, reload it (2026-11-04, "Found").
-Then the checklist item "Two-factor authentication for administrators" can be marked done.
+**Owner's first sign-in: done 2026-11-04** (on the custom domain: enrolment, then a code; owner confirmed). The
+checklist item "Two-factor authentication for administrators" is done.
+- Back the enrolment up on a second device: with one admin account, a lost phone needs
+  `scripts/admin/reset-mfa.mjs --production`.
+- If TOTP ever fails: stop and report. Never set `ADMIN_REQUIRE_MFA=false` to get in.
+- If the page shows up unstyled with grey buttons, reload it with Ctrl+Shift+R (2026-11-04, "Found").
+
+**Next for the owner, in Configurações:** save the Pix and delivery settings, read the R$ 1,00 test code in the bank
+app without paying, and open checkout when the store should start selling. Also open each order tab once (they need
+the indexes; only "Aguardando pagamento" has been seen).
 
 **Redeploying, on the owner's go:**
 1. `npm run build` from a committed tree.
@@ -759,14 +764,13 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
    organization policy would make every page answer 403).
 
 **Not built yet (in order):**
-1. The owner's first sign-in with TOTP (above). It's the TOTP verification.
-2. Transactional e-mails. Needs an SMTP provider and a verified sender domain; the shipped / refunded / cancelled
+1. Transactional e-mails. Needs an SMTP provider and a verified sender domain; the shipped / refunded / cancelled
    events are ready to hook in.
-3. Activity-log viewer (`auditLogs`).
-4. Admin dashboard.
-5. Customer accounts (CPF required at sign-up).
-6. Coupons.
-7. Melhor Envio.
+2. Activity-log viewer (`auditLogs`).
+3. Admin dashboard.
+4. Customer accounts (CPF required at sign-up).
+5. Coupons.
+6. Melhor Envio.
 
 `/admin/users` was dropped on 2026-11-03: single admin account.
 
@@ -777,8 +781,8 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 **Known issues:**
 - Production (2026-11-04, "Found"): the store's 404 page has none of the security headers. A page loaded during a
   deploy loses its files; since `6a5d29a` (deployed) a reload fixes it.
-- The custom domain `https://lojaiyanifa.com.br` goes through Cloudflare, whose Browser Cache TTL is 4 hours
-  (2026-11-04, "Found later"). Check it after every deploy, not just `web.app`.
+- The custom domain `https://lojaiyanifa.com.br` goes through Cloudflare (Browser Cache TTL "Respect Existing
+  Headers" since 2026-11-04, "Found later"). Check it after every deploy, not just `web.app`.
   `/robots.txt`, `/favicon.ico` and `/healthz` (session 5, "Found") were fixed and deployed on the evening of
   2026-11-03. Uptime checks should probe `/health`.
 - `npm run preview`'s admin sign-in still fails on the CSP (`connect-src` doesn't allow the Auth emulator).

@@ -111,8 +111,8 @@ app's `Cache-Control` headers, which both CDNs honour).
   enabled. On `lojaiyanifa` (checked 2026-11-03), Identity Platform was on but TOTP
   was off; it was turned on that day with the owner's go (TOTP provider, 5 adjacent
   intervals, SMS left off). The Auth emulator has no TOTP, so the code exchange
-  itself is verified by the owner's first sign-in on the deployed site (deployed
-  2026-11-03; owner decision 2026-11-02).
+  itself was verified by the owner's first sign-in on the deployed site
+  (2026-11-04: enrolment, then a code; owner decision 2026-11-02).
 - **Emulator guard**: pointed at an emulator the Admin SDK accepts unsigned
   tokens, so a production build refuses to start with `FIRESTORE_EMULATOR_HOST` /
   `FIREBASE_AUTH_EMULATOR_HOST` set, except inside the functions emulator.

@@ -451,7 +451,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] HTTPS / SSL certificate
 - [ ] Secure password hashing
 - [ ] Secure authentication — _admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending
-- [ ] Two-factor authentication for administrators — _TOTP built 2026-11-02_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Verified against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP). Deployed 2026-11-03 and TOTP turned on in the project that day (it was off): the owner's first sign-in verifies the exchange
+- [x] Two-factor authentication for administrators — _verified in production 2026-11-04_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Built 2026-11-02 and checked against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP); deployed 2026-11-03, with TOTP turned on in the project that day (it was off). The owner's first production sign-in (enrolment, then a code) worked on 2026-11-04 (owner confirmed)
 - [x] Role-based access control — owner/admin/staff claims + per-action capability checks on the server (unit, integration and Chrome tests, 2026-11-02)
 - [ ] Protection against SQL injection
 - [ ] Protection against XSS

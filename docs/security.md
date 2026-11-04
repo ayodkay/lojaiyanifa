@@ -53,7 +53,7 @@ Design: docs/architecture.md §3. How each control is implemented and tested:
 | Production can't run in emulator (unsigned-token) mode | `assertNoEmulatorInProduction` in `app/.server/firebase.ts` | unit |
 | Audit trail | `auditLogs` (order changes and their entry in one transaction) | integration + emulator check after Chrome run |
 | Admin pages never cached or indexed | `Cache-Control: private, no-store` + `X-Robots-Tag` set by the admin middleware; `noindex` meta | curl |
-| Second factor: TOTP code after the password; enrolment before first use (built 2026-11-02) | `app/.client/firebase.ts`, `app/routes/admin.login.tsx` | Chrome with `ADMIN_REQUIRE_MFA=true` (enrolment screen, emulator error mapped, SMS-only account refused); the code exchange itself only on the real project (deployed and TOTP turned on 2026-11-03; pending the owner's first sign-in) |
+| Second factor: TOTP code after the password; enrolment before first use (built 2026-11-02) | `app/.client/firebase.ts`, `app/routes/admin.login.tsx` | Chrome with `ADMIN_REQUIRE_MFA=true` (enrolment screen, emulator error mapped, SMS-only account refused); the code exchange itself on the real project: the owner's first sign-in, enrolment then a code, worked on 2026-11-04 |
 | TOTP secret never reaches our server; QR drawn in the browser (data: image, allowed by the CSP) | `startTotpEnrollment` + lazy `qrcode` import | code review; the server bundle has no browser SDK (build check) |
 | Lost authenticator: factors removed only by an operator script, sessions revoked, audited | `scripts/admin/reset-mfa.mjs` (`mfa.reset`) | 8 CLI cases against the emulator |
 | Order changes re-check state in one transaction; a lost race is a 409, never a double settlement | `settlePendingOrder`, `takeFulfillmentStep`, `recordRefund` | integration (races + stubbed "transaction closed" errors) |
@@ -62,12 +62,12 @@ Design: docs/architecture.md §3. How each control is implemented and tested:
 | Settings: the owner edits, an admin reads, staff have no access (built 2026-11-03) | `settings.view` / `settings.edit`, checked in the loader and on every action of `app/routes/admin.settings.tsx` | unit (role table) + Chrome (staff: no link, 403; staff and admin crafted POSTs 403; admin read-only) |
 | Settings saves: one transaction, refused when the page is stale (409), nothing written when nothing changed, audit entry with the Pix key masked (type + last 4); checkout opens only by the owner's switch and only with valid settings | `app/.server/admin-settings.ts`, `app/.server/settings-forms.ts` | 9 unit + 6 integration, 8 of 8 mutations caught, Chrome on a separate dev stack |
 
-## Known gaps (updated 2026-11-03)
+## Known gaps (updated 2026-11-04)
 
-- **TOTP not yet exercised on the real project**: built and checked against the emulator, which
-  has no TOTP. Deployed 2026-11-03. TOTP was off in the project's Auth config that morning and was
-  turned on the same day, so until then production admin sign-in could not complete (it failed
-  closed). The owner's first sign-in (enrolment, then a code) is the verification.
+- **The 404 page for unknown paths has no security headers** (found 2026-11-04): when no route
+  matches, the root middleware doesn't run, so production sends that page without the CSP,
+  `X-Content-Type-Options`, `X-Frame-Options` or HSTS (`/` has all four). Low risk: the page
+  shows nothing the visitor typed. Likely fix (not tried): a catch-all route, so the middleware runs.
 - **CSP on admin pages** still allows inline scripts (`'unsafe-inline'`, needed on
   CDN-cached public pages for React Router's hydration scripts). Admin/account
   pages are never cached, so they could use a per-request nonce instead — not done.
