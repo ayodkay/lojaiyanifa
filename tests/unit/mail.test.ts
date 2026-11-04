@@ -120,7 +120,7 @@ describe("stepMail", () => {
 });
 
 describe("SMTP configuration", () => {
-  const vars = { MAIL_FROM: "Loja <pedidos@loja.example>", MAIL_REPLY_TO: undefined, SMTP_HOST: "smtp-relay.brevo.com", SMTP_PORT: 587, SMTP_USER: "login@smtp-brevo.com" };
+  const vars = { MAIL_FROM: "Loja <pedidos@loja.example>", MAIL_REPLY_TO: undefined, SMTP_HOST: "smtp-relay.brevo.com", SMTP_PORT: 587 as const, SMTP_USER: "login@smtp-brevo.com" };
 
   it("is missing until sender, login and key are all set ('unset' counts as missing)", () => {
     expect(mailConfig("chave", null, vars)).toMatchObject({ from: vars.MAIL_FROM, user: vars.SMTP_USER, password: "chave", replyTo: null });

@@ -163,10 +163,13 @@ export async function sendQueuedMail(options: {
     let message: OutgoingMessage;
     try {
       if (!isMailTemplate(mail.template)) throw new Error(`unknown template "${String(mail.template)}"`);
-      if (typeof mail.orderNumber !== "number") throw new Error("the e-mail has no order");
-      const order = await db().collection("orders").doc(String(mail.orderNumber)).get();
-      if (!order.exists) throw new Error(`orders/${mail.orderNumber} does not exist`);
-      const rendered = renderMail(mail.template, (mail.data ?? {}) as Record<string, unknown>, mailOrderFrom(order.data()!), context);
+      let order: MailOrder | null = null;
+      if (typeof mail.orderNumber === "number") {
+        const snap = await db().collection("orders").doc(String(mail.orderNumber)).get();
+        if (!snap.exists) throw new Error(`orders/${mail.orderNumber} does not exist`);
+        order = mailOrderFrom(snap.data()!);
+      }
+      const rendered = renderMail(mail.template, (mail.data ?? {}) as Record<string, unknown>, order, context);
       message = { from: config.from, to: mail.to, subject: rendered.subject, html: rendered.html, text: rendered.text, ...(config.replyTo ? { replyTo: config.replyTo } : {}) };
     } catch (error) {
       // A rendering problem is a bug or corrupt data: retrying can't fix it.

@@ -148,6 +148,7 @@ export const cart = {
 export const useWishlist = () => useStore<string[]>("wishlist", EMPTY_IDS);
 
 export const wishlist = {
+  items: () => read<string[]>("wishlist"),
   toggle(productId: string) {
     const ids = read<string[]>("wishlist");
     write("wishlist", ids.includes(productId) ? ids.filter((id) => id !== productId) : [productId, ...ids]);

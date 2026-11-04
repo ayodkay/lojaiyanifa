@@ -76,8 +76,36 @@ const CANCEL_REASON: Record<NonNullable<MailOrder["cancellationReason"]>, string
   other: null,
 };
 
+const dataText = (data: Record<string, unknown>, key: string, template: MailTemplate): string => {
+  const value = data[key];
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${template} e-mail needs data.${key}: ${JSON.stringify(data)}`);
+  return value.trim();
+};
+
+/** Templates that aren't about an order: subject + blocks from `data` alone. */
+function composeOther(template: MailTemplate, data: Record<string, unknown>, ctx: MailContext): { subject: string; blocks: Block[] } | null {
+  switch (template) {
+    case "welcome":
+      return {
+        subject: `Boas-vindas à ${ctx.storeName}`,
+        blocks: [
+          { kind: "p", text: `Olá, ${firstName(dataText(data, "name", template))}!` },
+          { kind: "p", text: `Sua conta na ${ctx.storeName} foi criada. Nela você acompanha seus pedidos, salva endereços e favoritos e cuida dos seus dados.` },
+          { kind: "p", text: "Se você ainda não confirmou o seu e-mail, use o link que enviamos em outra mensagem." },
+          { kind: "button", label: "Ir para a minha conta", href: `${ctx.siteUrl}/account` },
+        ],
+      };
+    default:
+      return null;
+  }
+}
+
 /** Subject + blocks for each template. `data` is what the event stored in the outbox entry. */
-function compose(template: MailTemplate, data: Record<string, unknown>, order: MailOrder, ctx: MailContext): { subject: string; blocks: Block[] } {
+function compose(template: MailTemplate, data: Record<string, unknown>, maybeOrder: MailOrder | null, ctx: MailContext): { subject: string; blocks: Block[] } {
+  const other = composeOther(template, data, ctx);
+  if (other) return other;
+  if (!maybeOrder) throw new Error(`the ${template} e-mail needs its order`);
+  const order = maybeOrder;
   const n = order.number;
   const hello: Block = { kind: "p", text: `Olá, ${firstName(order.customer.name)}!` };
   switch (template) {
@@ -203,6 +231,8 @@ function compose(template: MailTemplate, data: Record<string, unknown>, order: M
         ],
       };
     }
+    default:
+      throw new Error(`no order e-mail named ${template}`);
   }
 }
 
@@ -279,7 +309,7 @@ function footer(ctx: MailContext, template: MailTemplate): { html: SafeHtml; tex
   };
 }
 
-export function renderMail(template: MailTemplate, data: Record<string, unknown>, order: MailOrder, ctx: MailContext): RenderedMail {
+export function renderMail(template: MailTemplate, data: Record<string, unknown>, order: MailOrder | null, ctx: MailContext): RenderedMail {
   const { subject, blocks } = compose(template, data, order, ctx);
   const foot = footer(ctx, template);
   const body = html`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${subject}</title></head>

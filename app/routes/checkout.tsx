@@ -6,13 +6,15 @@
 import { type ComponentProps, useEffect, useState } from "react";
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
+import { readCustomerSession } from "~/.server/customer-session";
+import { getCustomerProfile, listAddresses, type SavedAddress } from "~/.server/customers";
 import { env } from "~/.server/env";
 import { CartChangedError, createOrder, loadOrderDeps, ShippingUnavailableError } from "~/.server/orders";
 import { parsePixKey, PixConfigError } from "~/.server/pix";
 import { getContent } from "~/.server/prismic";
 import { CheckoutClosedError, getPaymentSettings, getShippingSettings, getStoreSettings, ShippingConfigError } from "~/.server/settings";
 import { Breadcrumbs, Button, ButtonLink, cx, Notice } from "~/components/ui";
-import { formatCep, normalizeCep, UFS } from "~/lib/br";
+import { formatBrPhone, formatCep, formatCpf, normalizeCep, UFS } from "~/lib/br";
 import type { CartQuoteResponse } from "~/lib/cart/quote";
 import { checkoutFieldErrors, checkoutFormToObject, checkoutSchema } from "~/lib/checkout";
 import { type CartItem, useCart } from "~/lib/client-store";
@@ -27,9 +29,25 @@ import type { Route } from "./+types/checkout";
 
 const UNAVAILABLE = "O checkout está temporariamente indisponível. Fale conosco para concluir sua compra — seu carrinho continua salvo.";
 
-export async function loader() {
+/** A signed-in customer's details, to fill the form in (they can still change anything). */
+interface CheckoutAccount {
+  email: string;
+  name: string | null;
+  phone: string | null;
+  cpf: string | null;
+  addresses: SavedAddress[];
+}
+
+async function checkoutAccount(request: Request): Promise<CheckoutAccount | null> {
+  const session = await readCustomerSession(request);
+  if (session.status !== "ok") return null;
+  const [profile, addresses] = await Promise.all([getCustomerProfile(session.user.uid), listAddresses(session.user.uid)]);
+  return { email: session.user.email, name: profile?.name ?? null, phone: profile?.phone ?? null, cpf: profile?.cpf ?? null, addresses };
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
   const { settings } = await getContent();
-  const base = { siteUrl: env().SITE_URL, storeName: settings.storeName };
+  const base = { siteUrl: env().SITE_URL, storeName: settings.storeName, account: await checkoutAccount(request) };
   const closed = { ...base, unavailable: UNAVAILABLE, options: { any: [], pickupOnly: [] }, expiryHours: 24 };
   // Closed by the owner in /admin/settings: a deliberate state, so nothing is logged.
   if (!(await getStoreSettings()).checkoutOpen) return closed;
@@ -63,7 +81,9 @@ export async function action({ request }: Route.ActionArgs) {
     return data<ActionResult>({ fieldErrors: checkoutFieldErrors(parsed.error) }, { status: 400, headers: NO_STORE });
   }
   try {
-    const order = await createOrder(parsed.data, await loadOrderDeps());
+    // Signed in: the order belongs to the account (and shows in Minha conta whatever e-mail was typed).
+    const session = await readCustomerSession(request);
+    const order = await createOrder(parsed.data, await loadOrderDeps(), { uid: session.status === "ok" ? session.user.uid : null });
     return redirect(`/order-confirmation/${order.number}?t=${encodeURIComponent(order.accessToken)}&novo=1`, { headers: NO_STORE });
   } catch (error) {
     if (error instanceof CartChangedError) {
@@ -137,6 +157,7 @@ export default function Checkout({ loaderData, actionData }: Route.ComponentProp
         options={quote.pickupOnly ? loaderData.options.pickupOnly : loaderData.options.any}
         expiryHours={loaderData.expiryHours}
         result={actionData}
+        account={loaderData.account}
       />
     );
   }
@@ -157,6 +178,7 @@ export default function Checkout({ loaderData, actionData }: Route.ComponentProp
 }
 
 const EMPTY_ADDRESS = { cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "" };
+const fromSaved = (a: SavedAddress) => ({ cep: formatCep(a.cep), street: a.street, number: a.number, complement: a.complement ?? "", neighborhood: a.neighborhood, city: a.city, state: a.state });
 type CepStatus = "idle" | "loading" | "found" | "not_found" | "error";
 
 function CheckoutForm({
@@ -165,18 +187,21 @@ function CheckoutForm({
   options,
   expiryHours,
   result,
+  account,
 }: {
   items: CartItem[];
   quote: CartQuoteResponse;
   options: ShippingOption[];
   expiryHours: number;
   result: ActionResult | undefined;
+  account: CheckoutAccount | null;
 }) {
   const navigation = useNavigation();
   const submitting = navigation.state !== "idle" && navigation.formAction === "/checkout";
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [method, setMethod] = useState<ShippingMethodId | "">(options.length === 1 ? options[0]!.id : "");
-  const [address, setAddress] = useState(EMPTY_ADDRESS);
+  // A signed-in customer starts from their default saved address.
+  const [address, setAddress] = useState(() => (account?.addresses[0] ? fromSaved(account.addresses[0]) : EMPTY_ADDRESS));
   const [cepStatus, setCepStatus] = useState<CepStatus>("idle");
   const errors = result?.fieldErrors ?? {};
   const selected = options.find((o) => o.id === method) ?? null;
@@ -241,10 +266,36 @@ function CheckoutForm({
 
         <fieldset className="space-y-4">
           <legend className="mb-4 text-2xl">1. Seus dados</legend>
-          <Field name="name" label="Nome completo" autoComplete="name" required error={errors.name} />
+          {account ? (
+            <p className="text-sm text-muted">
+              Comprando com a conta <strong className="text-ink">{account.email}</strong>. O pedido também aparece em{" "}
+              <Link to="/account/orders" className="underline underline-offset-4">
+                Minha conta
+              </Link>
+              .
+            </p>
+          ) : (
+            <p className="text-sm text-muted">
+              Já tem conta?{" "}
+              <Link to="/login?redirectTo=%2Fcheckout" className="text-ink underline underline-offset-4">
+                Entrar
+              </Link>{" "}
+              — ou continue sem cadastro.
+            </p>
+          )}
+          <Field name="name" label="Nome completo" autoComplete="name" required error={errors.name} defaultValue={account?.name ?? undefined} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field name="email" label="E-mail" type="email" autoComplete="email" required error={errors.email} />
-            <Field name="phone" label="Celular (WhatsApp)" type="tel" autoComplete="tel-national" placeholder="(21) 99999-9999" required error={errors.phone} />
+            <Field name="email" label="E-mail" type="email" autoComplete="email" required error={errors.email} defaultValue={account?.email} />
+            <Field
+              name="phone"
+              label="Celular (WhatsApp)"
+              type="tel"
+              autoComplete="tel-national"
+              placeholder="(21) 99999-9999"
+              required
+              error={errors.phone}
+              defaultValue={account?.phone ? formatBrPhone(account.phone) : undefined}
+            />
           </div>
           <Field
             name="cpf"
@@ -252,6 +303,7 @@ function CheckoutForm({
             inputMode="numeric"
             placeholder="000.000.000-00"
             required
+            defaultValue={account?.cpf ? formatCpf(account.cpf) : undefined}
             error={errors.cpf}
             hint="Necessário para emitir a nota fiscal do pedido."
             className="sm:max-w-xs"
@@ -299,6 +351,30 @@ function CheckoutForm({
           {selected?.needsAddress && (
             <div className="space-y-4 border-t border-line pt-6">
               {errors.address && <p className="text-sm text-danger">{errors.address}</p>}
+              {account && account.addresses.length > 0 && (
+                <div>
+                  <label htmlFor="f-saved-address" className="mb-1 block text-sm">
+                    Endereços salvos
+                  </label>
+                  <select
+                    id="f-saved-address"
+                    defaultValue={account.addresses[0]!.id}
+                    onChange={(e) => {
+                      const saved = account.addresses.find((a) => a.id === e.target.value);
+                      setAddress(saved ? fromSaved(saved) : EMPTY_ADDRESS);
+                    }}
+                    className="min-h-11 w-full rounded-[var(--radius-control)] border border-line-strong bg-paper px-3 sm:max-w-md"
+                  >
+                    {account.addresses.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.label ? `${a.label} — ` : ""}
+                        {a.street}, {a.number} · {a.city}
+                      </option>
+                    ))}
+                    <option value="">Outro endereço</option>
+                  </select>
+                </div>
+              )}
               <Field
                 name="cep"
                 label="CEP"

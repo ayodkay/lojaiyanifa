@@ -17,12 +17,12 @@
       "note": "localStorage count, \"1 item\"/\"N itens\" label (verified 2026-11-01 with Búzios/Alaká)"
     },
     "Account / login icon": {
-      "status": "todo",
-      "note": "_icon present_; /account not built yet"
+      "status": "done",
+      "note": "header icon → /account; signed out, the account gate sends it to /login (verified 2026-11-04 on a dev stack)"
     },
     "Wishlist icon": {
-      "status": "todo",
-      "note": "_icon + counter present_; /wishlist not built yet"
+      "status": "done",
+      "note": "header icon + counter → /wishlist (verified 2026-11-04 on a dev stack)"
     },
     "Hero banner with promotional message": {
       "status": "todo",
@@ -216,8 +216,8 @@
       "note": "_implemented_; checkout exists since session 2 (verified there on the dev server); this button's path to checkout not verified in a browser"
     },
     "Add to wishlist": {
-      "status": "todo",
-      "note": "_implemented_ (localStorage); /wishlist page pending"
+      "status": "done",
+      "note": "heart on product pages/cards (localStorage); /wishlist lists them and, signed in, syncs with the account (verified 2026-11-04 on a dev stack)"
     },
     "Shipping cost calculator": {
       "status": "todo",
@@ -417,8 +417,8 @@
       "note": "no account needed; order 1001/1002 placed as guest (verified 2026-11-01 (browser + live action on the dev server))"
     },
     "Customer login during checkout": {
-      "status": "todo",
-      "note": "pending (customer accounts / auth)"
+      "status": "done",
+      "note": "\"Já tem conta? Entrar\" → /login?redirectTo=/checkout; signed in, name/e-mail/phone/CPF and the default saved address are filled in, another saved address can be picked, and the order is linked to the account (verified 2026-11-04: Chrome on a dev stack, order 1001 with customer.uid)"
     },
     "Contact information": {
       "status": "done",
@@ -565,6 +565,92 @@
     "Partial refunds": {
       "status": "done",
       "note": "any amount up to what remains; the order becomes \"Reembolsado parcialmente\" and shipping goes on (owner decision 2026-11-02); partial refunds add up to a full one, which ends the order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    }
+  },
+  "8": {
+    "Customer registration": {
+      "status": "done",
+      "note": "/register: name, e-mail, phone, CPF (owner decision), password, terms + optional marketing consent; checked in the browser with the server's schema before the Firebase sign-in is created (a rejected form creates no account), profile + consents saved, verification and welcome e-mails (verified 2026-11-04: Chrome on a dev stack + integration)"
+    },
+    "Login": {
+      "status": "done",
+      "note": "/login → 14-day HttpOnly session cookie, redirectTo kept; wrong/old password refused (verified 2026-11-04: Chrome + HTTP + integration)"
+    },
+    "Logout": {
+      "status": "done",
+      "note": "POST /logout revokes every session of the account (verified 2026-11-04: Chrome + integration)"
+    },
+    "Password recovery": {
+      "status": "done",
+      "note": "/forgot-password: Firebase's reset e-mail; same message for unknown e-mails (verified 2026-11-04: Chrome; the emulator generated the reset only for the existing account)"
+    },
+    "Email verification": {
+      "status": "done",
+      "note": "Firebase sends the verification e-mail at registration (continue URL /account) and again from Senha e acesso; verifying makes guest orders with the same e-mail appear (verified 2026-11-04: emulator recorded the e-mail; linking integration-tested). Clicking the link itself was not tried in a browser"
+    },
+    "Phone verification (optional)": {
+      "status": "na",
+      "note": "SMS sign-in is off in the project (owner decision 2026-11-03); phones are format-checked and the store answers by WhatsApp"
+    },
+    "Profile management": {
+      "status": "done",
+      "note": "/account/profile: name, phone, CPF, marketing consent (each change recorded with time and source); e-mail changes via support (verified 2026-11-04: Chrome + integration)"
+    },
+    "Change password": {
+      "status": "done",
+      "note": "/account/security: current password typed again; Firebase revokes every session and the new ID token re-signs this browser in through /login (verified 2026-11-04: Chrome — wrong current password refused, old password refused afterwards)"
+    },
+    "Address book": {
+      "status": "done",
+      "note": "/account/addresses: add/edit/delete with ViaCEP fill, one default (verified 2026-11-04: Chrome + integration)"
+    },
+    "Multiple saved addresses": {
+      "status": "done",
+      "note": "up to 10, default moves when the default is deleted; checkout offers them (integration + Chrome 2026-11-04)"
+    },
+    "Order history": {
+      "status": "done",
+      "note": "/account/orders: placed signed in, plus guest orders with the verified e-mail (verified 2026-11-04: Chrome + integration)"
+    },
+    "Order details": {
+      "status": "done",
+      "note": "/account/orders/:number: the same view as the guest page (shared app/components/order-view.tsx), Pix code while unpaid; another customer's order → 404 (verified 2026-11-04: Chrome + integration)"
+    },
+    "Order tracking": {
+      "status": "done",
+      "note": "progress steps, carrier, tracking code and link on the order page (shared view; tracking verified on the guest page in session 4)"
+    },
+    "Wishlist": {
+      "status": "done",
+      "note": "/wishlist for guests (browser) and accounts (wishlists/{uid}, three-way merge so removals stick; verified 2026-11-04: Chrome + unit)"
+    },
+    "Saved payment methods (secure tokenization)": {
+      "status": "na",
+      "note": "Pix only (owner decision 2026-10-31): there is no card or payment credential to store"
+    },
+    "Return requests": {
+      "status": "todo",
+      "note": "pending (with the support tickets, §13)"
+    },
+    "Refund history": {
+      "status": "done",
+      "note": "each order's refunds (amount, date) on its page in Minha conta (shared view; refunds verified on the guest page in session 4)"
+    },
+    "Downloadable invoices": {
+      "status": "todo",
+      "note": "**blocked**: invoices in Brazil are NF-e, which needs the owner's/accountant's issuing setup; not invented"
+    },
+    "Notification preferences": {
+      "status": "done",
+      "note": "marketing e-mail consent on the profile (off unless ticked; history kept); order e-mails always go (verified 2026-11-04: Chrome + integration)"
+    },
+    "Account deletion": {
+      "status": "done",
+      "note": "/account/privacy: password typed again → profile, addresses, wishlist and the sign-in deleted; orders kept (legal retention); audited by UID (verified 2026-11-04: Chrome + integration)"
+    },
+    "Privacy settings": {
+      "status": "done",
+      "note": "/account/privacy: data download (JSON, audited), consents, deletion (verified 2026-11-04: Chrome + HTTP + integration)"
     }
   },
   "9": {
@@ -843,8 +929,8 @@
       "note": "same-origin check on every non-GET request (verified live: cross-site / foreign Origin → 403); SameSite=Lax session cookie with auth"
     },
     "Secure authentication": {
-      "status": "todo",
-      "note": "_admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending"
+      "status": "done",
+      "note": "admin (2026-11-02, TOTP in production 2026-11-04) and customers (2026-11-04): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax) minted only from a sign-in < 5 min old, revocation checked on every request"
     },
     "Two-factor authentication for administrators": {
       "status": "done",
@@ -859,12 +945,16 @@
       "note": "auditLogs: admin sign-in/out, Pix confirmations, cancellations (admin and the expiry job as a system actor), fulfilment, tracking, notes, refunds, role changes, 2FA resets; order changes and their entries are written in one transaction (integration-tested 2026-11-02)"
     },
     "Session management": {
-      "status": "todo",
-      "note": "_admin done_: 12-hour admin sessions; Sair revokes every session of the account; role changes revoke; dead cookies cleared (verified 2026-11-02). Customer sessions pending"
+      "status": "done",
+      "note": "admin 12 h, customers 14 days; signing out revokes every session of the account; role and password changes revoke; dead cookies cleared (integration + Chrome 2026-11-02 / 2026-11-04)"
     },
     "Account lockout policies": {
       "status": "todo",
       "note": "Firebase Auth throttles repeated failed sign-ins (auth/too-many-requests; message mapped on /admin/login, not triggered in tests)"
+    },
+    "Secure password hashing": {
+      "status": "done",
+      "note": "passwords never reach our server; Firebase Authentication stores them hashed (its scrypt variant)"
     }
   },
   "18": {
@@ -1005,6 +1095,26 @@
     "`/admin/settings`": {
       "status": "done",
       "note": "_built 2026-11-03_: Pix payment, delivery methods and the checkout open/close switch; verified on a dev stack (unit, integration, mutations, browser); deployed 2026-11-03"
+    },
+    "`/account`": {
+      "status": "done",
+      "note": "overview + orders, profile, addresses, security, privacy (verified 2026-11-04 on a dev stack)"
+    },
+    "`/login`": {
+      "status": "done",
+      "note": "verified 2026-11-04 on a dev stack"
+    },
+    "`/register`": {
+      "status": "done",
+      "note": "verified 2026-11-04 on a dev stack"
+    },
+    "`/orders`": {
+      "status": "done",
+      "note": "301 → /account/orders (footer \"Meus pedidos\")"
+    },
+    "`/wishlist`": {
+      "status": "done",
+      "note": "verified 2026-11-04 on a dev stack"
     }
   },
   "24": {
@@ -1026,6 +1136,14 @@
     "Legal pages and compliance": {
       "status": "todo",
       "note": "texts in Prismic's Migration Release (2026-11-04); cookie consent, data requests and accounts' privacy tools in progress"
+    },
+    "Customer authentication": {
+      "status": "done",
+      "note": "built and verified 2026-11-04 on a dev stack (not deployed)"
+    },
+    "Customer account": {
+      "status": "todo",
+      "note": "built 2026-11-04 (all of §8 but return requests and invoices); not deployed"
     }
   }
 }

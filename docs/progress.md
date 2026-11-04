@@ -745,6 +745,37 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   integration 82 (11 new in `tests/integration/mail.test.ts`, fake transport); 6 of 6 mutations caught; typecheck
   clean; lint 0 errors; build OK (bundle imports 14 packages, nodemailer added; `sendMailOutbox` exported).
 - **Not verified:** a real send through Brevo (no account/key here); the new index in production.
+- Oops: commit `9c734eb` left a type error in `tests/unit/mail.test.ts` (tsc ran before the test was written; vitest
+  doesn't type-check). Fixed in batch C's commit. Since then: typecheck after writing tests, right before committing.
+
+### C. Customer accounts (§8)
+- Server: `app/.server/customer-session.ts` (14-day cookie, recent sign-in, revocation; `verifyRecentSignIn` for
+  deletion), `account-guard.ts` (middleware gate for `/account/*`), `customers.ts` (profile + consents with history,
+  addresses, orders by UID / verified e-mail, wishlist, JSON export, deletion keeping orders), audit actions
+  `customer.data_exported` / `customer.account_deleted` (actor `{ type: "customer", name: uid }`).
+- Pages: `/register`, `/login`, `/forgot-password`, `POST /logout`, `/orders` (301), `/wishlist`, `/account` (overview,
+  completing an interrupted registration), `/account/orders[/:number]`, `/profile`, `/addresses`, `/security`,
+  `/privacy`, `/export`; `/api/wishlist`. The guest order page's view moved verbatim into
+  `app/components/order-view.tsx` (shared with the account) and gained a discount row and a "precisa de ajuda" link.
+  Checkout: signed-in prefill, saved-address picker, order linked to the account, "Já tem conta? Entrar".
+- Browser SDK (`app/.client/firebase.ts`): `createAccount`, `confirmPassword`, `changePassword`, `resendVerification`.
+- Found in Chrome and fixed: a password change revokes the old cookie, so its new ID token must go to `/login`'s action
+  (the account gate would already refuse it); after saving an address the confirmation was off-screen; after a password
+  change the button stayed on "Trocando…" with the fields filled.
+- Tests: unit 205 (12 new: forms/redirects, wishlist three-way merge), integration 93 (11 new in
+  `tests/integration/customers.test.ts`), full suite green; a mail test that compared e-mails queued by one transaction
+  in Firestore's (random ID) order was flaky — now sorted, 3 runs green. typecheck clean; lint 0 errors; build OK.
+- **Chrome on a separate dev stack** (`firebase.verify.json`: Firestore 8480, Auth 9095, hub 4410, logging 4510; dev
+  server :5176; Banco Central test key; Q's :5173 stack untouched — checked with netstat):
+  rejected registration form → no Firebase account; registration → `/account`, profile + consents + welcome e-mail +
+  verification e-mail (emulator); address with ViaCEP fill; checkout prefilled → order 1001 with `customer.uid` and
+  `customerLinkToken`; account order list/detail; wishlist synced to `wishlists/{uid}`; password change (wrong current
+  refused; session kept; old password refused at the next sign-in); sign-out → gate → sign-in with `redirectTo`;
+  export over HTTP (headers, keys, CPF present, 302 without a session); deletion (unticked refused; data and sign-in
+  gone; order kept; audit by UID); reset e-mail only for an existing address, same message for an unknown one;
+  profile save with consent history.
+- Not verified: clicking the verification link (then signing in again to see guest orders) in a browser; the reset link
+  itself; the account pages on a phone width; anything in production (not deployed).
 
 ## Handoff for the next session (read this first)
 **State:**

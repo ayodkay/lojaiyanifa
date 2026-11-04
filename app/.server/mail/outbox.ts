@@ -17,6 +17,8 @@ export const MAIL_TEMPLATES = [
   "order_cancelled",
   "order_refunded",
   "order_tracking_updated",
+  // Not about an order: everything they show is in `data`.
+  "welcome",
 ] as const;
 export type MailTemplate = (typeof MAIL_TEMPLATES)[number];
 

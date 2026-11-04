@@ -60,8 +60,8 @@ The homepage is the main entry point of your store.
 - [x] Navigation menu — header nav from Prismic categories + "Todos os produtos" (verified desktop)
 - [x] Search bar — header combobox with live suggestions (verified against real catalogue)
 - [x] Shopping cart icon with item counter — localStorage count, "1 item"/"N itens" label (verified 2026-11-01 with Búzios/Alaká)
-- [ ] Account / login icon — _icon present_; /account not built yet
-- [ ] Wishlist icon — _icon + counter present_; /wishlist not built yet
+- [x] Account / login icon — header icon → /account; signed out, the account gate sends it to /login (verified 2026-11-04 on a dev stack)
+- [x] Wishlist icon — header icon + counter → /wishlist (verified 2026-11-04 on a dev stack)
 - [ ] Hero banner with promotional message — _implemented_ from Prismic `homepage`; verify after the owner creates the homepage document (fallback hero verified)
 - [x] Main call-to-action buttons — Prismic-driven CTAs with "Ver todos os produtos" default (verified)
 - [ ] Featured products — _implemented_ (homepage curation); needs Prismic content to verify
@@ -117,7 +117,7 @@ One of the most important parts of an e-commerce website.
 - [x] Quantity selector — adds the chosen quantity (verified 2026-11-01 with Búzios/Alaká)
 - [x] Add to cart button — adds to the cart with confirmation; disabled without price/SKU; refuses a 51st line (verified 2026-11-01 with Búzios/Alaká)
 - [ ] Buy now button — _implemented_; checkout exists since session 2 (verified there on the dev server); this button's path to checkout not verified in a browser
-- [ ] Add to wishlist — _implemented_ (localStorage); /wishlist page pending
+- [x] Add to wishlist — heart on product pages/cards (localStorage); /wishlist lists them and, signed in, syncs with the account (verified 2026-11-04 on a dev stack)
 - [ ] Shipping cost calculator — pending (Melhor Envio + store rates)
 - [ ] Estimated delivery date — pending (with shipping quotes)
 - [ ] Product specifications — _implemented_ (specs + SKU/weight/dimensions); needs content
@@ -175,7 +175,7 @@ One of the most important parts of an e-commerce website.
 ### 6. Checkout System
 
 - [x] Guest checkout — no account needed; order 1001/1002 placed as guest (verified 2026-11-01 (browser + live action on the dev server))
-- [ ] Customer login during checkout — pending (customer accounts / auth)
+- [x] Customer login during checkout — "Já tem conta? Entrar" → /login?redirectTo=/checkout; signed in, name/e-mail/phone/CPF and the default saved address are filled in, another saved address can be picked, and the order is linked to the account (verified 2026-11-04: Chrome on a dev stack, order 1001 with customer.uid)
 - [x] Contact information — name, e-mail, mobile (verified 2026-11-01 (browser + live action on the dev server))
 - [x] Email address — validated, stored lowercase (verified 2026-11-01 (browser + live action on the dev server))
 - [x] Phone number — validated Brazilian number, stored as +55… (verified 2026-11-01 (browser + live action on the dev server))
@@ -221,27 +221,27 @@ One of the most important parts of an e-commerce website.
 - [ ] Duplicate payment prevention — orders are idempotent (double submit → one order, verified); a static Pix code can still be paid twice — admin must spot/refund (automatic prevention needs a PSP)
 
 ### 8. Customer Account
-- [ ] Customer registration
-- [ ] Login
-- [ ] Logout
-- [ ] Password recovery
-- [ ] Email verification
-- [ ] Phone verification (optional)
-- [ ] Profile management
-- [ ] Change password
-- [ ] Address book
-- [ ] Multiple saved addresses
-- [ ] Order history
-- [ ] Order details
-- [ ] Order tracking
-- [ ] Wishlist
-- [ ] Saved payment methods (secure tokenization)
-- [ ] Return requests
-- [ ] Refund history
-- [ ] Downloadable invoices
-- [ ] Notification preferences
-- [ ] Account deletion
-- [ ] Privacy settings
+- [x] Customer registration — /register: name, e-mail, phone, CPF (owner decision), password, terms + optional marketing consent; checked in the browser with the server's schema before the Firebase sign-in is created (a rejected form creates no account), profile + consents saved, verification and welcome e-mails (verified 2026-11-04: Chrome on a dev stack + integration)
+- [x] Login — /login → 14-day HttpOnly session cookie, redirectTo kept; wrong/old password refused (verified 2026-11-04: Chrome + HTTP + integration)
+- [x] Logout — POST /logout revokes every session of the account (verified 2026-11-04: Chrome + integration)
+- [x] Password recovery — /forgot-password: Firebase's reset e-mail; same message for unknown e-mails (verified 2026-11-04: Chrome; the emulator generated the reset only for the existing account)
+- [x] Email verification — Firebase sends the verification e-mail at registration (continue URL /account) and again from Senha e acesso; verifying makes guest orders with the same e-mail appear (verified 2026-11-04: emulator recorded the e-mail; linking integration-tested). Clicking the link itself was not tried in a browser
+- [ ] Phone verification (optional) — **N/A**: SMS sign-in is off in the project (owner decision 2026-11-03); phones are format-checked and the store answers by WhatsApp
+- [x] Profile management — /account/profile: name, phone, CPF, marketing consent (each change recorded with time and source); e-mail changes via support (verified 2026-11-04: Chrome + integration)
+- [x] Change password — /account/security: current password typed again; Firebase revokes every session and the new ID token re-signs this browser in through /login (verified 2026-11-04: Chrome — wrong current password refused, old password refused afterwards)
+- [x] Address book — /account/addresses: add/edit/delete with ViaCEP fill, one default (verified 2026-11-04: Chrome + integration)
+- [x] Multiple saved addresses — up to 10, default moves when the default is deleted; checkout offers them (integration + Chrome 2026-11-04)
+- [x] Order history — /account/orders: placed signed in, plus guest orders with the verified e-mail (verified 2026-11-04: Chrome + integration)
+- [x] Order details — /account/orders/:number: the same view as the guest page (shared app/components/order-view.tsx), Pix code while unpaid; another customer's order → 404 (verified 2026-11-04: Chrome + integration)
+- [x] Order tracking — progress steps, carrier, tracking code and link on the order page (shared view; tracking verified on the guest page in session 4)
+- [x] Wishlist — /wishlist for guests (browser) and accounts (wishlists/{uid}, three-way merge so removals stick; verified 2026-11-04: Chrome + unit)
+- [ ] Saved payment methods (secure tokenization) — **N/A**: Pix only (owner decision 2026-10-31): there is no card or payment credential to store
+- [ ] Return requests — pending (with the support tickets, §13)
+- [x] Refund history — each order's refunds (amount, date) on its page in Minha conta (shared view; refunds verified on the guest page in session 4)
+- [ ] Downloadable invoices — **blocked**: invoices in Brazil are NF-e, which needs the owner's/accountant's issuing setup; not invented
+- [x] Notification preferences — marketing e-mail consent on the profile (off unless ticked; history kept); order e-mails always go (verified 2026-11-04: Chrome + integration)
+- [x] Account deletion — /account/privacy: password typed again → profile, addresses, wishlist and the sign-in deleted; orders kept (legal retention); audited by UID (verified 2026-11-04: Chrome + integration)
+- [x] Privacy settings — /account/privacy: data download (JSON, audited), consents, deletion (verified 2026-11-04: Chrome + HTTP + integration)
 
 ### 9. Order Management
 
@@ -449,8 +449,8 @@ The administrative system is what allows the business owner to manage the entire
 ### 17. Security
 
 - [ ] HTTPS / SSL certificate
-- [ ] Secure password hashing
-- [ ] Secure authentication — _admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending
+- [x] Secure password hashing — passwords never reach our server; Firebase Authentication stores them hashed (its scrypt variant)
+- [x] Secure authentication — admin (2026-11-02, TOTP in production 2026-11-04) and customers (2026-11-04): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax) minted only from a sign-in < 5 min old, revocation checked on every request
 - [x] Two-factor authentication for administrators — _verified in production 2026-11-04_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Built 2026-11-02 and checked against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP); deployed 2026-11-03, with TOTP turned on in the project that day (it was off). The owner's first production sign-in (enrolment, then a code) worked on 2026-11-04 (owner confirmed)
 - [x] Role-based access control — owner/admin/staff claims + per-action capability checks on the server (unit, integration and Chrome tests, 2026-11-02)
 - [ ] Protection against SQL injection
@@ -465,7 +465,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Database backups
 - [ ] Security monitoring
 - [x] Audit logs — auditLogs: admin sign-in/out, Pix confirmations, cancellations (admin and the expiry job as a system actor), fulfilment, tracking, notes, refunds, role changes, 2FA resets; order changes and their entries are written in one transaction (integration-tested 2026-11-02)
-- [ ] Session management — _admin done_: 12-hour admin sessions; Sair revokes every session of the account; role changes revoke; dead cookies cleared (verified 2026-11-02). Customer sessions pending
+- [x] Session management — admin 12 h, customers 14 days; signing out revokes every session of the account; role and password changes revoke; dead cookies cleared (integration + Chrome 2026-11-02 / 2026-11-04)
 - [ ] Account lockout policies — Firebase Auth throttles repeated failed sign-ins (auth/too-many-requests; message mapped on /admin/login, not triggered in tests)
 - [ ] Secrets management
 - [ ] Disaster recovery plan
@@ -604,11 +604,11 @@ This is how I would organize the actual website's pages and routes.
 - [x] `/checkout` — verified (verified 2026-11-01 (browser + live action on the dev server))
 - [x] `/order-confirmation` — `/order-confirmation/:number?t=…` (verified)
 #### Customer
-- [ ] `/account`
-- [ ] `/login`
-- [ ] `/register`
-- [ ] `/orders`
-- [ ] `/wishlist`
+- [x] `/account` — overview + orders, profile, addresses, security, privacy (verified 2026-11-04 on a dev stack)
+- [x] `/login` — verified 2026-11-04 on a dev stack
+- [x] `/register` — verified 2026-11-04 on a dev stack
+- [x] `/orders` — 301 → /account/orders (footer "Meus pedidos")
+- [x] `/wishlist` — verified 2026-11-04 on a dev stack
 #### Information
 - [ ] `/about` — _route implemented_ (Prismic page uid "about"); a factual draft is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 - [x] `/contact`
@@ -646,8 +646,8 @@ This is how I would organize the actual website's pages and routes.
 - [ ] Checkout
 - [ ] Payment gateway
 - [ ] Shipping calculation
-- [ ] Customer authentication
-- [ ] Customer account
+- [x] Customer authentication — built and verified 2026-11-04 on a dev stack (not deployed)
+- [ ] Customer account — built 2026-11-04 (all of §8 but return requests and invoices); not deployed
 - [ ] Order management
 - [ ] Inventory management
 #### Admin dashboard

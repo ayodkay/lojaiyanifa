@@ -69,7 +69,8 @@ async function outbox() {
   const snap = await db().collection(MAIL_COLLECTION).orderBy("createdAt").get();
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as { template: string; to: string; orderNumber: number; data: Record<string, unknown>; status: string; attempts: number; lastError: string | null; subject: string | null; messageId: string | null; nextAttemptAt: Timestamp }) }));
 }
-const templates = async () => (await outbox()).map((m) => `${m.template} → ${m.to}`);
+/** Sorted: e-mails queued by one transaction share a timestamp, so their order is Firestore's (document IDs). */
+const templates = async () => (await outbox()).map((m) => `${m.template} → ${m.to}`).sort();
 
 describe("e-mails queued by order events", () => {
   beforeEach(clearFirestore);

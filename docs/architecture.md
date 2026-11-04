@@ -79,7 +79,17 @@ app's `Cache-Control` headers, which both CDNs honour).
   it), and — when `ADMIN_REQUIRE_MFA=true` — the sign-in used a second factor.
   It then sets a Firebase **session cookie** in `__session`
   (`HttpOnly; Secure; SameSite=Lax; Path=/`) valid **12 hours** for admins.
-  Customers (not built yet) will get their own sign-in route; 14-day sessions planned.
+  **Customers (built 2026-11-04)**: `/register`, `/login`, `/forgot-password`, `POST /logout`, and `/account/*`
+  behind its own middleware gate (`app/.server/account-guard.ts`), same mechanism with a **14-day** cookie
+  (`app/.server/customer-session.ts`): no role, second factor or verified e-mail needed to sign in. Passwords never
+  reach our server (the inputs have no `name`; the SDK talks to Firebase). Registration checks the form with the
+  server's own schema in the browser *before* creating the Firebase sign-in, then the action saves the profile and
+  consents. Sensitive changes type the password again in the browser: changing it (Firebase then revokes every session,
+  so the new ID token goes to `/login`'s action, outside the gate that would refuse the old cookie), re-sending the
+  verification e-mail, deleting the account (the action re-checks a < 5 min sign-in of the same UID). Sign-out
+  revokes every session of the account. Admin accounts (TOTP) can't get a customer session through `/login`.
+  Which orders are a customer's: those placed signed in (`customer.uid`) plus, once the e-mail is **verified**, guest
+  orders with the same e-mail (otherwise anyone could register someone else's address and read their orders).
 - **Every `/admin` request** passes the admin layout's middleware
   (`app/.server/admin-guard.ts`), which runs before any admin loader or action
   (a parent loader would not do: loaders run in parallel). It calls
@@ -156,9 +166,9 @@ All money is stored as **integer centavos** (BRL). All timestamps are Firestore
 | `inventory/{encodeURIComponent(sku)}` | SKU | `sku`, `onHand`, `reserved`, `lowStockThreshold`, `productId`; `movements/{id}` history (ID encoding: a "/" in an editor-typed SKU would otherwise become a sub-path; ordinary SKUs are unchanged) |
 | `orders/{number}` | sequential number | order snapshot, status, totals, addresses, shipping, Pix, timeline, notes |
 | `counters/orders` | – | next order number (transaction) |
-| `customers/{uid}` | Auth UID | profile, consents, notification prefs; `addresses/{id}` |
-| `carts/{uid}` | Auth UID | signed-in cart for cross-device persistence |
-| `wishlists/{uid}` | Auth UID | product IDs |
+| `customers/{uid}` | Auth UID | profile (name, e-mail, phone, CPF), `marketingEmail`, `consents` (`termsAcceptedAt`, `marketingEmail: { granted, at, source }`, `history` of consent changes, max 50); `addresses/{id}` (max 10, exactly one `isDefault`). Built 2026-11-04 (`app/.server/customers.ts`) |
+| `carts/{uid}` | Auth UID | signed-in cart for cross-device persistence (not built) |
+| `wishlists/{uid}` | Auth UID | `productIds` (max 100). The browser keeps its own list; `/wishlist` merges both three-way against the last synced list (`app/lib/wishlist-sync.ts`, base in `li.wishlist-base.v1`) |
 | `coupons/{CODE}` | code | rules, limits, schedule; `redemptions/{orderNumber}` |
 | `reviews/{id}` | auto | rating, text, media, status, verified purchase; `votes/{uid}`, `reports/{uid}` |
 | `productStats/{productId}` | Prismic ID | rating aggregates, units sold |
@@ -379,3 +389,5 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-04 | E-mail through Brevo's SMTP relay (owner: "smtp which we will be using brevo.com"); outbox written in the business transaction, sent by a scheduled function every 2 minutes, rendered at send time; SMTP key in Secret Manager | Owner (Brevo) / Proposed (design) |
 | 2026-11-04 | New orders get a random `customerLinkToken` for links in e-mails (the checkout key is only stored hashed) | Proposed |
 | 2026-11-04 | Store texts (legal pages, about, FAQ, policy summaries) are kept in `content/prismic/` and sent with `scripts/prismic/seed-content.mjs` to the Migration Release; the owner publishes them | Proposed (owner asked for the texts and the Prismic API) |
+| 2026-11-04 | Customer accounts: 14-day session cookie, sign-out revokes every session; guest orders join an account only once its e-mail is verified; deleting an account keeps its orders (legal retention) and audits the UID only; data export as JSON (`/account/export`) | Proposed |
+| 2026-11-04 | Phone verification (optional item) not built: SMS sign-in is off in the project (owner, 2026-11-03), phones are checked by format and customers reach the store by WhatsApp | Proposed |

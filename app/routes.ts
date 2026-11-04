@@ -23,6 +23,23 @@ export default [
     route("pages/:uid", "routes/page.tsx", { id: "page-generic" }),
     route("faq", "routes/faq.tsx"),
     route("contact", "routes/contact.tsx"),
+    // Customer accounts. /account/* passes the account layout's middleware (app/.server/account-guard.ts).
+    route("login", "routes/login.tsx"),
+    route("register", "routes/register.tsx"),
+    route("forgot-password", "routes/forgot-password.tsx"),
+    route("logout", "routes/logout.ts"),
+    route("orders", "routes/orders-redirect.ts"),
+    route("wishlist", "routes/wishlist.tsx"),
+    route("account", "routes/account.tsx", { id: "account" }, [
+      index("routes/account.home.tsx"),
+      route("orders", "routes/account.orders.tsx"),
+      route("orders/:number", "routes/account.order.tsx"),
+      route("profile", "routes/account.profile.tsx"),
+      route("addresses", "routes/account.addresses.tsx"),
+      route("security", "routes/account.security.tsx"),
+      route("privacy", "routes/account.privacy.tsx"),
+      route("export", "routes/account.export.ts"),
+    ]),
   ]),
 
   // Admin (back office). Sign-in and sign-out sit outside the protected layout,
@@ -43,6 +60,7 @@ export default [
   route("api/search/suggest", "routes/api.search.suggest.ts"),
   route("api/products", "routes/api.products.ts"),
   route("api/cart/quote", "routes/api.cart.quote.ts"),
+  route("api/wishlist", "routes/api.wishlist.ts"),
   route("health", "routes/health.ts"),
   // Files under /assets/ that Hosting doesn't have: a short 404 that nothing keeps (see the route file).
   route("assets/*", "routes/missing-asset.ts"),
