@@ -39,6 +39,8 @@ export default [
       route("security", "routes/account.security.tsx"),
       route("privacy", "routes/account.privacy.tsx"),
       route("export", "routes/account.export.ts"),
+      route("support", "routes/account.support.tsx"),
+      route("support/:number", "routes/account.ticket.tsx"),
     ]),
   ]),
 
@@ -50,6 +52,8 @@ export default [
     index("routes/admin.home.ts"),
     route("orders", "routes/admin.orders.tsx"),
     route("orders/:number", "routes/admin.order.tsx"),
+    route("support", "routes/admin.support.tsx"),
+    route("support/:number", "routes/admin.ticket.tsx"),
     route("settings", "routes/admin.settings.tsx"),
   ]),
 

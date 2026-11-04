@@ -236,7 +236,7 @@ One of the most important parts of an e-commerce website.
 - [x] Order tracking — progress steps, carrier, tracking code and link on the order page (shared view; tracking verified on the guest page in session 4)
 - [x] Wishlist — /wishlist for guests (browser) and accounts (wishlists/{uid}, three-way merge so removals stick; verified 2026-11-04: Chrome + unit)
 - [ ] Saved payment methods (secure tokenization) — **N/A**: Pix only (owner decision 2026-10-31): there is no card or payment credential to store
-- [ ] Return requests — pending (with the support tickets, §13)
+- [x] Return requests — order pages link "Pedir troca, devolução ou desistência" → the contact form with the order and the topic filled in; reason + preferred outcome + items; the ticket arrives in /admin/support with the request's details; immediate confirmation (verified 2026-11-04: Chrome on a dev stack + integration)
 - [x] Refund history — each order's refunds (amount, date) on its page in Minha conta (shared view; refunds verified on the guest page in session 4)
 - [ ] Downloadable invoices — **blocked**: invoices in Brazil are NF-e, which needs the owner's/accountant's issuing setup; not invented
 - [x] Notification preferences — marketing e-mail consent on the profile (off unless ticked; history kept); order e-mails always go (verified 2026-11-04: Chrome + integration)
@@ -261,8 +261,8 @@ One of the most important parts of an e-commerce website.
 - [ ] Shipping carrier integration
 - [ ] Order notifications — _built and integration-tested 2026-11-04_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail); no e-mail has gone through Brevo yet: needs the owner's Brevo account, a verified sender domain and the SMTP key
 - [ ] Invoice generation
-- [ ] Return management
-- [ ] Exchange management
+- [ ] Return management — _partial_: return requests arrive as tickets (reason, preference, items; withdrawals flagged) and refunds are recorded on the order (§7); no return status tracking or reverse-shipping labels
+- [ ] Exchange management — _partial_: exchange requests arrive as tickets (preference "troca"); the exchange itself is handled by hand (no exchange order flow)
 - [x] Refund management — refund history per order (amount, reason, note, units back on sale, who, when); customers see amounts and dates only (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Partial fulfillment
 - [x] Order notes — internal notes on each order: team only, never on the customer page, can't be edited or deleted, max 200 per order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
@@ -327,19 +327,19 @@ One of the most important parts of an e-commerce website.
 ### 13. Customer Support
 
 - [x] Contact page — channels, hours, company details from Prismic (verified)
-- [ ] Contact form
-- [ ] Support email
-- [ ] Phone support (if offered)
+- [x] Contact form — /contact: name, e-mail, optional phone and order, topic, message (+ reason/preference for returns); opens ticket nº … shown at once; honeypot, fill time and hourly limits (verified 2026-11-04: Chrome on a dev stack + unit + integration)
+- [ ] Support email — _implemented_: the Prismic support e-mail is shown on /contact and the footer, and is the reply-to of the store's e-mails and the inbox for new-message notices (unless MAIL_STORE_TO is set); needs the address in Prismic settings
+- [ ] Phone support (if offered) — _implemented_ (Prismic settings → /contact and footer); needs the owner's decision and number
 - [ ] WhatsApp integration (particularly useful in Brazil) — _implemented_ (floating button, contact page, product sharing); needs the number in Prismic settings to verify
-- [ ] Live chat
+- [ ] Live chat — not built: WhatsApp (floating button) is the live channel today; a chat widget would add a third-party script and cookies (privacy and cookie policies, consent) — owner decision
 - [ ] Frequently asked questions — _implemented_ (/faq + FAQPage JSON-LD); 24 questions written (content/prismic/faq.md) and placed in Prismic's Migration Release 2026-11-04: live when the owner publishes it
 - [ ] Help center — _FAQ by topic implemented_; its 24 answers and the policy pages are in Prismic's Migration Release (2026-11-04), live when the owner publishes it
-- [ ] Order support
-- [ ] Return and refund support
-- [ ] Shipping support
-- [ ] Complaint management
-- [ ] Support ticket system
-- [ ] Automated responses
+- [x] Order support — "Precisa de ajuda com este pedido?" on every order page → contact form with the order number; the admin ticket links the order (verified 2026-11-04 on a dev stack)
+- [x] Return and refund support — return requests with reason and preference; a withdrawal gets the confirmation required by Decreto 7.962 art. 5 §4 in the automatic e-mail; the team records refunds on the order (verified 2026-11-04: Chrome + integration)
+- [x] Shipping support — topic "Entrega" in the contact form; tracking on the order page (verified 2026-11-04 on a dev stack)
+- [x] Complaint management — topic "Reclamação" in the contact form → ticket handled in /admin/support (verified 2026-11-04 on a dev stack); tickets waiting more than 5 days for an answer are flagged in the list (Decreto 7.962 art. 4, parágrafo único) — that flag has no test yet
+- [x] Support ticket system — /admin/support (tabs by status with counts, thread, reply by e-mail, close/reopen, audited; owner/admin/staff) and /account/support for customers (verified 2026-11-04: Chrome on a dev stack + 8 integration tests)
+- [ ] Automated responses — _built 2026-11-04_: the protocol number on screen at once (verified) and an automatic confirmation e-mail queued in the same transaction (integration-tested); it goes out once Brevo is configured
 - [ ] Business hours — _implemented_ (open-now in São Paulo time); needs hours in Prismic settings
 
 ### 14. Admin Dashboard / Back Office
@@ -458,7 +458,7 @@ The administrative system is what allows the business owner to manage the entire
 - [x] CSRF protection — same-origin check on every non-GET request (verified live: cross-site / foreign Origin → 403); SameSite=Lax session cookie with auth
 - [ ] Rate limiting
 - [ ] Bot protection
-- [ ] Spam protection
+- [ ] Spam protection — _partial_: contact form honeypot, browser-measured fill time (≥ 3 s) and hourly limits per hashed IP / e-mail / store (unit + integration + Chrome 2026-11-04); Cloudflare Turnstile needs the owner's keys
 - [ ] Secure payment processing
 - [ ] PCI DSS considerations
 - [ ] Secure API endpoints
@@ -485,8 +485,8 @@ Especially important if you're selling in Brazil.
 - [ ] Consumer protection disclosures
 - [ ] LGPD compliance (Brazil)
 - [ ] GDPR compliance (if applicable)
-- [ ] Data access and deletion requests
-- [ ] Consent management
+- [x] Data access and deletion requests — account holders: download their data (JSON) and delete the account in /account/privacy; anyone: the contact form's topic "Privacidade e dados pessoais" (verified 2026-11-04 on a dev stack)
+- [ ] Consent management — _partial_: terms acceptance (checkout, registration) and the marketing e-mail consent are recorded with time, source and history (2026-11-04); cookie preferences not built
 - [ ] Tax and invoice requirements
 - [ ] Clear pricing and shipping disclosures
 - [ ] Clear delivery deadlines
@@ -652,7 +652,7 @@ This is how I would organize the actual website's pages and routes.
 - [ ] Inventory management
 #### Admin dashboard
 - [ ] Transactional emails — _built 2026-11-04_ (Brevo SMTP outbox, 9 order e-mails); waiting for the owner's Brevo account and key
-- [ ] Customer support
+- [ ] Customer support — contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; not deployed; automatic e-mails wait for Brevo
 - [ ] Refund and return system — _refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built
 - [ ] Security
 - [ ] Legal pages and compliance — texts in Prismic's Migration Release (2026-11-04); cookie consent, data requests and accounts' privacy tools in progress

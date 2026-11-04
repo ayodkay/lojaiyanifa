@@ -201,10 +201,19 @@ export function OrderView({
               {formatBrPhone(order.customer.phone)}
             </p>
           </div>
-          <div className="border-t border-line pt-4 text-sm">
-            <Link to={help} className="text-ink underline underline-offset-4">
-              Precisa de ajuda com este pedido?
-            </Link>
+          <div className="space-y-2 border-t border-line pt-4 text-sm">
+            <p>
+              <Link to={help} className="text-ink underline underline-offset-4">
+                Precisa de ajuda com este pedido?
+              </Link>
+            </p>
+            {!pending && !cancelled && (
+              <p>
+                <Link to={`${help}&assunto=returns`} className="text-ink underline underline-offset-4">
+                  Pedir troca, devolução ou desistência
+                </Link>
+              </p>
+            )}
           </div>
         </aside>
       </div>

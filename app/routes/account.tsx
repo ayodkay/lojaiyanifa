@@ -24,6 +24,7 @@ export const meta = () => [{ title: "Minha conta | Loja Iyanifa" }, { name: "rob
 const LINKS = [
   { to: "/account", label: "Visão geral", end: true },
   { to: "/account/orders", label: "Pedidos" },
+  { to: "/account/support", label: "Atendimento" },
   { to: "/account/profile", label: "Dados pessoais" },
   { to: "/account/addresses", label: "Endereços" },
   { to: "/account/security", label: "Senha e acesso" },

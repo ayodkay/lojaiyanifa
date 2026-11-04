@@ -777,6 +777,25 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Not verified: clicking the verification link (then signing in again to see guest orders) in a browser; the reset link
   itself; the account pages on a phone width; anything in production (not deployed).
 
+### D. Customer support (§13) and return requests
+- `app/lib/support.ts` (topics, return reasons/preferences, statuses, form schema, `botReason`), `app/.server/support.ts`
+  (tickets numbered from 1001; creation with hourly limits + automatic confirmation e-mail + store notice in one
+  transaction; admin list/count/reply/close/reopen, audited `ticket.*`; the customer's tickets by UID / verified
+  e-mail). Mail templates `ticket_received` (withdrawal → the art. 5 §4 confirmation wording), `store_new_ticket`,
+  `ticket_reply`; mail context gained the business hours. Capabilities `support.view` / `support.reply` (whole team).
+  Index `tickets (status, number desc)`.
+- Pages: `/contact` (form; `?pedido=&assunto=` fill it in; the action's answer is `no-store` while the page stays
+  public), `/admin/support` + `/admin/support/:number` ("Atendimento" in the admin nav), `/account/support[/:number]`;
+  order pages link "Pedir troca, devolução ou desistência".
+- Tests: unit 216 (contact form 6, support e-mails 5), integration +8 (`tests/integration/support.test.ts`).
+- Chrome (dev stack :5176): return request from an order link (fields filled; missing reason/preference → errors;
+  sent → "atendimento nº 1001"; ticket + `ticket_received` with `withdrawal` queued; rate-limit docs hold hashes only);
+  an instant (bot-like) submit refused; admin (dev owner) → inbox, ticket page with the return details and the
+  withdrawal guidance, reply → "Respondido" + `ticket_reply` queued + `ticket.replied` audited, close → counts moved.
+  Found and fixed: textareas had the inputs' pill radius.
+- Not verified: staff's view in a browser (capability table only); the 5-day overdue flag; a signed-in customer's
+  ticket list in a browser (integration only).
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.

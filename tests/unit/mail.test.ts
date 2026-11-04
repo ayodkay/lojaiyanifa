@@ -9,7 +9,7 @@ import { orderTokenMatches } from "~/.server/orders";
 /** formatBRL puts a non-breaking space after R$; compare with ordinary spaces. */
 const plain = (m: { subject: string; text: string; html: string }) => ({ subject: m.subject.replace(/ /g, " "), text: m.text.replace(/ /g, " "), html: m.html });
 
-const ctx: MailContext = { siteUrl: "https://loja.example", storeName: "Loja Iyanifa", supportEmail: "atendimento@loja.example", whatsappHref: null };
+const ctx: MailContext = { siteUrl: "https://loja.example", storeName: "Loja Iyanifa", supportEmail: "atendimento@loja.example", whatsappHref: null, businessHours: [] };
 
 const order = (overrides: Partial<MailOrder> = {}): MailOrder => ({
   number: 1001,
@@ -107,6 +107,43 @@ describe("renderMail", () => {
     expect(mail.text).toContain("E-mail: maria@exemplo.com");
     expect(mail.text).toContain("Abrir no painel: https://loja.example/admin/orders/1001");
     expect(mail.text).not.toContain("Responda a este e-mail");
+  });
+});
+
+describe("support e-mails", () => {
+  const ticket = { number: 1001, topic: "returns", name: "Maria da Silva", message: "Quero devolver.\nObrigada.", orderNumber: 1007, returnReason: "withdrawal" };
+
+  it("the automatic answer gives the protocol number and confirms a withdrawal as the decree requires", () => {
+    const mail = plain(renderMail("ticket_received", ticket, null, { ...ctx, businessHours: ["Segunda a sexta: 9h às 18h"] }));
+    expect(mail.subject).toBe("Recebemos o seu pedido de troca ou devolução — atendimento nº 1001");
+    expect(mail.text).toContain("sobre troca, devolução ou desistência (pedido nº 1007). O número do seu atendimento é 1001.");
+    expect(mail.text).toContain("confirma o recebimento do seu pedido de desistência da compra");
+    expect(mail.text).toContain("Respondemos em até 5 dias. Nosso horário de atendimento: Segunda a sexta: 9h às 18h.");
+    expect(mail.text).toContain("> Quero devolver.\n> Obrigada.");
+  });
+
+  it("a plain question gets no return wording", () => {
+    const mail = plain(renderMail("ticket_received", { ...ticket, topic: "order", returnReason: null }, null, ctx));
+    expect(mail.subject).toBe("Recebemos a sua mensagem — atendimento nº 1001");
+    expect(mail.text).not.toContain("desistência");
+  });
+
+  it("the store's notice lists the request and links the inbox", () => {
+    const mail = plain(renderMail("store_new_ticket", { ...ticket, email: "maria@exemplo.com", phone: null, returnPreference: "refund", returnItems: "1 Colar" }, null, ctx));
+    expect(mail.subject).toBe("Atendimento nº 1001 — Troca, devolução ou desistência — pedido nº 1007");
+    expect(mail.text).toContain("Motivo: Desisti da compra (até 7 dias após receber)");
+    expect(mail.text).toContain("Prefere: Reembolso");
+    expect(mail.text).toContain("Responder no painel: https://loja.example/admin/support/1001");
+  });
+
+  it("the team's reply is escaped in HTML and refuses missing data", () => {
+    const mail = renderMail("ticket_reply", { number: 1001, name: "Maria", reply: "<b>Oi</b>" }, null, ctx);
+    expect(mail.html).toContain("&lt;b&gt;Oi&lt;/b&gt;");
+    expect(() => renderMail("ticket_reply", { number: 1001, name: "Maria" }, null, ctx)).toThrow(/needs data.reply/);
+  });
+
+  it("an order e-mail without its order is refused", () => {
+    expect(() => renderMail("payment_confirmed", {}, null, ctx)).toThrow(/needs its order/);
   });
 });
 

@@ -173,7 +173,8 @@ All money is stored as **integer centavos** (BRL). All timestamps are Firestore
 | `reviews/{id}` | auto | rating, text, media, status, verified purchase; `votes/{uid}`, `reports/{uid}` |
 | `productStats/{productId}` | Prismic ID | rating aggregates, units sold |
 | `questions/{id}` | auto | product Q&A |
-| `tickets/{id}` | auto | support tickets and messages |
+| `tickets/{number}` | sequential from 1001 (`counters/tickets`) | support tickets (built 2026-11-04, `app/.server/support.ts`): `status` open → answered → closed (reopenable), `topic`, contact, `orderNumber`, `customerUid` (sent signed in), `returnRequest: { reason, preference, items }` for topic "returns", `messages: [{ id, at, from: customer \| store, text, by }]` (max 100). Created by the contact form with its automatic confirmation e-mail (+ store notice) in the same transaction; answered from `/admin/support` (e-mail to the customer, audited) |
+| `rateLimits/{key}` | `contact-ip-<sha256(ip\|hour)>`, `contact-email-<sha256(email\|hour)>`, `contact-all-<hour>` | hourly counters for the contact form (5 per IP, 5 per e-mail, 60 in all); `expiresAt` for a Firestore TTL policy (not set up yet) |
 | `newsletter/{emailHash}` | sha256(email) | subscription + consent record |
 | `mail/{id}` | auto | email outbox |
 | `settings/{store,payment,shipping,tax,email}` | fixed | commerce settings, edited in `/admin/settings` (store, payment, shipping; tax and email not built). `store.checkoutOpen`: absent or false = checkout closed. Each save from the admin stamps `updatedAt` / `updatedBy` |
@@ -391,3 +392,5 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-04 | Store texts (legal pages, about, FAQ, policy summaries) are kept in `content/prismic/` and sent with `scripts/prismic/seed-content.mjs` to the Migration Release; the owner publishes them | Proposed (owner asked for the texts and the Prismic API) |
 | 2026-11-04 | Customer accounts: 14-day session cookie, sign-out revokes every session; guest orders join an account only once its e-mail is verified; deleting an account keeps its orders (legal retention) and audits the UID only; data export as JSON (`/account/export`) | Proposed |
 | 2026-11-04 | Phone verification (optional item) not built: SMS sign-in is off in the project (owner, 2026-11-03), phones are checked by format and customers reach the store by WhatsApp | Proposed |
+| 2026-11-04 | Support: the contact form opens a numbered ticket and answers at once by e-mail with the number (Decreto 7.962 art. 4 VI; art. 5 §4 for withdrawals); return requests are tickets with reason/preference, coming from order pages; the whole team (owner/admin/staff) reads and answers in `/admin/support`; customers' replies come back by e-mail, not into the ticket | Proposed |
+| 2026-11-04 | Contact form anti-abuse: honeypot, fill time measured in the browser (≥ 3 s), hourly limits per hashed IP / e-mail / store; Cloudflare Turnstile recommended once the owner creates its keys | Proposed |

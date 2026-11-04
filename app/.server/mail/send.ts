@@ -9,7 +9,7 @@
 import { type DocumentData, Timestamp } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 
-import { whatsappHref } from "~/lib/shell";
+import { formatHours, whatsappHref } from "~/lib/shell";
 
 import { env } from "../env";
 import { db } from "../firebase";
@@ -78,6 +78,7 @@ export async function mailContext(): Promise<MailContext> {
     storeName: settings.storeName,
     supportEmail: email,
     whatsappHref: whatsappNumber ? whatsappHref(whatsappNumber, whatsappMessage) : null,
+    businessHours: formatHours(settings.contact.hours),
   };
 }
 

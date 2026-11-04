@@ -23,7 +23,9 @@ export type Capability =
   | "orders.add_note"
   | "orders.refund"
   | "settings.view"
-  | "settings.edit";
+  | "settings.edit"
+  | "support.view"
+  | "support.reply";
 
 const ALLOWED: Record<Capability, readonly AdminRole[]> = {
   "orders.view": ["owner", "admin", "staff"],
@@ -39,6 +41,9 @@ const ALLOWED: Record<Capability, readonly AdminRole[]> = {
   // them; an admin may look; staff have no access (docs/architecture.md §3).
   "settings.view": ["owner", "admin"],
   "settings.edit": ["owner"],
+  // Customer messages: the whole team reads and answers them.
+  "support.view": ["owner", "admin", "staff"],
+  "support.reply": ["owner", "admin", "staff"],
 };
 
 export function can(role: AdminRole, capability: Capability): boolean {

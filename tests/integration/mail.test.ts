@@ -35,7 +35,7 @@ const owner: AdminUser = { uid: "uid-dono", email: "dono@example.com", role: "ow
 const t0 = new Date("2026-11-04T12:00:00.000Z");
 const at = (minutes: number) => new Date(t0.getTime() + minutes * 60_000);
 
-const ctx: MailContext = { siteUrl: "https://loja.example", storeName: "Loja Iyanifa", supportEmail: "atendimento@loja.example", whatsappHref: null };
+const ctx: MailContext = { siteUrl: "https://loja.example", storeName: "Loja Iyanifa", supportEmail: "atendimento@loja.example", whatsappHref: null, businessHours: [] };
 const config: MailConfig = { from: "Loja Iyanifa <pedidos@loja.example>", replyTo: "atendimento@loja.example", host: "smtp.test", port: 587, user: "u", password: "p" };
 
 function recorder(fail?: (m: OutgoingMessage, call: number) => Error | null): MailTransport & { sent: OutgoingMessage[] } {

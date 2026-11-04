@@ -3,6 +3,7 @@
 import { formatCep } from "~/lib/br";
 import { formatBRL } from "~/lib/money";
 import type { CustomerOrderView } from "~/lib/orders";
+import { isTicketTopic, RETURN_PREFERENCE_LABEL, RETURN_REASON_LABEL, type ReturnPreference, type ReturnReason, TOPIC_LABEL } from "~/lib/support";
 
 import { html, type SafeHtml, safeUrl } from "./html";
 import type { MailTemplate } from "./outbox";
@@ -13,6 +14,8 @@ export interface MailContext {
   storeName: string;
   supportEmail: string | null;
   whatsappHref: string | null;
+  /** Business hours as the site shows them ("Segunda a sexta: 9h–18h"…); empty when not set in Prismic. */
+  businessHours: string[];
 }
 
 /** The order as the e-mails see it: the customer's view plus what links and cancellations need. */
@@ -30,6 +33,7 @@ export interface RenderedMail {
 
 type Block =
   | { kind: "p"; text: string; strong?: boolean }
+  | { kind: "quote"; label: string; text: string }
   | { kind: "button"; label: string; href: string }
   | { kind: "code"; label: string; value: string }
   | { kind: "rows"; title: string; rows: [string, string][] }
@@ -95,6 +99,68 @@ function composeOther(template: MailTemplate, data: Record<string, unknown>, ctx
           { kind: "button", label: "Ir para a minha conta", href: `${ctx.siteUrl}/account` },
         ],
       };
+    case "ticket_received": {
+      const n = Number(data.number);
+      const topic = isTicketTopic(data.topic) ? data.topic : "other";
+      const order = typeof data.orderNumber === "number" ? ` (pedido nº ${data.orderNumber})` : "";
+      const isReturn = topic === "returns";
+      const withdrawal = data.returnReason === "withdrawal";
+      return {
+        subject: isReturn ? `Recebemos o seu pedido de troca ou devolução — atendimento nº ${n}` : `Recebemos a sua mensagem — atendimento nº ${n}`,
+        blocks: [
+          { kind: "p", text: `Olá, ${firstName(dataText(data, "name", template))}!` },
+          { kind: "p", text: `Recebemos a sua mensagem sobre ${TOPIC_LABEL[topic].toLowerCase()}${order}. O número do seu atendimento é ${n}.` },
+          ...(withdrawal
+            ? [
+                {
+                  kind: "p",
+                  text: "Este e-mail confirma o recebimento do seu pedido de desistência da compra (direito de arrependimento, art. 49 do Código de Defesa do Consumidor). Vamos enviar as instruções para devolver o produto, sem custo para você, e o reembolso integral é feito por Pix.",
+                } satisfies Block,
+              ]
+            : isReturn
+              ? [{ kind: "p", text: "Vamos analisar o seu pedido e responder com os próximos passos." } satisfies Block]
+              : []),
+          { kind: "p", text: `Respondemos em até 5 dias.${ctx.businessHours.length ? ` Nosso horário de atendimento: ${ctx.businessHours.join("; ")}.` : ""} Para acrescentar alguma informação, é só responder a este e-mail.` },
+          { kind: "quote", label: "A sua mensagem", text: dataText(data, "message", template) },
+        ],
+      };
+    }
+    case "store_new_ticket": {
+      const n = Number(data.number);
+      const topic = isTicketTopic(data.topic) ? data.topic : "other";
+      const rows: [string, string][] = [
+        ["Nome", dataText(data, "name", template)],
+        ["E-mail", dataText(data, "email", template)],
+      ];
+      if (typeof data.phone === "string") rows.push(["Celular", data.phone]);
+      if (typeof data.orderNumber === "number") rows.push(["Pedido", `nº ${data.orderNumber}`]);
+      rows.push(["Assunto", TOPIC_LABEL[topic]]);
+      const reason = data.returnReason as ReturnReason | null;
+      const preference = data.returnPreference as ReturnPreference | null;
+      if (reason && reason in RETURN_REASON_LABEL) rows.push(["Motivo", RETURN_REASON_LABEL[reason]]);
+      if (preference && preference in RETURN_PREFERENCE_LABEL) rows.push(["Prefere", RETURN_PREFERENCE_LABEL[preference]]);
+      if (typeof data.returnItems === "string") rows.push(["Itens", data.returnItems]);
+      return {
+        subject: `Atendimento nº ${n} — ${TOPIC_LABEL[topic]}${typeof data.orderNumber === "number" ? ` — pedido nº ${data.orderNumber}` : ""}`,
+        blocks: [
+          { kind: "rows", title: "Cliente", rows },
+          { kind: "quote", label: "Mensagem", text: dataText(data, "message", template) },
+          ...(reason === "withdrawal" ? [{ kind: "p", text: "Pedido de desistência (art. 49 do CDC): o cliente já recebeu a confirmação automática; envie as instruções de devolução." } satisfies Block] : []),
+          { kind: "button", label: "Responder no painel", href: `${ctx.siteUrl}/admin/support/${n}` },
+        ],
+      };
+    }
+    case "ticket_reply": {
+      const n = Number(data.number);
+      return {
+        subject: `Resposta ao seu atendimento nº ${n}`,
+        blocks: [
+          { kind: "p", text: `Olá, ${firstName(dataText(data, "name", template))}!` },
+          { kind: "quote", label: `Resposta da ${ctx.storeName}`, text: dataText(data, "reply", template) },
+          { kind: "p", text: "Para continuar a conversa, é só responder a este e-mail." },
+        ],
+      };
+    }
     default:
       return null;
   }
@@ -273,6 +339,8 @@ function blockHtml(block: Block): SafeHtml {
       return html`<p style="margin:0 0 16px;line-height:1.5">${block.strong ? html`<strong>${block.text}</strong>` : block.text}</p>`;
     case "button":
       return html`<p style="margin:24px 0"><a href="${block.href}" style="display:inline-block;background:${C.ink};color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:999px;font-size:14px">${block.label}</a></p>`;
+    case "quote":
+      return html`<p style="margin:0 0 4px;color:${C.muted};font-size:13px">${block.label}</p><div style="margin:0 0 16px;padding:12px 16px;border-left:3px solid ${C.line};background:${C.paper};white-space:pre-wrap;line-height:1.5">${block.text}</div>`;
     case "code":
       return html`<p style="margin:0 0 4px;color:${C.muted};font-size:13px">${block.label}</p><p style="margin:0 0 16px;padding:12px;background:${C.paper};border:1px solid ${C.line};font-family:monospace;font-size:12px;word-break:break-all">${block.value}</p>`;
     case "rows":
@@ -289,6 +357,11 @@ function blockText(block: Block): string {
       return block.text;
     case "button":
       return `${block.label}: ${block.href}`;
+    case "quote":
+      return `${block.label}:\n${block.text
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n")}`;
     case "code":
       return `${block.label}:\n${block.value}`;
     case "rows":
@@ -299,7 +372,7 @@ function blockText(block: Block): string {
 }
 
 function footer(ctx: MailContext, template: MailTemplate): { html: SafeHtml; text: string } {
-  if (template === "store_new_order") {
+  if (template === "store_new_order" || template === "store_new_ticket") {
     return { html: html`<p style="margin:0;color:${C.muted};font-size:12px">Aviso automático do site ${ctx.siteUrl}.</p>`, text: `Aviso automático do site ${ctx.siteUrl}.` };
   }
   const contact = `${ctx.siteUrl}/contact`;

@@ -629,8 +629,8 @@
       "note": "Pix only (owner decision 2026-10-31): there is no card or payment credential to store"
     },
     "Return requests": {
-      "status": "todo",
-      "note": "pending (with the support tickets, §13)"
+      "status": "done",
+      "note": "order pages link \"Pedir troca, devolução ou desistência\" → the contact form with the order and the topic filled in; reason + preferred outcome + items; the ticket arrives in /admin/support with the request's details; immediate confirmation (verified 2026-11-04: Chrome on a dev stack + integration)"
     },
     "Refund history": {
       "status": "done",
@@ -713,6 +713,14 @@
     "Order notifications": {
       "status": "todo",
       "note": "_built and integration-tested 2026-11-04_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail); no e-mail has gone through Brevo yet: needs the owner's Brevo account, a verified sender domain and the SMTP key"
+    },
+    "Return management": {
+      "status": "todo",
+      "note": "_partial_: return requests arrive as tickets (reason, preference, items; withdrawals flagged) and refunds are recorded on the order (§7); no return status tracking or reverse-shipping labels"
+    },
+    "Exchange management": {
+      "status": "todo",
+      "note": "_partial_: exchange requests arrive as tickets (preference \"troca\"); the exchange itself is handled by hand (no exchange order flow)"
     }
   },
   "10": {
@@ -793,6 +801,46 @@
     "WhatsApp integration (particularly useful in Brazil)": {
       "status": "todo",
       "note": "_implemented_ (floating button, contact page, product sharing); needs the number in Prismic settings to verify"
+    },
+    "Contact form": {
+      "status": "done",
+      "note": "/contact: name, e-mail, optional phone and order, topic, message (+ reason/preference for returns); opens ticket nº … shown at once; honeypot, fill time and hourly limits (verified 2026-11-04: Chrome on a dev stack + unit + integration)"
+    },
+    "Support email": {
+      "status": "todo",
+      "note": "_implemented_: the Prismic support e-mail is shown on /contact and the footer, and is the reply-to of the store's e-mails and the inbox for new-message notices (unless MAIL_STORE_TO is set); needs the address in Prismic settings"
+    },
+    "Phone support (if offered)": {
+      "status": "todo",
+      "note": "_implemented_ (Prismic settings → /contact and footer); needs the owner's decision and number"
+    },
+    "Live chat": {
+      "status": "todo",
+      "note": "not built: WhatsApp (floating button) is the live channel today; a chat widget would add a third-party script and cookies (privacy and cookie policies, consent) — owner decision"
+    },
+    "Order support": {
+      "status": "done",
+      "note": "\"Precisa de ajuda com este pedido?\" on every order page → contact form with the order number; the admin ticket links the order (verified 2026-11-04 on a dev stack)"
+    },
+    "Return and refund support": {
+      "status": "done",
+      "note": "return requests with reason and preference; a withdrawal gets the confirmation required by Decreto 7.962 art. 5 §4 in the automatic e-mail; the team records refunds on the order (verified 2026-11-04: Chrome + integration)"
+    },
+    "Shipping support": {
+      "status": "done",
+      "note": "topic \"Entrega\" in the contact form; tracking on the order page (verified 2026-11-04 on a dev stack)"
+    },
+    "Complaint management": {
+      "status": "done",
+      "note": "topic \"Reclamação\" in the contact form → ticket handled in /admin/support (verified 2026-11-04 on a dev stack); tickets waiting more than 5 days for an answer are flagged in the list (Decreto 7.962 art. 4, parágrafo único) — that flag has no test yet"
+    },
+    "Support ticket system": {
+      "status": "done",
+      "note": "/admin/support (tabs by status with counts, thread, reply by e-mail, close/reopen, audited; owner/admin/staff) and /account/support for customers (verified 2026-11-04: Chrome on a dev stack + 8 integration tests)"
+    },
+    "Automated responses": {
+      "status": "todo",
+      "note": "_built 2026-11-04_: the protocol number on screen at once (verified) and an automatic confirmation e-mail queued in the same transaction (integration-tested); it goes out once Brevo is configured"
     }
   },
   "14": {
@@ -955,6 +1003,10 @@
     "Secure password hashing": {
       "status": "done",
       "note": "passwords never reach our server; Firebase Authentication stores them hashed (its scrypt variant)"
+    },
+    "Spam protection": {
+      "status": "todo",
+      "note": "_partial_: contact form honeypot, browser-measured fill time (≥ 3 s) and hourly limits per hashed IP / e-mail / store (unit + integration + Chrome 2026-11-04); Cloudflare Turnstile needs the owner's keys"
     }
   },
   "18": {
@@ -989,6 +1041,14 @@
     "Warranty policy": {
       "status": "todo",
       "note": "_text written 2026-11-04_ (content/prismic/pages/warranty.md: legal warranty 30/90 days, what isn't a defect, how to claim) and placed in Prismic's Migration Release; live when the owner publishes it"
+    },
+    "Data access and deletion requests": {
+      "status": "done",
+      "note": "account holders: download their data (JSON) and delete the account in /account/privacy; anyone: the contact form's topic \"Privacidade e dados pessoais\" (verified 2026-11-04 on a dev stack)"
+    },
+    "Consent management": {
+      "status": "todo",
+      "note": "_partial_: terms acceptance (checkout, registration) and the marketing e-mail consent are recorded with time, source and history (2026-11-04); cookie preferences not built"
     }
   },
   "19": {
@@ -1144,6 +1204,10 @@
     "Customer account": {
       "status": "todo",
       "note": "built 2026-11-04 (all of §8 but return requests and invoices); not deployed"
+    },
+    "Customer support": {
+      "status": "todo",
+      "note": "contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; not deployed; automatic e-mails wait for Brevo"
     }
   }
 }

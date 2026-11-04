@@ -20,6 +20,10 @@ export type AuditAction =
   | "settings.shipping_updated"
   | "settings.checkout_opened"
   | "settings.checkout_closed"
+  // Support tickets (the team's answers and status changes).
+  | "ticket.replied"
+  | "ticket.closed"
+  | "ticket.reopened"
   // LGPD requests made by customers themselves (no personal data in the entry: the UID only).
   | "customer.data_exported"
   | "customer.account_deleted";
