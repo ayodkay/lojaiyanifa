@@ -59,6 +59,12 @@ app's `Cache-Control` headers, which both CDNs honour).
    browser from small `no-store` endpoints, so cached HTML never shows stale stock.
 4. Firebase Hosting only forwards **one cookie, `__session`**, to the function.
    The app uses no other server-readable cookie.
+5. **Missing `/assets/` files** (asked for by a page from another build, mostly
+   during a deploy) fall through the `**` rewrite and get a short 404 with
+   `Cache-Control: no-store` (`app/routes/missing-asset.ts`, built 2026-11-04).
+   A function response without `Cache-Control` goes out as `max-age=600` and
+   Firebase's CDN keeps it: the store's 404 page did that before, so a page
+   loaded mid-deploy stayed broken for 10 minutes.
 
 ## 3. Authentication and authorization
 
@@ -352,3 +358,4 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-03 | The liveness probe is `/health`, not `/healthz` (Cloud Run reserves some paths ending in `z`) | Owner |
 | 2026-11-03 | `/favicon.ico` is a Hosting redirect to `/favicon.svg` (the deployed function can't serve it), written as a `regex` because this machine's Hosting emulator (Windows) never matches a `source` redirect; the route is removed | Owner |
 | 2026-11-03 | Checkout opens and closes only through an explicit switch in `/admin/settings` (`settings/store.checkoutOpen`; absent = closed); saving the Pix or delivery settings never opens it | Owner |
+| 2026-11-04 | A missing `/assets/` file gets a short `no-store` 404 from the function (`app/routes/missing-asset.ts`), not the store's 404 page, which Firebase sent on as `max-age=600` (a page loaded mid-deploy stayed broken for 10 minutes) | Owner |

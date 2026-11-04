@@ -561,6 +561,42 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - The function log after this deploy: the Logs Explorer query in the handoff ("Redeploying"); `firebase functions:log`
   is unreliable.
 
+## Session 5, after midnight — 2026-11-04: a missing `/assets/` file gets a 404 nothing keeps
+
+### Found
+- The owner saw `/admin/login` unstyled, with both buttons grey, in one Chrome tab (screenshot pasted at 00:19, about
+  1½ h after the night's deploy). That tab's CSS and JavaScript hadn't loaded: the buttons stay disabled until the
+  JavaScript starts.
+- Not reproduced. From this machine, the live page and all 21 files it uses answered 200 on `web.app` and
+  `firebaseapp.com`. A fresh load in the owner's Chrome was styled, both buttons enabled, no console errors. The old
+  dev server (:5173) served its page and files too, and no Hosting preview channel exists. What happened in that tab
+  is not known.
+- How a page loses its files: a deploy puts the new `ssr` live a few seconds before Hosting releases the new files. A
+  page loaded in that gap asks for names Hosting doesn't have yet. They fall through the `**` rewrite to the function,
+  which answered with the store's 404 page and no `Cache-Control`. Firebase sends such a response on as `max-age=600`
+  and its CDN keeps it (`x-cache: HIT` on a second request for a made-up name), so browsers and the CDN kept the 404
+  for 10 minutes and a reload didn't help.
+- Not fixed, separate: in production the store's 404 page (a path no route matches) has none of the security headers
+  (no CSP, `X-Content-Type-Options`, `X-Frame-Options` or HSTS; `/` has all four). The root middleware doesn't run
+  when no route matches. Low risk: the page shows nothing the visitor typed. Every 404 page is also kept 10 minutes
+  (`max-age=600`), e.g. a product URL visited before the product is published.
+
+### Done and verified
+- `app/routes/missing-asset.ts`, routed as `assets/*`: a missing `/assets/` file gets a 404, `text/plain`,
+  `Cache-Control: no-store`, body `Not found`. Hosting still serves every real file before the rewrite.
+- 2 unit tests (the response; every `/assets/` path goes there, other paths don't); 6 of 6 mutations caught.
+  `npm test` 154 passed; typecheck and lint clean (lint's warnings are in older files). Integration tests not run:
+  nothing they cover changed.
+- The production build through the Hosting and functions emulators (spare ports): a missing file, flat or nested, →
+  404 `no-store` `text/plain` with `nosniff`; the real CSS → 200 from Hosting; `/nao-existe-teste` still the 404 page;
+  `/health` 200; `/admin/login` 200 with its 21 files 200.
+
+### Not verified
+- Production: not deployed. After the next deploy, a made-up `/assets/` name must answer `no-store` (until then:
+  `max-age=600`).
+- The deploy gap itself stays: a page loaded in those seconds is still broken, but a reload now fixes it. Closing the
+  gap means keeping the previous build's files in each upload (not planned).
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
@@ -573,6 +609,8 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   `/healthz` renamed `/health`. Deployed that evening from `7f99658`.
   At night: `/admin/settings` (Pix payment, delivery, and a switch that opens and closes checkout), deployed from
   `2b7e6ec`.
+  After midnight (2026-11-04): a missing `/assets/` file gets a short `no-store` 404 instead of the store's 404 page,
+  which was kept for 10 minutes. Not deployed.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
@@ -584,7 +622,7 @@ that night, from `2b7e6ec`: production checkout stays closed until the owner ope
 - Checklist: 124 done / 368 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
   count is the open items that have a note, not all open items. "Robots.txt" went back to todo on 2026-11-03, when
   production answered it with a 404, and was done again that evening, once production served the file.
-- `npm test` (152 unit) and `npm run test:integration` (71, own emulator ports via `firebase.test.json`; all passed
+- `npm test` (154 unit) and `npm run test:integration` (71, own emulator ports via `firebase.test.json`; all passed
   on the night of 2026-11-03).
 - `npm run typecheck` and `npm run lint`.
 
@@ -592,10 +630,10 @@ that night, from `2b7e6ec`: production checkout stays closed until the owner ope
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
   fixes → `867bed1` session 4 → `2438821` session-5 config → `1b3c384` preview fix + deploy notes → `7f99658`
   robots.txt, favicon, `/health` → the evening's post-deploy notes → `2b7e6ec` `/admin/settings` (what is deployed)
-  → the night's post-deploy notes (see `git log`).
+  → `e0a9c87` the night's post-deploy notes → the missing-asset 404 (see `git log`).
 - Deployed: `ssr` and hosting from `2b7e6ec` (2026-11-03 night). `expirePixOrders` was last deployed from
-  `2438821`; its code hasn't changed since.
-- Pushed to `origin/master` on 2026-11-03, on the owner's ask, through the commit that wrote this line;
+  `2438821`; its code hasn't changed since. The missing-asset 404 (2026-11-04) is not deployed.
+- Pushed to `origin/master` on 2026-11-04, on the owner's ask, through the commit that wrote this line;
   `git status -sb` shows anything newer. Push only when the owner asks.
 - Commit only when the owner asks. Add files by path, never `git add .`.
 
@@ -660,6 +698,7 @@ that night, from `2b7e6ec`: production checkout stays closed until the owner ope
 4. If TOTP fails: stop and report. Never set `ADMIN_REQUIRE_MFA=false` to get in.
 5. Then Configurações: save the Pix and delivery settings, read the R$ 1,00 test code in the bank app without paying,
    and open checkout when the store should start selling.
+If the page shows up unstyled with grey buttons, reload it (2026-11-04, "Found").
 Then the checklist item "Two-factor authentication for administrators" can be marked done.
 
 **Redeploying, on the owner's go:**
@@ -675,8 +714,8 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 3. Opening checkout: it stays closed until the owner opens it in Configurações (`settings/store`, deployed
    2026-11-03); saving the Pix and delivery settings doesn't open it.
 4. Check: `/`, a product page, `/admin` → 302, `/robots.txt` (200, the rules), `/favicon.ico` (301 → `/favicon.svg`),
-   `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header), and the function log in the Logs
-   Explorer, with this query (put in the deploy's UTC start time):
+   `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header) and a made-up one (404, `no-store`),
+   and the function log in the Logs Explorer, with this query (put in the deploy's UTC start time):
    `resource.type="cloud_run_revision" AND resource.labels.service_name="ssr" AND timestamp>="2026-11-03T21:30:00Z"`
    Don't rely on `firebase functions:log`: on 2026-11-03 it showed a stale slice of the log.
 5. Stop and report if pages answer 500, or if the deploy warns "Unable to set the invoker" (a Google Workspace
@@ -699,7 +738,9 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 
 **Known issues:**
-- Production: none open. `/robots.txt`, `/favicon.ico` and `/healthz` (session 5, "Found") were fixed and deployed on
-  the evening of 2026-11-03. Uptime checks should probe `/health`.
+- Production (2026-11-04, "Found"): the store's 404 page has none of the security headers; a page loaded during a
+  deploy loses its files, and until the missing-asset 404 is deployed a reload doesn't help for 10 minutes.
+  `/robots.txt`, `/favicon.ico` and `/healthz` (session 5, "Found") were fixed and deployed on the evening of
+  2026-11-03. Uptime checks should probe `/health`.
 - `npm run preview`'s admin sign-in still fails on the CSP (`connect-src` doesn't allow the Auth emulator).
   `docs/security.md`, "Known gaps".

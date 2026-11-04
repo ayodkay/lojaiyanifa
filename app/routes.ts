@@ -44,4 +44,6 @@ export default [
   route("api/products", "routes/api.products.ts"),
   route("api/cart/quote", "routes/api.cart.quote.ts"),
   route("health", "routes/health.ts"),
+  // Files under /assets/ that Hosting doesn't have: a short 404 that nothing keeps (see the route file).
+  route("assets/*", "routes/missing-asset.ts"),
 ] satisfies RouteConfig;
