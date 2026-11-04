@@ -674,6 +674,27 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - The function log after this deploy: the Logs Explorer query in the handoff ("Redeploying") with
   `timestamp>="2026-11-04T06:34:00Z"`.
 
+## Session 5, early morning — 2026-11-04: Pix and delivery saved; checkout is open
+
+### Owner's actions
+- The owner saved the Pix and delivery settings in production's Configurações (the owner's report; not looked at
+  here, since the page shows the Pix key).
+
+### Verified (06:46 GMT, both hosts, read only)
+- Checkout is **open**: `/checkout` no longer shows the "temporariamente indisponível" notice. Its loader drops the
+  notice only when `settings/store.checkoutOpen` is true, the Pix key parses and at least one delivery method is on,
+  so the settings are valid too. The page shows the Pix and "Entrega" sections and no "Retirada" (pickup looks off).
+  Not opened by Claude; whether opening it was meant: asked.
+
+### Found
+- Checkout (its terms checkbox and the footer) links to `/terms`, `/privacy`, `/returns`, `/shipping`, `/cookies`,
+  `/about` and `/faq`: all 404, because their Prismic `page` documents aren't published. `/contact` answers 200.
+  Customers can order while the terms they must accept, the privacy policy and the returns policy aren't online.
+
+### Not verified
+- Whether the owner read the R$ 1,00 test code in the bank app (it checks that the key reaches the right account).
+- The order tabs other than "Aguardando pagamento"; a second device for the authenticator.
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
@@ -689,11 +710,13 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   After midnight (2026-11-04): a missing `/assets/` file gets a short `no-store` 404 instead of the store's 404 page,
   which was kept for 10 minutes. Deployed from `6a5d29a`. The owner's first production sign-in with TOTP worked.
   Then the 404 page for unknown paths gets the security headers (a catch-all route). Deployed from `58d92bd`.
+  Early morning: the owner saved the Pix and delivery settings, and checkout is open.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` and the custom domain `https://lojaiyanifa.com.br` (through
-Cloudflare) serve the store with checkout closed (the switch in Configurações is off). The owner role is granted and
-TOTP is on; the owner's first sign-in with it worked on 2026-11-04. Next: Configurações (below). The evening's
+Cloudflare) serve the store. Checkout is **open** since 2026-11-04 (seen 06:46 GMT), with the Pix and delivery
+settings the owner saved. The owner role is granted and TOTP is on; the owner's first sign-in with it worked on
+2026-11-04. Next: the owner's list below, first the policy pages. The evening's
 `/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`, and
 `/admin/settings` that night, from `2b7e6ec`. On 2026-11-04 the missing-asset 404 followed, from `6a5d29a`, and the
 catch-all 404 route, from `58d92bd`.
@@ -776,9 +799,14 @@ checklist item "Two-factor authentication for administrators" is done.
 - If TOTP ever fails: stop and report. Never set `ADMIN_REQUIRE_MFA=false` to get in.
 - If the page shows up unstyled with grey buttons, reload it with Ctrl+Shift+R (2026-11-04, "Found").
 
-**Next for the owner, in Configurações:** save the Pix and delivery settings, read the R$ 1,00 test code in the bank
-app without paying, and open checkout when the store should start selling. Also open each order tab once (they need
-the indexes; only "Aguardando pagamento" has been seen).
+**Next for the owner** (Pix and delivery saved and checkout opened on 2026-11-04):
+1. Publish the Prismic pages that checkout links to: `terms`, `privacy`, `returns`, `shipping`, `cookies`, `about`
+   and `faq` (all 404 on 2026-11-04). Customers are asked to accept the terms at checkout.
+2. If not done yet: read the R$ 1,00 test code in the bank app without paying, to check the key reaches the right
+   account.
+3. Open each order tab once (they need the indexes; only "Aguardando pagamento" has been seen), and watch that tab:
+   new orders wait there for their Pix payment.
+4. Back the authenticator up on a second device.
 
 **Redeploying, on the owner's go:**
 1. `npm run build` from a committed tree.
@@ -790,8 +818,8 @@ the indexes; only "Aguardando pagamento" has been seen).
    - Don't run a bare deploy: `firebase.json` also lists Storage, which the app doesn't use.
    - `--force` is no longer needed for the cleanup policy, which now exists. Don't add it by habit: it also approves
      deleting functions that are missing from the source.
-3. Opening checkout: it stays closed until the owner opens it in Configurações (`settings/store`, deployed
-   2026-11-03); saving the Pix and delivery settings doesn't open it.
+3. Checkout: the owner's switch in Configurações (`settings/store`) opens and closes it; it has been open since
+   2026-11-04. A deploy doesn't change it, and saving the Pix or delivery settings doesn't either.
 4. Check: `/`, a product page, `/admin` → 302, `/robots.txt` (200, the rules), `/favicon.ico` (301 → `/favicon.svg`),
    `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header) and a made-up one (404, `no-store`),
    an unknown path (404 with `X-Content-Type-Options` and the CSP), all on `web.app` and on the custom domain
@@ -815,9 +843,12 @@ the indexes; only "Aguardando pagamento" has been seen).
 
 **Needed before launch but not on this list:**
 - `/admin/inventory`: stock adjustments.
-- Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
+- Terms/privacy pages: Prismic content the owner must publish (checkout links to them). Urgent since 2026-11-04:
+  checkout is open and these pages still 404.
 
 **Known issues:**
+- Production (2026-11-04, early morning): checkout is open while `/terms`, `/privacy`, `/returns`, `/shipping`,
+  `/cookies`, `/about` and `/faq` answer 404 (Prismic pages not published).
 - Production (2026-11-04, "Found"): a page loaded during a deploy loses its files; since `6a5d29a` (deployed) a
   reload fixes it. The 404 page's missing security headers were fixed and deployed the same day (`58d92bd`).
 - The custom domain `https://lojaiyanifa.com.br` goes through Cloudflare (Browser Cache TTL "Respect Existing
