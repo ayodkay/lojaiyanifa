@@ -520,7 +520,8 @@ absent). The owner role is granted and TOTP is on. Next: the owner's first sign-
   robots.txt, favicon, `/health` (what is deployed) → the evening's post-deploy notes (see `git log`).
 - Deployed: `ssr` and hosting from `7f99658` (2026-11-03 evening). `expirePixOrders` was last deployed from
   `2438821`; its code hasn't changed since.
-- Pushed to `origin/master` up to `246acfa` by the owner, who pushes the later commits.
+- Pushed to `origin/master` on 2026-11-03, on the owner's ask, through the commit that wrote this line;
+  `git status -sb` shows anything newer. Push only when the owner asks.
 - Commit only when the owner asks. Add files by path, never `git add .`.
 
 **This machine:**
