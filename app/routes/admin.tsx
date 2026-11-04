@@ -9,7 +9,7 @@ import { adminUserContext, requireAdmin } from "~/.server/admin-guard";
 import type { AdminUser } from "~/.server/session";
 import { cx } from "~/components/ui";
 import { adminMeta } from "~/lib/admin/meta";
-import { ROLE_LABEL } from "~/lib/admin/roles";
+import { can, ROLE_LABEL } from "~/lib/admin/roles";
 
 import type { Route } from "./+types/admin";
 
@@ -53,6 +53,16 @@ function AdminShell({ user, children }: { user: AdminUser | null; children: Reac
                   Pedidos
                 </NavLink>
               </li>
+              {user && can(user.role, "settings.view") && (
+                <li>
+                  <NavLink
+                    to="/admin/settings"
+                    className={({ isActive }) => cx("border-b-2 py-1", isActive ? "border-ink font-medium" : "border-transparent text-muted hover:text-ink")}
+                  >
+                    Configurações
+                  </NavLink>
+                </li>
+              )}
             </ul>
           </nav>
           {user && (

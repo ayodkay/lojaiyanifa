@@ -120,7 +120,7 @@ app's `Cache-Control` headers, which both CDNs honour).
 | Cancel orders, record refunds | ✓ | ✓ | – | – |
 | Inventory adjustments | ✓ | ✓ | ✓ | – |
 | Discounts, reviews moderation, customers | ✓ | ✓ | – | – |
-| Store/payment/shipping/email settings | ✓ | read | – | – |
+| Store/payment/shipping/email settings (`/admin/settings`: Pix, delivery, opening checkout) | ✓ | read | – | – |
 | Admin users and roles | ✓ | – | – | – |
 
 ## 4. Data model
@@ -160,8 +160,8 @@ All money is stored as **integer centavos** (BRL). All timestamps are Firestore
 | `tickets/{id}` | auto | support tickets and messages |
 | `newsletter/{emailHash}` | sha256(email) | subscription + consent record |
 | `mail/{id}` | auto | email outbox |
-| `settings/{store,payment,shipping,tax,email}` | fixed | commerce settings edited in admin |
-| `auditLogs/{id}` | auto | who did what, when: `{ at, action, actor, target, details }`; actor = `{ uid, email, role }` (app), `{ type: "system", name }` (scheduled jobs, e.g. `pix-expiry`) or `{ type: "script", name, by }` (scripts). Actions: `admin.signed_in`, `admin.signed_out`, `order.payment_confirmed`, `order.cancelled`, `order.fulfillment_updated`, `order.tracking_updated`, `order.note_added`, `order.refunded`, `role.changed`, `mfa.reset` |
+| `settings/{store,payment,shipping,tax,email}` | fixed | commerce settings, edited in `/admin/settings` (store, payment, shipping; tax and email not built). `store.checkoutOpen`: absent or false = checkout closed. Each save from the admin stamps `updatedAt` / `updatedBy` |
+| `auditLogs/{id}` | auto | who did what, when: `{ at, action, actor, target, details }`; actor = `{ uid, email, role }` (app), `{ type: "system", name }` (scheduled jobs, e.g. `pix-expiry`) or `{ type: "script", name, by }` (scripts). Actions: `admin.signed_in`, `admin.signed_out`, `order.payment_confirmed`, `order.cancelled`, `order.fulfillment_updated`, `order.tracking_updated`, `order.note_added`, `order.refunded`, `settings.payment_updated` and `settings.shipping_updated` (details: the changed fields, the Pix key masked), `settings.checkout_opened`, `settings.checkout_closed`, `role.changed`, `mfa.reset` |
 | `checkoutAttempts/{sha256(key)}` | checkout key hash | idempotency: maps a checkout attempt to its order number |
 | `redirects/{encodedPath}` | path | old URL → new URL (301) |
 
@@ -244,6 +244,12 @@ Built 2026-11-02:
 - There is no gateway and no webhook: **an admin confirms each payment** in
   `/admin/orders` after seeing it in the bank account. Unpaid orders expire after
   `settings/payment.expiryHours` (default 24) and release their stock.
+- **Checkout opens only when the owner opens it** in `/admin/settings` (owner decision 2026-11-03;
+  `settings/store.checkoutOpen`, absent = closed). Saving the Pix or delivery settings never opens it. Opening needs
+  both to be valid (a code can be built from the Pix settings; at least one delivery method), and while checkout is
+  open, turning off both delivery methods is refused. Closed: customers see the "temporarily unavailable" notice and
+  order creation refuses (`loadOrderDeps` checks the switch first). The page shows a R$ 1,00 test code to read in the
+  bank app without paying.
 - Refunds are made by the owner in their bank app and **recorded** in the admin
   (full or partial), which updates status and notifies the customer.
 - Card, wallet, PayPal, Apple Pay, Google Pay and installment payments are out
@@ -345,3 +351,4 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-03 | `/robots.txt` is a static file written at deploy time from `SITE_URL` by a hosting predeploy hook (the deployed function can't serve it); the route is removed | Owner |
 | 2026-11-03 | The liveness probe is `/health`, not `/healthz` (Cloud Run reserves some paths ending in `z`) | Owner |
 | 2026-11-03 | `/favicon.ico` is a Hosting redirect to `/favicon.svg` (the deployed function can't serve it), written as a `regex` because this machine's Hosting emulator (Windows) never matches a `source` redirect; the route is removed | Owner |
+| 2026-11-03 | Checkout opens and closes only through an explicit switch in `/admin/settings` (`settings/store.checkoutOpen`; absent = closed); saving the Pix or delivery settings never opens it | Owner |

@@ -499,6 +499,56 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   "Buy now button", "Proceed to checkout button", "Payment processing", "Payment confirmation", "Automated testing".
 - The old dev server stack (33300, 12220, 44052, 13692, 3280) still runs; the stray `firebase init` (47288) is gone.
 
+## Session 5, night — 2026-11-03: `/admin/settings`
+
+### Owner decisions
+- Build `/admin/settings` next.
+- Checkout gets its own open/close switch: saving the Pix or delivery settings never opens it.
+
+### Done and verified
+- **The switch:** `settings/store.checkoutOpen`, absent = closed (`getStoreSettings`).
+  - `loadOrderDeps` checks it before reading anything else and throws `CheckoutClosedError`.
+  - `/checkout` shows the existing "temporariamente indisponível" notice without logging an error; its action
+    answers 503.
+  - The dev seed opens checkout.
+- **Who:** `settings.view` (owner, admin) and `settings.edit` (owner), as in `docs/architecture.md` §3. Staff get
+  no link and a 403.
+- **Server** (`app/.server/admin-settings.ts`, `app/.server/settings-forms.ts`):
+  - The forms are parsed with Portuguese field errors. The Pix key is checked by `parsePixKey` and stored as the DICT
+    holds it. A name or city longer than the code allows is refused.
+  - Each save is one transaction: refused when the page is stale (409), nothing written when nothing changed, and an
+    audit entry listing the changed fields, with the Pix key masked.
+  - Opening re-checks the blockers inside the same transaction. Turning off both delivery methods is refused while
+    checkout is open.
+- **Page** (`/admin/settings`, "Configurações" in the nav for owner and admin):
+  - Checkout status, with open and close; opening needs a confirmation box.
+  - The Pix form, showing how the name and city print on the code.
+  - A R$ 1,00 test code (QR + copia e cola) to read in the bank app without paying.
+  - The delivery form. An admin sees everything read-only.
+- **Tests:** 9 unit + 6 integration, run one at a time; 8 of 8 mutations caught.
+- **Totals:** unit 152 (19 files), integration 71 (9 files), tsc 0 errors, lint 0 errors / 67 warnings (the 4 new
+  ones are route-module exports), build OK with no server code in the browser bundle.
+- **Browser**, on a separate dev server (:5176) with fresh emulators on spare ports and the Banco Central test key.
+  The old dev stack wasn't touched, and the separate stack was stopped afterwards.
+  - Empty page: checkout closed, both blockers listed.
+  - An invalid key gets its message under the field, and nothing is saved.
+  - Payment saved: key type, printed name and city, and the test code (the QR loads; the code carries the key, TESTE
+    and R$ 1,00).
+  - Delivery saved: opening is offered. Opened: the customer's `/checkout` is open. Closed: the customer sees the
+    notice.
+  - A save from a stale page gets the 409 notice, and the stored value is shown.
+  - Staff: no link, 403, and a crafted POST gets 403.
+  - Admin (role set with `grant-role` on the spare emulator only): read-only, all 14 fields disabled, no buttons, and
+    a crafted POST gets 403.
+
+### Found
+- The old dev server (:5173) hot-reloaded the change. Its emulator has no `settings/store`, so its checkout now shows
+  as closed (handoff, "This machine").
+
+### Not verified (night)
+- Production: not deployed. The owner's first use there: sign in (TOTP), save Pix and delivery, read the test code
+  without paying, then open checkout.
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
@@ -509,24 +559,28 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   In the afternoon: first production deploy, owner role, TOTP turned on in the project, `npm run preview` fixed.
   In the evening: `/robots.txt` as a static file written at deploy time, `/favicon.ico` as a Hosting redirect;
   `/healthz` renamed `/health`. Deployed that evening from `7f99658`.
+  At night: `/admin/settings` (Pix payment, delivery, and a switch that opens and closes checkout), verified on a dev
+  stack; not deployed yet.
 - Everything is verified as listed above.
 
 **Deployed 2026-11-03.** `https://lojaiyanifa.web.app` serves the store with checkout closed (`settings/payment`
 absent). The owner role is granted and TOTP is on. Next: the owner's first sign-in (below). The evening's
-`/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`.
+`/robots.txt`, `/favicon.ico` and `/health` change was deployed the same evening, from `7f99658`. `/admin/settings`
+(night) is not deployed: production checkout is still closed only because `settings/payment` is absent.
 
 **Checks:**
-- Checklist: 121 done / 371 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
+- Checklist: 124 done / 368 open / 14 N/A (`ecommerce_master_build_prompt.md`). The update script's "with notes"
   count is the open items that have a note, not all open items. "Robots.txt" went back to todo on 2026-11-03, when
   production answered it with a 404, and was done again that evening, once production served the file.
-- `npm test` (143 unit) and `npm run test:integration` (65, own emulator ports via `firebase.test.json`; last run
-  2026-11-03 morning, and the evening's route changes touch no integration test).
+- `npm test` (152 unit) and `npm run test:integration` (71, own emulator ports via `firebase.test.json`; all passed
+  on the night of 2026-11-03).
 - `npm run typecheck` and `npm run lint`.
 
 **Git:**
 - `master`: `643da9e` baseline → `e418f1b` `.gitattributes` (LF everywhere) → `a3b31d2` admin → `246acfa` handoff
   fixes → `867bed1` session 4 → `2438821` session-5 config → `1b3c384` preview fix + deploy notes → `7f99658`
-  robots.txt, favicon, `/health` (what is deployed) → the evening's post-deploy notes (see `git log`).
+  robots.txt, favicon, `/health` (what is deployed) → the evening's post-deploy notes → the night's `/admin/settings`
+  (see `git log`).
 - Deployed: `ssr` and hosting from `7f99658` (2026-11-03 evening). `expirePixOrders` was last deployed from
   `2438821`; its code hasn't changed since.
 - Pushed to `origin/master` on 2026-11-03, on the owner's ask, through the commit that wrote this line;
@@ -558,6 +612,14 @@ absent). The owner role is granted and TOTP is on. Next: the owner's first sign-
 - This machine's Hosting emulator can't apply redirects written with `source` (a Windows bug in superstatic 10.0.0:
   `/favicon.ico` becomes `\favicon.ico`). Write redirects with `regex`, which production supports too, or check them on
   the live site.
+- The old dev server (:5173) checks the checkout switch since the night of 2026-11-03, and its emulator has no
+  `settings/store`, so its checkout shows as closed. To open it: sign in at `http://localhost:5173/admin/login` as
+  `dono@example.com` and use Configurações → Abrir checkout, or re-run `node scripts/dev/seed-emulator.mjs`, which
+  rewrites the settings and resets the three dev users.
+- A second, separate dev stack for browser checks: generate a spare-port config (hub 4410, logging 4510, Auth 9095,
+  Firestore 8480), run the seed from a folder without `.env.local` (so it uses the Banco Central test key), and start
+  `react-router dev --port 5176` inside `emulators:exec`. Shell variables win over `.env.local`. Check with `netstat`
+  that the dev server connects to 8480, not 8180, before using it.
 
 **Production config (session 5):**
 - Deployed functions read the gitignored root file `.env.lojaiyanifa`. It exists on this machine and was created
@@ -596,7 +658,9 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
    - Don't run a bare deploy: `firebase.json` also lists Storage, which the app doesn't use.
    - `--force` is no longer needed for the cleanup policy, which now exists. Don't add it by habit: it also approves
      deleting functions that are missing from the source.
-3. Leave `settings/payment` absent until checkout should open.
+3. Opening checkout: once `/admin/settings` is deployed, checkout stays closed until the owner opens it in
+   Configurações (`settings/store`); saving the Pix and delivery settings doesn't open it. Until that deploy, the old
+   rule holds: leave `settings/payment` absent.
 4. Check: `/`, a product page, `/admin` → 302, `/robots.txt` (200, the rules), `/favicon.ico` (301 → `/favicon.svg`),
    `/health` (200 JSON), `curl -I` an `/assets/*` file (immutable cache header), and the function log in the Logs
    Explorer, with this query (put in the deploy's UTC start time):
@@ -618,7 +682,8 @@ Then the checklist item "Two-factor authentication for administrators" can be ma
 `/admin/users` was dropped on 2026-11-03: single admin account.
 
 **Needed before launch but not on this list:**
-- `/admin/settings`: today the production Pix key could only be entered in the Firebase console.
+- `/admin/settings`: built on the night of 2026-11-03, not deployed yet. Once deployed, the owner enters the Pix key
+  and delivery there, reads the test code, and opens checkout.
 - `/admin/inventory`: stock adjustments.
 - Terms/privacy pages: Prismic content the owner must publish (checkout links to them).
 

@@ -15,7 +15,15 @@ export const ROLE_LABEL: Record<AdminRole, string> = {
 };
 
 /** Only capabilities that exist in the admin today; add rows as features land. */
-export type Capability = "orders.view" | "orders.confirm_payment" | "orders.cancel" | "orders.fulfill" | "orders.add_note" | "orders.refund";
+export type Capability =
+  | "orders.view"
+  | "orders.confirm_payment"
+  | "orders.cancel"
+  | "orders.fulfill"
+  | "orders.add_note"
+  | "orders.refund"
+  | "settings.view"
+  | "settings.edit";
 
 const ALLOWED: Record<Capability, readonly AdminRole[]> = {
   "orders.view": ["owner", "admin", "staff"],
@@ -27,6 +35,10 @@ const ALLOWED: Record<Capability, readonly AdminRole[]> = {
   "orders.add_note": ["owner", "admin", "staff"],
   // Recording a refund changes the money and the stock: owner and admin only (like cancelling).
   "orders.refund": ["owner", "admin"],
+  // Settings decide where payments go, what delivery costs and whether checkout is open: the owner changes
+  // them; an admin may look; staff have no access (docs/architecture.md §3).
+  "settings.view": ["owner", "admin"],
+  "settings.edit": ["owner"],
 };
 
 export function can(role: AdminRole, capability: Capability): boolean {

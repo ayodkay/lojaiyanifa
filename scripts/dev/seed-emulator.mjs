@@ -58,14 +58,20 @@ const shipping = {
   },
 };
 
+// Development keeps checkout open; in production it stays closed until the owner opens it in /admin/settings.
+const store = { checkoutOpen: true };
+
 const app = initializeApp({ projectId });
 const db = getFirestore(app);
 await db.doc("settings/payment").set(payment);
 await db.doc("settings/shipping").set(shipping);
+await db.doc("settings/store").set(store);
 
 const pixSource = payment.pix.key === TEST_PIX_KEY ? "Banco Central test key" : "STORE_PIX_KEY";
 const rateSource = process.env.STORE_FLAT_RATE_CENTS ? "STORE_FLAT_RATE_CENTS" : "PLACEHOLDER until the owner sets the price";
-console.log(`[seed] ${host}: settings/payment (Pix: ${pixSource}), settings/shipping (flat rate R$ ${(shipping.flatRate.priceCents / 100).toFixed(2)} — ${rateSource}; pickup on)`);
+console.log(
+  `[seed] ${host}: settings/payment (Pix: ${pixSource}), settings/shipping (flat rate R$ ${(shipping.flatRate.priceCents / 100).toFixed(2)} — ${rateSource}; pickup on), settings/store (checkout open)`,
+);
 
 // Sign-in accounts for /admin/login. They exist only in this emulator.
 const DEV_PASSWORD = "senha-dev-123";

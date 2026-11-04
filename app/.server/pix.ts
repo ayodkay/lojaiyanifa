@@ -11,6 +11,7 @@ import { toString as qrToString } from "qrcode";
 
 import { isValidCnpj, isValidCpf } from "~/lib/br";
 import { type Cents, toDecimalString } from "~/lib/money";
+import { PIX_CITY_MAX, PIX_NAME_MAX } from "~/lib/store-settings";
 
 export type PixKeyType = "cpf" | "cnpj" | "phone" | "email" | "evp";
 
@@ -103,8 +104,8 @@ export function buildPixPayment(settings: PixSettings, amountCents: Cents, txid:
   }
   if (!/^[A-Za-z0-9]{1,25}$/.test(txid)) throw new Error(`buildPixPayment: invalid txid "${txid}" (1–25 letters/digits)`);
   const key = parsePixKey(settings.key);
-  const merchantName = brCodeText(settings.merchantName, 25);
-  const merchantCity = brCodeText(settings.merchantCity, 15);
+  const merchantName = brCodeText(settings.merchantName, PIX_NAME_MAX);
+  const merchantCity = brCodeText(settings.merchantCity, PIX_CITY_MAX);
   if (!merchantName) throw new PixConfigError("Nome do recebedor Pix não configurado.");
   if (!merchantCity) throw new PixConfigError("Cidade do recebedor Pix não configurada.");
 

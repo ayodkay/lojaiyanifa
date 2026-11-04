@@ -59,6 +59,8 @@ Design: docs/architecture.md §3. How each control is implemented and tested:
 | Order changes re-check state in one transaction; a lost race is a 409, never a double settlement | `settlePendingOrder`, `takeFulfillmentStep`, `recordRefund` | integration (races + stubbed "transaction closed" errors) |
 | Refunds: owner/admin only; amount ≤ what remains; units ≤ what the order took; one refund per form key | `requireCapability("orders.refund")`, `parseRefundForm`, `refundInTransaction` | unit + integration + Chrome |
 | Tracking links shown to customers: https only, `rel="noopener noreferrer"` | `parseTracking` | unit (javascript:/data:/http refused) + Chrome |
+| Settings: the owner edits, an admin reads, staff have no access (built 2026-11-03) | `settings.view` / `settings.edit`, checked in the loader and on every action of `app/routes/admin.settings.tsx` | unit (role table) + Chrome (staff: no link, 403; staff and admin crafted POSTs 403; admin read-only) |
+| Settings saves: one transaction, refused when the page is stale (409), nothing written when nothing changed, audit entry with the Pix key masked (type + last 4); checkout opens only by the owner's switch and only with valid settings | `app/.server/admin-settings.ts`, `app/.server/settings-forms.ts` | 9 unit + 6 integration, 8 of 8 mutations caught, Chrome on a separate dev stack |
 
 ## Known gaps (updated 2026-11-03)
 

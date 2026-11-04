@@ -33,6 +33,7 @@ export default [
     index("routes/admin.home.ts"),
     route("orders", "routes/admin.orders.tsx"),
     route("orders/:number", "routes/admin.order.tsx"),
+    route("settings", "routes/admin.settings.tsx"),
   ]),
 
   // Resource routes (no UI). /robots.txt and /favicon.ico are not here: the deployed function can't answer them (the

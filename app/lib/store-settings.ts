@@ -9,6 +9,20 @@ import { z } from "zod";
 
 import type { Cents } from "~/lib/money";
 
+/**
+ * Whether customers can place orders (settings/store). An absent document means closed: checkout opens only when
+ * the owner opens it in /admin/settings, never as a side effect of saving the Pix or delivery settings (owner
+ * decision 2026-11-03).
+ */
+export const storeSettingsSchema = z.object({
+  checkoutOpen: z.boolean().default(false),
+});
+export type StoreSettings = z.infer<typeof storeSettingsSchema>;
+
+/** The receiver's name and city as the Pix BR Code carries them (EMV fields 59 and 60): ASCII capitals, at most this long. */
+export const PIX_NAME_MAX = 25;
+export const PIX_CITY_MAX = 15;
+
 export const paymentSettingsSchema = z.object({
   pix: z.object({
     key: z.string().trim().min(1),

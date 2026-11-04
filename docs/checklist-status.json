@@ -741,6 +741,18 @@
     "Add internal notes": {
       "status": "done",
       "note": "owner/admin/staff (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Store settings": {
+      "status": "todo",
+      "note": "_partial_: /admin/settings opens and closes checkout (settings/store, built 2026-11-03); the store's name, contact details, logo and hours are edited in Prismic (settings)"
+    },
+    "Payment settings": {
+      "status": "done",
+      "note": "_built 2026-11-03_: /admin/settings — Pix key (CPF, CNPJ, phone, e-mail or random key), receiver name and city as printed on the code, unpaid-order expiry; a R$ 1,00 test code to read in the bank app without paying; owner edits, admin reads, audited with the key masked; verified on a dev stack (unit, integration, mutations, browser); not deployed yet"
+    },
+    "Shipping settings": {
+      "status": "done",
+      "note": "_built 2026-11-03_: /admin/settings — preparation days, flat rate (on/off, label, price, optional transit days) and pickup (on/off, label, address, instructions); turning both off is refused while checkout is open; verified on a dev stack (unit, integration, mutations, browser); not deployed yet"
     }
   },
   "16": {
@@ -945,6 +957,10 @@
     "`/admin/users`": {
       "status": "na",
       "note": "the store has a single admin account, the owner (owner decision 2026-11-03); roles change only through scripts/admin/grant-role.mjs, which also signs the account out everywhere"
+    },
+    "`/admin/settings`": {
+      "status": "done",
+      "note": "_built 2026-11-03_: Pix payment, delivery methods and the checkout open/close switch; verified on a dev stack (unit, integration, mutations, browser); not deployed yet"
     }
   },
   "24": {

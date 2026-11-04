@@ -395,9 +395,9 @@ The administrative system is what allows the business owner to manage the entire
 - [x] Admin permissions — capability table (docs/architecture.md §3) checked in every admin loader/action; staff can confirm Pix but not cancel: the page hides it and a crafted POST gets 403 (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Multiple administrators — any number of accounts can hold a role (verified with an owner and a staff account, 2026-11-02), granted with scripts/admin/grant-role.mjs; the store runs with a single owner account, so there is no /admin/users page (owner decision 2026-11-03)
 - [ ] Activity logs — _partial_: auditLogs records sign-in/out, Pix confirmations, cancellations (admin and automatic), fulfilment steps, tracking edits, notes, refunds, role changes and 2FA resets (each order change in the same transaction as its entry); no viewer in the admin yet
-- [ ] Store settings
-- [ ] Payment settings
-- [ ] Shipping settings
+- [ ] Store settings — _partial_: /admin/settings opens and closes checkout (settings/store, built 2026-11-03); the store's name, contact details, logo and hours are edited in Prismic (settings)
+- [x] Payment settings — _built 2026-11-03_: /admin/settings — Pix key (CPF, CNPJ, phone, e-mail or random key), receiver name and city as printed on the code, unpaid-order expiry; a R$ 1,00 test code to read in the bank app without paying; owner edits, admin reads, audited with the key masked; verified on a dev stack (unit, integration, mutations, browser); not deployed yet
+- [x] Shipping settings — _built 2026-11-03_: /admin/settings — preparation days, flat rate (on/off, label, price, optional transit days) and pickup (on/off, label, address, instructions); turning both off is refused while checkout is open; verified on a dev stack (unit, integration, mutations, browser); not deployed yet
 - [ ] Tax settings
 - [ ] Email settings
 
@@ -632,7 +632,7 @@ This is how I would organize the actual website's pages and routes.
 - [ ] `/admin/inventory`
 - [ ] `/admin/discounts`
 - [ ] `/admin/analytics`
-- [ ] `/admin/settings`
+- [x] `/admin/settings` — _built 2026-11-03_: Pix payment, delivery methods and the checkout open/close switch; verified on a dev stack (unit, integration, mutations, browser); not deployed yet
 - [ ] `/admin/users` — **N/A**: the store has a single admin account, the owner (owner decision 2026-11-03); roles change only through scripts/admin/grant-role.mjs, which also signs the account out everywhere
 
 ### 24. Final master checklist

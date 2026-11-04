@@ -10,7 +10,7 @@ import { env } from "~/.server/env";
 import { CartChangedError, createOrder, loadOrderDeps, ShippingUnavailableError } from "~/.server/orders";
 import { parsePixKey, PixConfigError } from "~/.server/pix";
 import { getContent } from "~/.server/prismic";
-import { getPaymentSettings, getShippingSettings, ShippingConfigError } from "~/.server/settings";
+import { CheckoutClosedError, getPaymentSettings, getShippingSettings, getStoreSettings, ShippingConfigError } from "~/.server/settings";
 import { Breadcrumbs, Button, ButtonLink, cx, Notice } from "~/components/ui";
 import { formatCep, normalizeCep, UFS } from "~/lib/br";
 import type { CartQuoteResponse } from "~/lib/cart/quote";
@@ -30,6 +30,9 @@ const UNAVAILABLE = "O checkout está temporariamente indisponível. Fale conosc
 export async function loader() {
   const { settings } = await getContent();
   const base = { siteUrl: env().SITE_URL, storeName: settings.storeName };
+  const closed = { ...base, unavailable: UNAVAILABLE, options: { any: [], pickupOnly: [] }, expiryHours: 24 };
+  // Closed by the owner in /admin/settings: a deliberate state, so nothing is logged.
+  if (!(await getStoreSettings()).checkoutOpen) return closed;
   try {
     const [payment, shipping] = await Promise.all([getPaymentSettings(), getShippingSettings()]);
     parsePixKey(payment.pix.key); // a bad key must block checkout before anyone types their details
@@ -42,7 +45,7 @@ export async function loader() {
   } catch (error) {
     if (error instanceof PixConfigError || error instanceof ShippingConfigError) {
       console.error("[checkout] store not configured:", error.message);
-      return { ...base, unavailable: UNAVAILABLE, options: { any: [], pickupOnly: [] }, expiryHours: 24 };
+      return closed;
     }
     throw error;
   }
@@ -74,6 +77,9 @@ export async function action({ request }: Route.ActionArgs) {
         { fieldErrors: { shippingMethod: "Esta forma de entrega não está disponível para os itens do carrinho." } },
         { status: 400, headers: NO_STORE },
       );
+    }
+    if (error instanceof CheckoutClosedError) {
+      return data<ActionResult>({ formError: UNAVAILABLE }, { status: 503, headers: NO_STORE });
     }
     if (error instanceof PixConfigError || error instanceof ShippingConfigError) {
       console.error("[checkout] store not configured:", error.message);

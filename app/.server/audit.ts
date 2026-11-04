@@ -15,7 +15,11 @@ export type AuditAction =
   | "order.fulfillment_updated"
   | "order.tracking_updated"
   | "order.note_added"
-  | "order.refunded";
+  | "order.refunded"
+  | "settings.payment_updated"
+  | "settings.shipping_updated"
+  | "settings.checkout_opened"
+  | "settings.checkout_closed";
 
 /** A signed-in admin. */
 export interface AuditActor {

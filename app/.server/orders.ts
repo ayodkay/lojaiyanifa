@@ -22,7 +22,7 @@ import { availableFrom, inventoryRef } from "./inventory";
 import { fulfillmentOf, iso, NEW_FULFILLMENT, rawRefundsOf, refundedCentsOf } from "./order-doc";
 import { buildPixPayment, pixTxid } from "./pix";
 import { getContent } from "./prismic";
-import { getPaymentSettings, getShippingSettings } from "./settings";
+import { CheckoutClosedError, getPaymentSettings, getShippingSettings, getStoreSettings } from "./settings";
 
 export const FIRST_ORDER_NUMBER = 1001;
 
@@ -48,6 +48,8 @@ export interface OrderDeps {
 }
 
 export async function loadOrderDeps(): Promise<OrderDeps> {
+  // Checked first: while the owner keeps checkout closed (/admin/settings), no order is placed, whatever else says.
+  if (!(await getStoreSettings()).checkoutOpen) throw new CheckoutClosedError("checkout is closed (settings/store)");
   const [{ catalog }, payment, shipping] = await Promise.all([getContent(), getPaymentSettings(), getShippingSettings()]);
   return { catalog, payment, shipping };
 }
