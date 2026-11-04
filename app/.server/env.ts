@@ -36,6 +36,20 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("true")
     .transform((v) => v === "true"),
+  // --- E-mail (Brevo SMTP relay; app/.server/mail). All optional: without them e-mails wait in the outbox. ---
+  /** Sender, e.g. `Loja Iyanifa <pedidos@lojaiyanifa.com.br>`. Its domain must be verified in Brevo. */
+  MAIL_FROM: optional,
+  /** Where customers' replies go (the support address). Defaults to the support e-mail in Prismic settings. */
+  MAIL_REPLY_TO: optional,
+  /** The store's own inbox for notifications (new orders, contact messages). Owner data: never committed. */
+  MAIL_STORE_TO: optional,
+  SMTP_HOST: z.string().trim().default("smtp-relay.brevo.com"),
+  /** 587 = STARTTLS (required, never plain text); 465 = TLS from the start. */
+  SMTP_PORT: z.coerce.number().int().refine((p) => p === 587 || p === 465 || p === 2525, "use 587, 465 or 2525").default(587),
+  /** The SMTP login shown in Brevo → SMTP & API → SMTP. */
+  SMTP_USER: optional,
+  /** The SMTP key. Production: Secret Manager (`firebase functions:secrets:set SMTP_PASSWORD`), never an env file. */
+  SMTP_PASSWORD: optional,
 });
 
 export type Env = z.infer<typeof schema>;

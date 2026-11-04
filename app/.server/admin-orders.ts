@@ -20,6 +20,7 @@ import type { OrderStatus } from "~/lib/orders";
 import { type SystemActor, writeAuditInTransaction } from "./audit";
 import { db } from "./firebase";
 import { inventoryRef, skuDocId } from "./inventory";
+import { queueMailInTransaction } from "./mail/outbox";
 import { fulfillmentOf, iso, notesOf, refundedCentsOf, refundsOf } from "./order-doc";
 import type { AdminUser } from "./session";
 
@@ -226,6 +227,13 @@ async function settleInTransaction(number: number, settlement: Settlement, now: 
         target: `orders/${number}`,
         details: cancel ? { reason: cancel.reason, note: cancel.note } : { amountCents: order.payment.amountCents, txid: order.payment.txid },
       },
+      now,
+    );
+    queueMailInTransaction(
+      tx,
+      cancel
+        ? { template: "order_cancelled", to: order.customer.email, orderNumber: number, data: { expired: settlement.kind === "expired" } }
+        : { template: "payment_confirmed", to: order.customer.email, orderNumber: number, data: {} },
       now,
     );
   });

@@ -15,6 +15,7 @@ import { OrderNotFoundError, orderRef, reservationsOf } from "./admin-orders";
 import { writeAuditInTransaction } from "./audit";
 import { db } from "./firebase";
 import { inventoryRef, skuDocId } from "./inventory";
+import { queueMailInTransaction } from "./mail/outbox";
 import { rawRefundsOf, refundedCentsOf } from "./order-doc";
 import type { AdminUser } from "./session";
 
@@ -113,6 +114,11 @@ async function refundInTransaction(number: number, input: RefundInput, actor: Ad
         target: `orders/${number}`,
         details: { amountCents: input.amountCents, refundedCents, reason: input.reason, note: input.note, restock: input.restock },
       },
+      now,
+    );
+    queueMailInTransaction(
+      tx,
+      { template: "order_refunded", to: order.customer.email, orderNumber: number, data: { amountCents: input.amountCents, refundedCents } },
       now,
     );
     return { status, refundedCents, repeated: false };

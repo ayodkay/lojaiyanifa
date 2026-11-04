@@ -7,7 +7,7 @@
 // submission (double click, retry after a lost response) returns the same
 // order. That key is also the guest's secret for the order page; only its
 // SHA-256 is stored.
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 
 import { type DocumentData, Timestamp } from "firebase-admin/firestore";
 
@@ -17,8 +17,10 @@ import type { Catalog } from "~/lib/catalog/query";
 import type { CustomerOrderView, OrderLine, OrderStatus } from "~/lib/orders";
 import { type PaymentSettings, type ShippingSettings, shippingOptions } from "~/lib/store-settings";
 
+import { env } from "./env";
 import { db } from "./firebase";
 import { availableFrom, inventoryRef } from "./inventory";
+import { queueMailInTransaction } from "./mail/outbox";
 import { fulfillmentOf, iso, NEW_FULFILLMENT, rawRefundsOf, refundedCentsOf } from "./order-doc";
 import { buildPixPayment, pixTxid } from "./pix";
 import { getContent } from "./prismic";
@@ -173,15 +175,21 @@ export async function createOrder(
       refunds: [],
       consents: { termsAcceptedAt: ts },
       accessTokenHash: sha256(input.idempotencyKey),
+      // The checkout key is the guest's secret but only its hash is kept, so e-mails sent later (payment confirmed,
+      // shipped…) link to the order page with this second secret, which the order page also accepts.
+      customerLinkToken: randomUUID(),
       timeline: [{ at: ts, status, by: "customer", note: null }],
     });
     tx.set(counterRef, { next: number + 1 }, { merge: true });
     tx.create(attemptRef, { orderNumber: number, createdAt: ts });
+    queueMailInTransaction(tx, { template: "order_placed", to: input.email, orderNumber: number, data: {} }, now);
+    const storeInbox = env().MAIL_STORE_TO;
+    if (storeInbox) queueMailInTransaction(tx, { template: "store_new_order", to: storeInbox, orderNumber: number, data: {} }, now);
     return { number, accessToken: input.idempotencyKey, reused: false };
   });
 }
 
-function toCustomerView(d: DocumentData): CustomerOrderView {
+export function toCustomerView(d: DocumentData): CustomerOrderView {
   return {
     number: d.number,
     status: d.status,
@@ -204,13 +212,28 @@ function toCustomerView(d: DocumentData): CustomerOrderView {
   };
 }
 
+const sameSecret = (a: string, b: string) => {
+  // Compare digests: equal length, and the time taken says nothing about where two strings differ.
+  const x = createHash("sha256").update(a).digest();
+  const y = createHash("sha256").update(b).digest();
+  return timingSafeEqual(x, y);
+};
+
+/**
+ * Whether `token` opens this order's page: the checkout key (only its hash is stored) or the link token of the
+ * e-mails. Both comparisons always run, so the answer takes the same time either way.
+ */
+export function orderTokenMatches(order: DocumentData, token: string): boolean {
+  if (!token) return false;
+  const byCheckoutKey = typeof order.accessTokenHash === "string" && sameSecret(order.accessTokenHash, sha256(token));
+  const byEmailLink = typeof order.customerLinkToken === "string" && sameSecret(order.customerLinkToken, token);
+  return byCheckoutKey || byEmailLink;
+}
+
 /** The order for its guest link, or null (unknown number or wrong secret — indistinguishable on purpose). */
 export async function getOrderForCustomer(number: number, accessToken: string): Promise<CustomerOrderView | null> {
   if (!Number.isInteger(number) || number < FIRST_ORDER_NUMBER || !accessToken) return null;
   const data = (await db().collection("orders").doc(String(number)).get()).data();
-  if (!data || typeof data.accessTokenHash !== "string") return null;
-  const expected = Buffer.from(data.accessTokenHash, "hex");
-  const given = Buffer.from(sha256(accessToken), "hex");
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+  if (!data || !orderTokenMatches(data, accessToken)) return null;
   return toCustomerView(data);
 }

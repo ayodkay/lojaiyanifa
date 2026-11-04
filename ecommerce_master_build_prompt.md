@@ -74,7 +74,7 @@ The homepage is the main entry point of your store.
 - [ ] Customer reviews or testimonials — _testimonials implemented_ (Prismic, real customers only); reviews pending
 - [ ] Newsletter subscription — pending (needs Firestore + consent + Turnstile)
 - [ ] Social media links — _implemented_ (Prismic settings → footer); needs content
-- [ ] Footer with important links — _rendered_; the target pages (/about, /privacy…) are routes that return 404 until their Prismic pages are published
+- [ ] Footer with important links — _rendered_; the texts of /about, /privacy, /terms, /cookies, /shipping, /returns, /warranty and /faq were written and placed in Prismic's Migration Release on 2026-11-04 (content/prismic/); the links stop returning 404 when the owner publishes that release
 - [ ] Recently viewed products — _implemented_ (localStorage + /api/products); browser flow not verified yet
 - [x] Trust badges — factual trust strip: Pix, secure checkout, support channel (verified)
 
@@ -130,8 +130,8 @@ One of the most important parts of an e-commerce website.
 - [ ] Frequently bought together — _implemented_; needs content
 - [ ] Recently viewed products — _tracking implemented_; list shown on home
 - [x] Share product button — Web Share API / copy link + WhatsApp share (verified rendered)
-- [ ] Return policy information — _implemented_ (product notes or store summary); needs content
-- [ ] Warranty information — _implemented_; needs content
+- [ ] Return policy information — _implemented_ (product notes or store summary); the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)
+- [ ] Warranty information — _implemented_; the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)
 
 ### 4. Search System
 
@@ -190,11 +190,11 @@ One of the most important parts of an e-commerce website.
 - [x] Order summary — lines, subtotal, delivery, total (verified 2026-11-01 (browser + live action on the dev server))
 - [ ] Tax calculation — **blocked**: owner/accountant must define tax handling; not invented
 - [x] Payment method selection — Pix only (owner decision 2026-10-31), shown as the payment step
-- [ ] Terms and conditions acceptance — _checkbox required and enforced server-side_; /terms page content pending in Prismic (link 404s until published)
-- [ ] Privacy policy acceptance where required — _same checkbox_; /privacy content pending in Prismic (legal review)
+- [ ] Terms and conditions acceptance — _checkbox required and enforced server-side_; the terms text is in Prismic's Migration Release (2026-11-04): /terms goes live when the owner publishes it
+- [ ] Privacy policy acceptance where required — _same checkbox_; the privacy policy text is in Prismic's Migration Release (2026-11-04): /privacy goes live when the owner publishes it
 - [x] Place order button — disabled while submitting; double submit returns the same order (verified 2026-11-01 (browser + live action on the dev server))
 - [ ] Payment processing — Pix code generated per order (session 2) and payment confirmed by hand in the admin (session 3), both verified on the dev server; production checkout still closed (settings/payment absent)
-- [ ] Payment confirmation — the admin confirms a Pix payment by hand (built and verified on the dev server, session 3: reservation → sale, stock as computed); the customer's order page after a confirmation not verified; no confirmation e-mail (transactional e-mails not built); not exercised in production (checkout closed)
+- [ ] Payment confirmation — the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; a payment-confirmed e-mail is built and integration-tested (2026-11-04) but none has gone through Brevo yet (needs the owner's Brevo account and key); not exercised in production
 - [x] Error handling — per-field Portuguese errors + focus (browser), changed cart → 409 with review link, store not configured → 503 notice (verified 2026-11-01 (browser + live action on the dev server) + integration tests)
 - [x] Order confirmation page — QR + copia e cola + copy button + summary; guest secret link, wrong secret → 404 (verified 2026-11-01 (browser + live action on the dev server))
 
@@ -247,7 +247,7 @@ One of the most important parts of an e-commerce website.
 
 - [x] Unique order number — transactional counter from 1001; concurrency-tested (integration)
 - [x] Order creation — one transaction: re-price, stock reservation, number, Pix (verified 2026-11-01 (browser + live action on the dev server) + 11 integration tests)
-- [x] Order confirmation — confirmation page; e-mail pending (§15)
+- [x] Order confirmation — confirmation page; order e-mail built and integration-tested 2026-11-04 (sent once Brevo is configured, §15)
 - [x] Order status — pending_payment → paid → processing → shipped → delivered (pickup: ready → picked up); cancelled (admin or expiry job); refunded / partially_refunded (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Pending orders — "Aguardando pagamento" work queue with overdue Pix flagged; the expiry job cancels unpaid orders after expiryHours (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Paid orders — confirming the Pix moves the order to paid and sells the reserved stock; "Pagos" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
@@ -259,7 +259,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Order history
 - [x] Order tracking number — carrier + code + https link, editable after shipping, shown on the customer's order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Shipping carrier integration
-- [ ] Order notifications
+- [ ] Order notifications — _built and integration-tested 2026-11-04_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail); no e-mail has gone through Brevo yet: needs the owner's Brevo account, a verified sender domain and the SMTP key
 - [ ] Invoice generation
 - [ ] Return management
 - [ ] Exchange management
@@ -282,7 +282,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Delivery estimates — needs the owner's flat-rate transit days
 - [ ] Tracking integration — _manual tracking built_: carrier + code + link typed by the team and shown to the customer (2026-11-02); carrier API tracking waits for Melhor Envio
 - [ ] Shipping labels
-- [ ] Delivery notifications
+- [ ] Delivery notifications — _built and integration-tested 2026-11-04_ (shipped, ready for pickup, delivered, tracking changed); not sent through Brevo yet (owner's account + key)
 - [x] Local pickup (optional) — Mercadão de Madureira – Anexo, Galeria K, Lojas 219-220 (verified order 1002)
 - [ ] International shipping (if applicable)
 - [ ] Shipping restrictions — _pickup-only products enforced (integration-tested)_; other restrictions not defined
@@ -332,8 +332,8 @@ One of the most important parts of an e-commerce website.
 - [ ] Phone support (if offered)
 - [ ] WhatsApp integration (particularly useful in Brazil) — _implemented_ (floating button, contact page, product sharing); needs the number in Prismic settings to verify
 - [ ] Live chat
-- [ ] Frequently asked questions — _implemented_ (/faq + FAQPage JSON-LD); needs the Prismic FAQ document
-- [ ] Help center — _FAQ by topic implemented_; needs content
+- [ ] Frequently asked questions — _implemented_ (/faq + FAQPage JSON-LD); 24 questions written (content/prismic/faq.md) and placed in Prismic's Migration Release 2026-11-04: live when the owner publishes it
+- [ ] Help center — _FAQ by topic implemented_; its 24 answers and the policy pages are in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 - [ ] Order support
 - [ ] Return and refund support
 - [ ] Shipping support
@@ -407,7 +407,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Email marketing integration
 - [ ] Abandoned cart emails
 - [ ] Welcome emails
-- [ ] Order confirmation emails
+- [ ] Order confirmation emails — _built and integration-tested 2026-11-04_: pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; not sent for real yet (owner's Brevo account, verified domain, SMTP key)
 - [ ] Promotional emails
 - [ ] Product recommendation engine
 - [ ] Upselling
@@ -473,13 +473,13 @@ The administrative system is what allows the business owner to manage the entire
 ### 18. Legal and Compliance
 
 Especially important if you're selling in Brazil.
-- [ ] Privacy policy
-- [ ] Terms and conditions
-- [ ] Cookie policy
+- [ ] Privacy policy — _text written 2026-11-04_ (content/prismic/pages/privacy.md: controller, data per situation, the sensitive-data clause for religious items, LGPD bases, processors, transfers, retention, rights, ANPD) and placed in Prismic's Migration Release; /privacy goes live when the owner publishes it — lawyer review recommended
+- [ ] Terms and conditions — _text written 2026-11-04_ (content/prismic/pages/terms.md) and placed in Prismic's Migration Release; /terms goes live when the owner publishes it — lawyer review recommended
+- [ ] Cookie policy — _text written 2026-11-04_ (content/prismic/pages/cookies.md; lists the real cookie and browser storage keys) and placed in Prismic's Migration Release; live when the owner publishes it
 - [ ] Cookie consent management
-- [ ] Return and refund policy
-- [ ] Shipping policy
-- [ ] Warranty policy
+- [ ] Return and refund policy — _text written 2026-11-04_ (content/prismic/pages/returns.md: CDC art. 49 withdrawal with return shipping paid by the store, arts. 18/26 defects, exchanges, Pix refunds) and placed in Prismic's Migration Release; live when the owner publishes it
+- [ ] Shipping policy — _text written 2026-11-04_ (content/prismic/pages/shipping.md) and placed in Prismic's Migration Release; live when the owner publishes it
+- [ ] Warranty policy — _text written 2026-11-04_ (content/prismic/pages/warranty.md: legal warranty 30/90 days, what isn't a defect, how to claim) and placed in Prismic's Migration Release; live when the owner publishes it
 - [ ] Company information — _implemented_ (footer + contact: legal name, CNPJ/CPF, address); needs owner data in Prismic settings
 - [ ] Contact information — _implemented_; needs owner data in Prismic settings
 - [ ] Consumer protection disclosures
@@ -568,7 +568,7 @@ These aren't necessary for every store, but can make it significantly more power
 | Manage business operations |
 - [ ] CRM
 | Manage customer relationships |
-- [ ] Email service
+- [ ] Email service — _Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested with a fake transport); needs the owner's Brevo account, verified sender domain, MAIL_FROM/SMTP_USER and the SMTP_PASSWORD secret
 | Send transactional emails |
 - [ ] WhatsApp
 | Customer communication |
@@ -610,15 +610,15 @@ This is how I would organize the actual website's pages and routes.
 - [ ] `/orders`
 - [ ] `/wishlist`
 #### Information
-- [ ] `/about` — _route implemented_ (Prismic page uid "about"); returns 404 until the owner publishes it
+- [ ] `/about` — _route implemented_ (Prismic page uid "about"); a factual draft is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 - [x] `/contact`
-- [ ] `/faq` — _route implemented_; needs the Prismic FAQ document
-- [ ] `/shipping` — _route implemented_ (Prismic page uid "shipping"); returns 404 until the owner publishes it
-- [ ] `/returns` — _route implemented_ (Prismic page uid "returns"); returns 404 until the owner publishes it
+- [ ] `/faq` — _route implemented_; the FAQ (24 questions) is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/shipping` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/returns` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 #### Legal
-- [ ] `/privacy` — _route implemented_ (Prismic page uid "privacy"); returns 404 until the owner publishes it
-- [ ] `/terms` — _route implemented_ (Prismic page uid "terms"); returns 404 until the owner publishes it
-- [ ] `/cookies` — _route implemented_ (Prismic page uid "cookies"); returns 404 until the owner publishes it
+- [ ] `/privacy` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/terms` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/cookies` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 #### Marketing
 - [x] `/offers`
 - [ ] `/gift-cards`
@@ -651,11 +651,11 @@ This is how I would organize the actual website's pages and routes.
 - [ ] Order management
 - [ ] Inventory management
 #### Admin dashboard
-- [ ] Transactional emails
+- [ ] Transactional emails — _built 2026-11-04_ (Brevo SMTP outbox, 9 order e-mails); waiting for the owner's Brevo account and key
 - [ ] Customer support
 - [ ] Refund and return system — _refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built
 - [ ] Security
-- [ ] Legal pages and compliance
+- [ ] Legal pages and compliance — texts in Prismic's Migration Release (2026-11-04); cookie consent, data requests and accounts' privacy tools in progress
 - [ ] Mobile responsiveness
 - [ ] SEO
 - [ ] Analytics

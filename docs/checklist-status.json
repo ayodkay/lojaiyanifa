@@ -74,7 +74,7 @@
     },
     "Footer with important links": {
       "status": "todo",
-      "note": "_rendered_; the target pages (/about, /privacy…) are routes that return 404 until their Prismic pages are published"
+      "note": "_rendered_; the texts of /about, /privacy, /terms, /cookies, /shipping, /returns, /warranty and /faq were written and placed in Prismic's Migration Release on 2026-11-04 (content/prismic/); the links stop returning 404 when the owner publishes that release"
     },
     "Recently viewed products": {
       "status": "todo",
@@ -269,11 +269,11 @@
     },
     "Return policy information": {
       "status": "todo",
-      "note": "_implemented_ (product notes or store summary); needs content"
+      "note": "_implemented_ (product notes or store summary); the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)"
     },
     "Warranty information": {
       "status": "todo",
-      "note": "_implemented_; needs content"
+      "note": "_implemented_; the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)"
     }
   },
   "4": {
@@ -478,11 +478,11 @@
     },
     "Terms and conditions acceptance": {
       "status": "todo",
-      "note": "_checkbox required and enforced server-side_; /terms page content pending in Prismic (link 404s until published)"
+      "note": "_checkbox required and enforced server-side_; the terms text is in Prismic's Migration Release (2026-11-04): /terms goes live when the owner publishes it"
     },
     "Privacy policy acceptance where required": {
       "status": "todo",
-      "note": "_same checkbox_; /privacy content pending in Prismic (legal review)"
+      "note": "_same checkbox_; the privacy policy text is in Prismic's Migration Release (2026-11-04): /privacy goes live when the owner publishes it"
     },
     "Place order button": {
       "status": "done",
@@ -494,7 +494,7 @@
     },
     "Payment confirmation": {
       "status": "todo",
-      "note": "the admin confirms a Pix payment by hand (built and verified on the dev server, session 3: reservation → sale, stock as computed); the customer's order page after a confirmation not verified; no confirmation e-mail (transactional e-mails not built); not exercised in production (checkout closed)"
+      "note": "the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; a payment-confirmed e-mail is built and integration-tested (2026-11-04) but none has gone through Brevo yet (needs the owner's Brevo account and key); not exercised in production"
     },
     "Error handling": {
       "status": "done",
@@ -578,7 +578,7 @@
     },
     "Order confirmation": {
       "status": "done",
-      "note": "confirmation page; e-mail pending (§15)"
+      "note": "confirmation page; order e-mail built and integration-tested 2026-11-04 (sent once Brevo is configured, §15)"
     },
     "Order status": {
       "status": "done",
@@ -623,6 +623,10 @@
     "Order notes": {
       "status": "done",
       "note": "internal notes on each order: team only, never on the customer page, can't be edited or deleted, max 200 per order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Order notifications": {
+      "status": "todo",
+      "note": "_built and integration-tested 2026-11-04_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail); no e-mail has gone through Brevo yet: needs the owner's Brevo account, a verified sender domain and the SMTP key"
     }
   },
   "10": {
@@ -677,6 +681,10 @@
     "Tracking integration": {
       "status": "todo",
       "note": "_manual tracking built_: carrier + code + link typed by the team and shown to the customer (2026-11-02); carrier API tracking waits for Melhor Envio"
+    },
+    "Delivery notifications": {
+      "status": "todo",
+      "note": "_built and integration-tested 2026-11-04_ (shipped, ready for pickup, delivered, tracking changed); not sent through Brevo yet (owner's account + key)"
     }
   },
   "13": {
@@ -686,11 +694,11 @@
     },
     "Frequently asked questions": {
       "status": "todo",
-      "note": "_implemented_ (/faq + FAQPage JSON-LD); needs the Prismic FAQ document"
+      "note": "_implemented_ (/faq + FAQPage JSON-LD); 24 questions written (content/prismic/faq.md) and placed in Prismic's Migration Release 2026-11-04: live when the owner publishes it"
     },
     "Help center": {
       "status": "todo",
-      "note": "_FAQ by topic implemented_; needs content"
+      "note": "_FAQ by topic implemented_; its 24 answers and the policy pages are in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "Business hours": {
       "status": "todo",
@@ -753,6 +761,12 @@
     "Shipping settings": {
       "status": "done",
       "note": "_built 2026-11-03_: /admin/settings — preparation days, flat rate (on/off, label, price, optional transit days) and pickup (on/off, label, address, instructions); turning both off is refused while checkout is open; verified on a dev stack (unit, integration, mutations, browser); deployed 2026-11-03"
+    }
+  },
+  "15": {
+    "Order confirmation emails": {
+      "status": "todo",
+      "note": "_built and integration-tested 2026-11-04_: pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; not sent for real yet (owner's Brevo account, verified domain, SMTP key)"
     }
   },
   "16": {
@@ -861,6 +875,30 @@
     "Contact information": {
       "status": "todo",
       "note": "_implemented_; needs owner data in Prismic settings"
+    },
+    "Privacy policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/privacy.md: controller, data per situation, the sensitive-data clause for religious items, LGPD bases, processors, transfers, retention, rights, ANPD) and placed in Prismic's Migration Release; /privacy goes live when the owner publishes it — lawyer review recommended"
+    },
+    "Terms and conditions": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/terms.md) and placed in Prismic's Migration Release; /terms goes live when the owner publishes it — lawyer review recommended"
+    },
+    "Cookie policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/cookies.md; lists the real cookie and browser storage keys) and placed in Prismic's Migration Release; live when the owner publishes it"
+    },
+    "Return and refund policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/returns.md: CDC art. 49 withdrawal with return shipping paid by the store, arts. 18/26 defects, exchanges, Pix refunds) and placed in Prismic's Migration Release; live when the owner publishes it"
+    },
+    "Shipping policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/shipping.md) and placed in Prismic's Migration Release; live when the owner publishes it"
+    },
+    "Warranty policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/warranty.md: legal warranty 30/90 days, what isn't a defect, how to claim) and placed in Prismic's Migration Release; live when the owner publishes it"
     }
   },
   "19": {
@@ -880,6 +918,12 @@
     },
     "Proper heading hierarchy": {
       "status": "done"
+    }
+  },
+  "22": {
+    "Email service": {
+      "status": "todo",
+      "note": "_Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested with a fake transport); needs the owner's Brevo account, verified sender domain, MAIL_FROM/SMTP_USER and the SMTP_PASSWORD secret"
     }
   },
   "23": {
@@ -909,34 +953,34 @@
     },
     "`/about`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"about\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_ (Prismic page uid \"about\"); a factual draft is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/shipping`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"shipping\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/returns`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"returns\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/privacy`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"privacy\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/terms`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"terms\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/cookies`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"cookies\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/contact`": {
       "status": "done"
     },
     "`/faq`": {
       "status": "todo",
-      "note": "_route implemented_; needs the Prismic FAQ document"
+      "note": "_route implemented_; the FAQ (24 questions) is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/cart`": {
       "status": "done",
@@ -974,6 +1018,14 @@
     "Refund and return system": {
       "status": "todo",
       "note": "_refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built"
+    },
+    "Transactional emails": {
+      "status": "todo",
+      "note": "_built 2026-11-04_ (Brevo SMTP outbox, 9 order e-mails); waiting for the owner's Brevo account and key"
+    },
+    "Legal pages and compliance": {
+      "status": "todo",
+      "note": "texts in Prismic's Migration Release (2026-11-04); cookie consent, data requests and accounts' privacy tools in progress"
     }
   }
 }

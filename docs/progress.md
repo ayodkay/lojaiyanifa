@@ -695,6 +695,57 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Whether the owner read the R$ 1,00 test code in the bank app (it checks that the key reaches the right account).
 - The order tabs other than "Aguardando pagamento"; a second device for the authenticator.
 
+## Session 6 — 2026-11-04 (night): legal texts, FAQ, e-mail; accounts, support, discounts, reviews
+
+### Owner's request and ground rules
+- Asked (before going to bed, "go ahead with any recommendation"): §8 customer accounts, §11 discounts, §12 reviews,
+  §13 support, §18 legal (texts for each page and the FAQ), e-mail through **Brevo SMTP**, using the Prismic API (or
+  Chrome) to create and update content.
+- Ground rules Claude kept, since nobody could approve anything overnight: work on the branch
+  `feat/accounts-support-promos-legal` (master untouched, nothing pushed); **no deploy**; no `--production` script and
+  no write to the real Firestore/Auth; Prismic writes only through the Migration API, whose **Migration Release must be
+  published by the owner** — nothing went live.
+
+### A. Store texts → Prismic Migration Release (commit `d7129be`)
+- Texts in `content/prismic/` (pt-BR): `pages/{terms,privacy,cookies,returns,shipping,warranty,about}.md`, `faq.md`
+  (24 questions), `settings.md` (the three policy summaries + store name + default meta description).
+  - Written to be true for production **today** (guest checkout, Pix only, automatic cancellation, flat rate/pickup);
+    no mention of features that aren't deployed, except conditional sentences ("se você criar uma conta").
+  - Legal grounds checked against planalto.gov.br on 2026-11-04: CDC arts. 18 §1, 26, 49, 50, 101 I; Decreto
+    7.962/2013 arts. 2, 4 (5-day answer), 5; LGPD arts. 5 II, 7, 11 II, 18, 19, 33, 41, 48; Marco Civil art. 15;
+    ANPD Res. 2/2022 art. 11 (small agents: no DPO needed, a contact channel is).
+  - The privacy policy has a **sensitive-data clause**: most products are religious items, so purchase history can
+    reveal religious conviction (LGPD art. 5 II); it commits to no ad targeting/profiling with it. Adding Meta Pixel
+    or similar (§15) would contradict it: consent + policy change first.
+- Pipeline: `scripts/prismic/markdown.mjs` (Markdown subset → rich text, throws on anything it can't represent),
+  `content.mjs` (checks every field against `customtypes/`), `seed-content.mjs` (dry run by default; two passes with
+  every created ID recorded in `content/prismic/migration-ids.json` so a failure resumes; never overwrites a published
+  or completed document without `--overwrite`; never touches an existing settings document; `--adopt`, `--skip`).
+  21 unit tests incl. one that parses the real content files; 4 of 4 mutations caught.
+- **Sent** (`--apply`): 7 pages created; the FAQ filled into an existing **empty draft** (`aukFxxEAACoApfqD`, "Untitled
+  Nov 2", checked empty in Chrome: placeholder title, one blank item) with `--adopt`, because the FAQ type allows one
+  document; **settings skipped**: an **archived** settings document exists (`audNGREAACoAomV3`, "Untitled Nov 1"), which
+  blocks a new one. Verified in the Prismic UI: 8 documents "Planned" in "migration-api-release"; the privacy page's
+  links: `/contact` relative, `https://www.gov.br/anpd`, document links with the right IDs; the FAQ shows 24 questions.
+- Found: the Content API token can't see releases (refs list only Master), so release content is checked in the UI.
+- Found: the FAQ now has two versions: the old empty draft ("Edited Nov 2") and the release version. After publishing
+  the release, discard that old draft, or publishing it later would empty the FAQ.
+
+### B. E-mail through Brevo SMTP (commit after this entry)
+- `app/.server/mail/`: `outbox.ts` (`queueMailInTransaction`), `render.ts` (9 templates, pt-BR, HTML + text, every
+  value escaped), `html.ts`, `send.ts` (claim → render → send; retries 2/4/8/16 min, 5 attempts; SMTP 5xx and render
+  errors fail at once; 72 h expiry; without configuration nothing is claimed). Scheduled function `sendMailOutbox`
+  (every 2 min) in `server/app.ts` with the secret `SMTP_PASSWORD`. Index `mail (status, nextAttemptAt)` added.
+  Design and reasons: docs/architecture.md §7.
+- Hooks (same transaction as the change): order placed (+ store notice to `MAIL_STORE_TO`), Pix confirmed, cancelled
+  (store/expiry), shipped, ready for pickup, delivered, tracking changed (only when code/link changed), refunded.
+- New orders get `customerLinkToken`; the order page accepts it like the checkout key (`orderTokenMatches`,
+  constant-time). The predeploy hook now refuses `SMTP_PASSWORD` in an env file.
+- Tests: unit 193 (15 new: renderer, escaping, https-only links, config, STARTTLS/TLS options, token matching);
+  integration 82 (11 new in `tests/integration/mail.test.ts`, fake transport); 6 of 6 mutations caught; typecheck
+  clean; lint 0 errors; build OK (bundle imports 14 packages, nodemailer added; `sendMailOutbox` exported).
+- **Not verified:** a real send through Brevo (no account/key here); the new index in production.
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.

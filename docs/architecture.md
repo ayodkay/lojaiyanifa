@@ -268,12 +268,28 @@ rate rules from `settings/shipping` (flat/weight/price/location based, free
 shipping thresholds) + local pickup (if enabled). Delivery estimates add the
 store's handling days to the carrier's business days. CEP lookup uses ViaCEP.
 
-## 7. Email
+## 7. Email (built 2026-11-04, `app/.server/mail/`)
 
-Business events write a document to the `mail` outbox; a Firestore-triggered
-function renders the template and sends it over SMTP (nodemailer), recording
-`sent`/`failed` and retrying. Firebase Auth sends its own verification and
-password-reset emails.
+- **Outbox:** each business event writes a small `mail/{id}` document (`template`, `to`, `orderNumber`, `data`) in
+  the SAME transaction as the change (`queueMailInTransaction`), so an e-mail is never lost nor sent for a change
+  that didn't happen, and a repeated submission (idempotent order, refund form key) queues nothing new.
+  Events: order placed (customer + `store_new_order` to `MAIL_STORE_TO` when set), Pix confirmed, cancelled by the
+  store or by the expiry job, shipped / ready for pickup / delivered (not "processing"), tracking changed, refunded.
+- **Sender:** the scheduled function `sendMailOutbox` (every 2 minutes, one instance) — not a Firestore trigger,
+  whose first deploy needs Eventarc permissions to propagate. Each due e-mail is claimed in a transaction
+  (`pending → sending`, 10-minute lease: at-least-once), rendered from the order **as it is at send time**
+  (`render.ts`, pt-BR, every value HTML-escaped, HTML + text), and sent over SMTP with nodemailer. Retries after
+  2, 4, 8, 16 minutes (5 attempts); an SMTP 5xx or a rendering error fails at once; e-mails older than 72 hours
+  expire unsent. Without configuration nothing is claimed and each run logs an error with the count waiting.
+- **SMTP:** Brevo's relay (`smtp-relay.brevo.com`, 587 with STARTTLS required, or 465). `MAIL_FROM` (a sender on a
+  domain verified in Brevo), optional `MAIL_REPLY_TO` (default: the Prismic support e-mail), `SMTP_USER` in
+  `.env.<project-id>`; the SMTP key in Secret Manager as `SMTP_PASSWORD` (the functions predeploy hook refuses it in
+  an env file). The secret must exist before `sendMailOutbox` is deployed.
+- **Order links in e-mails:** the checkout key is stored only as a hash, so new orders also get a random
+  `customerLinkToken`, which the order page accepts like the checkout key (both compared in constant time). Orders
+  created before 2026-11-04 have none; their e-mails say where to follow the order instead of linking.
+- Firebase Auth sends its own verification and password-reset e-mails (its SMTP can also be pointed at Brevo in the
+  Firebase console → Authentication → Templates → SMTP settings).
 
 ## 8. Configuration
 
@@ -360,3 +376,6 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-03 | Checkout opens and closes only through an explicit switch in `/admin/settings` (`settings/store.checkoutOpen`; absent = closed); saving the Pix or delivery settings never opens it | Owner |
 | 2026-11-04 | A missing `/assets/` file gets a short `no-store` 404 from the function (`app/routes/missing-asset.ts`), not the store's 404 page, which Firebase sent on as `max-age=600` (a page loaded mid-deploy stayed broken for 10 minutes) | Owner |
 | 2026-11-04 | Paths no route takes match a catch-all route (`app/routes/not-found.tsx`) that throws a 404, so they pass through the root middleware (security headers) and render the same 404 page | Owner |
+| 2026-11-04 | E-mail through Brevo's SMTP relay (owner: "smtp which we will be using brevo.com"); outbox written in the business transaction, sent by a scheduled function every 2 minutes, rendered at send time; SMTP key in Secret Manager | Owner (Brevo) / Proposed (design) |
+| 2026-11-04 | New orders get a random `customerLinkToken` for links in e-mails (the checkout key is only stored hashed) | Proposed |
+| 2026-11-04 | Store texts (legal pages, about, FAQ, policy summaries) are kept in `content/prismic/` and sent with `scripts/prismic/seed-content.mjs` to the Migration Release; the owner publishes them | Proposed (owner asked for the texts and the Prismic API) |
