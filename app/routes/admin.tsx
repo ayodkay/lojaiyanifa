@@ -63,6 +63,16 @@ function AdminShell({ user, children }: { user: AdminUser | null; children: Reac
                   </NavLink>
                 </li>
               )}
+              {user && can(user.role, "discounts.manage") && (
+                <li>
+                  <NavLink
+                    to="/admin/discounts"
+                    className={({ isActive }) => cx("border-b-2 py-1", isActive ? "border-ink font-medium" : "border-transparent text-muted hover:text-ink")}
+                  >
+                    Descontos
+                  </NavLink>
+                </li>
+              )}
               {user && can(user.role, "settings.view") && (
                 <li>
                   <NavLink

@@ -796,6 +796,31 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Not verified: staff's view in a browser (capability table only); the 5-day overdue flag; a signed-in customer's
   ticket list in a browser (integration only).
 
+### E. Discounts and promotions (§11)
+- Engine `app/lib/discounts.ts` (pure): percent / fixed / free shipping / buy X get Y; scope all / products (+ "kit":
+  all required) / categories; schedule, minimum, total and per-customer limits, first order, allowed e-mails; one
+  products discount (best for the customer) + one free shipping; provisional while the buyer is unknown (the cart).
+- `app/.server/promotions.ts`: Firestore mapping, reads inside the order transaction, the buyer's earlier orders by
+  e-mail **and** CPF, `redemptionCount` up at order time and down when the unpaid order is cancelled (store or expiry,
+  in `settleInTransaction`), admin save (audited `promotion.created/updated`). `app/lib/admin/promotions.ts` parses
+  the admin form (R$ decimals, Brasília datetime-local).
+- `createOrder`: discounts decided in the transaction; `CouponRefusedError` (409 at checkout, "continuar sem o cupom");
+  totals keep the products discount and the charged shipping; a R$ 0,00 total is refused. Quote API previews with
+  the same engine; cart coupon box (code kept in `li.coupon.v1`); checkout summary + coupon status.
+  `/admin/discounts` (+ new/edit; "Descontos" in the nav; capability `discounts.manage`: owner/admin). The admin order
+  page says when the customer paid nothing for delivery.
+- Tests: unit 236 (engine 14, admin form 6), integration 108 (7 new: coupon totals and Pix amount, refused coupons
+  write nothing, first order by CPF, free shipping on top, better automatic wins, **race for the last use** (6 runs
+  green), cancellation and expiry give the use back). Mutations: 6 meaningful caught; one survivor showed the explicit
+  tie-break was dead code (the coupon is always the first candidate) — simplified to what the test pins.
+- Chrome (dev stack): created `BEMVINDO10` (10%, first purchase) and an automatic free shipping above R$ 100; cart →
+  free shipping, then the coupon (typed lowercase) → −R$ 12,99, total R$ 116,91 with the "confirmed at checkout"
+  note; checkout with the CPF of order 1001 → refused with the reason; with a new CPF → order 1002, Pix R$ 116,91;
+  counters 1/1; cancelled in the admin → 0/0. Found and fixed: the discount amount wrapped in the narrow summary.
+  My own slip: clicked hidden cancel controls before opening the "Cancelar pedido…" disclosure.
+- Seen: the admin's own `__session` counts as a signed-in customer at checkout (order 1002 shows "Cliente com conta",
+  linked to the dev owner). Expected with one session cookie per browser; harmless.
+
 ## Handoff for the next session (read this first)
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.

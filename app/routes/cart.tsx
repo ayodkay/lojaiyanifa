@@ -6,12 +6,13 @@ import { Link } from "react-router";
 
 import { env } from "~/.server/env";
 import { getContent } from "~/.server/prismic";
+import { CouponBox, DiscountRows } from "~/components/discounts";
 import { ProductGrid } from "~/components/product-card";
 import { Breadcrumbs, Button, ButtonLink, cx, Notice, Price, ProductImage, SectionHeading } from "~/components/ui";
 import { MAX_LINE_QUANTITY } from "~/lib/cart/limits";
 import type { CartQuoteResponse, QuoteLine } from "~/lib/cart/quote";
 import { type Adjustment, useCartQuote } from "~/lib/use-cart-quote";
-import { cart, type CartItem, useCart } from "~/lib/client-store";
+import { cart, type CartItem, useCart, useCoupon } from "~/lib/client-store";
 import { noStore } from "~/lib/http";
 import { formatBRL, percentOff } from "~/lib/money";
 import { seoMeta } from "~/lib/seo";
@@ -36,7 +37,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export default function Cart() {
   const hydrated = useHydrated();
   const items = useCart();
-  const { data, pending, failed, adjustments, dismissAdjustments, retry } = useCartQuote(items, hydrated);
+  const couponCode = useCoupon();
+  const { data, pending, failed, adjustments, dismissAdjustments, retry } = useCartQuote(items, hydrated, couponCode);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-8">
@@ -60,6 +62,7 @@ export default function Cart() {
         <CartView
           items={items}
           data={data}
+          couponCode={couponCode}
           pending={pending}
           failed={failed}
           adjustments={adjustments}
@@ -97,6 +100,7 @@ function QuoteError({ onRetry }: { onRetry: () => void }) {
 function CartView({
   items,
   data,
+  couponCode,
   pending,
   failed,
   adjustments,
@@ -105,13 +109,14 @@ function CartView({
 }: {
   items: CartItem[];
   data: CartQuoteResponse;
+  couponCode: string | null;
   pending: boolean;
   failed: boolean;
   adjustments: Adjustment[];
   onDismissAdjustments: () => void;
   onRetry: () => void;
 }) {
-  const { quote, recommendations } = data;
+  const { quote, recommendations, discount } = data;
   const linesBySku = new Map(quote.lines.map((l) => [l.sku, l]));
   const blocked = quote.lines.filter((l) => l.problem === "unavailable" || l.problem === "out_of_stock");
   const canCheckout = quote.ready && !pending && !failed;
@@ -176,15 +181,19 @@ function CartView({
                 <dd>{formatBRL(quote.savingsCents)}</dd>
               </div>
             )}
+            <DiscountRows discount={discount} />
             <div className="flex justify-between gap-4">
               <dt>Frete</dt>
-              <dd className="text-muted">Calculado no checkout</dd>
+              <dd className="text-muted">{discount.freeShipping ? "Grátis" : "Calculado no checkout"}</dd>
             </div>
             <div className="flex justify-between gap-4 border-t border-line pt-3 text-base font-medium">
               <dt>Total</dt>
-              <dd>{formatBRL(quote.totalCents)}</dd>
+              <dd>{formatBRL(quote.totalCents - discount.itemsDiscountCents)}</dd>
             </div>
           </dl>
+          <div className="mt-6 border-t border-line pt-4">
+            <CouponBox current={couponCode} discount={discount} />
+          </div>
 
           {canCheckout ? (
             <ButtonLink to="/checkout" className="mt-6 w-full">

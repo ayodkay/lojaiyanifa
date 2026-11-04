@@ -44,7 +44,7 @@ const checkout = (quantity = 1, overrides: Partial<CheckoutInput> = {}): Checkou
   cpf: "52998224725",
   shippingMethod: "pickup",
   address: null,
-  acceptTerms: true,
+  acceptTerms: true, couponCode: null,
   items: [{ productId: "colar", sku: "COLAR-1", quantity }],
   ...overrides,
 });

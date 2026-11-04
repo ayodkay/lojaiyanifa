@@ -160,8 +160,8 @@ One of the most important parts of an e-commerce website.
 - [x] Display product names — verified, incl. deleted products shown as "Produto indisponível"
 - [x] Display individual prices — unit price + compare-at + % (verified 2026-11-01 with Búzios/Alaká)
 - [x] Display subtotal — server-computed, unit-tested (verified 2026-11-01 with Búzios/Alaká)
-- [ ] Calculate discounts — compare-at savings computed (unit-tested); coupons/automatic promotions pending (§11)
-- [ ] Apply coupon codes — pending (§11 discount engine)
+- [x] Calculate discounts — compare-at savings plus coupons and automatic promotions, previewed by /api/cart/quote with the order's own engine (app/lib/discounts.ts; verified 2026-11-04: Chrome on a dev stack + unit)
+- [x] Apply coupon codes — coupon box in the cart (kept for the checkout), status message (applied / beaten by a better promotion / refused with the reason), remove (verified 2026-11-04: Chrome on a dev stack)
 - [ ] Calculate shipping — pending (Melhor Envio + store rates); cart says "calculado no checkout"
 - [ ] Display estimated taxes — **blocked**: the owner/accountant must define which tax information to show and its source; not invented
 - [x] Display total price — = subtotal until shipping/discounts join at checkout (verified 2026-11-01 with Búzios/Alaká)
@@ -186,7 +186,7 @@ One of the most important parts of an e-commerce website.
 - [x] Shipping method selection — flat rate or pickup; pickup-only products hide delivery (verified 2026-11-01 (browser + live action on the dev server) + integration tests)
 - [x] Shipping price calculation — flat rate R$ 25,00 for all of Brazil (owner, for now) + free pickup, from settings/shipping (verified)
 - [ ] Delivery estimate — pickup: handling days shown; flat rate: needs the owner's transit days (shows "prazo informado no envio")
-- [ ] Coupon application — pending (§11)
+- [x] Coupon application — the order transaction decides with the buyer known; a refused coupon stops the order with the reason and a "continuar sem o cupom" button (verified 2026-11-04: Chrome — first-purchase coupon refused for a CPF that had bought, accepted for a new one — + integration)
 - [x] Order summary — lines, subtotal, delivery, total (verified 2026-11-01 (browser + live action on the dev server))
 - [ ] Tax calculation — **blocked**: owner/accountant must define tax handling; not invented
 - [x] Payment method selection — Pix only (owner decision 2026-10-31), shown as the payment step
@@ -290,24 +290,24 @@ One of the most important parts of an e-commerce website.
 
 ### 11. Discounts and Promotions
 
-- [ ] Coupon codes
-- [ ] Percentage discounts
-- [ ] Fixed-value discounts
-- [ ] Automatic discounts
-- [ ] Buy one, get one promotions
-- [ ] Free shipping promotions
-- [ ] Flash sales
-- [ ] Limited-time offers
-- [ ] Product bundles
-- [ ] Category discounts
-- [ ] First-order discounts
-- [ ] Minimum purchase requirements
-- [ ] Customer-specific discounts
-- [ ] Loyalty rewards
-- [ ] Referral discounts
-- [ ] Gift cards
-- [ ] Discount usage limits
-- [ ] Promotion scheduling
+- [x] Coupon codes — /admin/discounts (owner/admin): codes are unique (they are the document ID), normalized to uppercase (verified 2026-11-04: Chrome on a dev stack + integration)
+- [x] Percentage discounts — 1–99% of the eligible products (verified 2026-11-04: Chrome + unit + integration)
+- [x] Fixed-value discounts — R$ off the eligible products, never more than they cost (unit-tested 2026-11-04)
+- [x] Automatic discounts — promotions without a code apply by themselves; the best one wins over a smaller coupon (verified 2026-11-04: Chrome + integration)
+- [x] Buy one, get one promotions — "leve X, ganhe Y": the cheapest units of each group are free (unit-tested 2026-11-04)
+- [x] Free shipping promotions — free shipping (automatic or coupon), combinable with a products discount; the order charges R$ 0 for delivery (verified 2026-11-04: Chrome + integration)
+- [x] Flash sales — automatic promotions with start and end (Brasília time) (unit-tested 2026-11-04); no countdown on product pages
+- [x] Limited-time offers — any promotion or coupon can have a start and an end (unit-tested 2026-11-04)
+- [x] Product bundles — a promotion on chosen products marked "kit" applies only when all of them are in the cart (unit-tested 2026-11-04)
+- [x] Category discounts — scope by category, subcategories included (unit-tested 2026-11-04); needs categories in Prismic to be used
+- [x] First-order discounts — "só na primeira compra", checked against earlier non-cancelled orders by e-mail or CPF (verified 2026-11-04: Chrome + integration)
+- [x] Minimum purchase requirements — minimum subtotal (verified 2026-11-04: Chrome — free shipping above R$ 100 — + unit)
+- [x] Customer-specific discounts — a list of e-mails allowed to use a promotion (unit-tested 2026-11-04)
+- [ ] Loyalty rewards — not built: needs a points ledger and the owner's rules
+- [ ] Referral discounts — not built: needs referral links/codes per customer and the owner's rules
+- [ ] Gift cards — not built: needs selling the cards (Pix), balances spent across orders, and the owner's rules on validity (some states regulate it)
+- [x] Discount usage limits — total uses (a counter in the transaction: two simultaneous buyers can't both take the last use, race-tested 6×) and uses per customer; an unpaid order cancelled by the store or the expiry job gives its use back (verified 2026-11-04: integration + Chrome)
+- [x] Promotion scheduling — start/end per promotion, in Brasília time (unit-tested 2026-11-04)
 
 ### 12. Reviews and Social Proof
 
@@ -630,7 +630,7 @@ This is how I would organize the actual website's pages and routes.
 - [x] `/admin/orders` — list + /admin/orders/:number with confirm/cancel (verified 2026-11-02)
 - [ ] `/admin/customers`
 - [ ] `/admin/inventory`
-- [ ] `/admin/discounts`
+- [x] `/admin/discounts` — list (value, uses, state) + create/edit form (verified 2026-11-04 on a dev stack)
 - [ ] `/admin/analytics`
 - [x] `/admin/settings` — _built 2026-11-03_: Pix payment, delivery methods and the checkout open/close switch; verified on a dev stack (unit, integration, mutations, browser); deployed 2026-11-03
 - [ ] `/admin/users` — **N/A**: the store has a single admin account, the owner (owner decision 2026-11-03); roles change only through scripts/admin/grant-role.mjs, which also signs the account out everywhere

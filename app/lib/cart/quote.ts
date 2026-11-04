@@ -12,6 +12,7 @@
 //   no quantity limit.
 import type { Catalog, ProductSummary } from "~/lib/catalog/query";
 import type { Availability, CatalogImage, CatalogProduct } from "~/lib/catalog/types";
+import type { DiscountResult } from "~/lib/discounts";
 import type { Cents } from "~/lib/money";
 
 import { MAX_LINE_QUANTITY } from "./limits";
@@ -75,6 +76,8 @@ export interface CartQuoteResponse {
   recommendations: ProductSummary[];
   /** A product in the cart is "pickup only" in Prismic: delivery can't be offered. */
   pickupOnly: boolean;
+  /** Discounts that apply (a preview: the order decides; app/lib/discounts.ts). */
+  discount: DiscountResult;
 }
 
 /** Sums duplicate SKUs (e.g. two tabs added the same item), capped per line. */

@@ -158,6 +158,53 @@ export const wishlist = {
   },
 };
 
+// --- coupon ------------------------------------------------------------------------
+// The code typed in the cart, kept for the checkout. Not an array, so it has its own tiny store.
+const COUPON_KEY = "li.coupon.v1";
+let couponSnapshot: string | null | undefined;
+const couponListeners = new Set<() => void>();
+
+function readCoupon(): string | null {
+  if (couponSnapshot === undefined) {
+    try {
+      couponSnapshot = window.localStorage.getItem(COUPON_KEY);
+    } catch {
+      couponSnapshot = null; // storage blocked: no coupon remembered
+    }
+  }
+  return couponSnapshot ?? null;
+}
+
+function subscribeCoupon(listener: () => void) {
+  couponListeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== COUPON_KEY) return;
+    couponSnapshot = event.newValue;
+    listener();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    couponListeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export const useCoupon = () => useSyncExternalStore(subscribeCoupon, readCoupon, () => null);
+
+export const coupon = {
+  get: readCoupon,
+  set(code: string | null) {
+    couponSnapshot = code;
+    try {
+      if (code) window.localStorage.setItem(COUPON_KEY, code);
+      else window.localStorage.removeItem(COUPON_KEY);
+    } catch (error) {
+      console.warn("[client-store] could not persist the coupon", error);
+    }
+    for (const listener of couponListeners) listener();
+  },
+};
+
 // --- recently viewed ------------------------------------------------------------
 export const useRecentlyViewed = () => useStore<string[]>("recent", EMPTY_IDS);
 

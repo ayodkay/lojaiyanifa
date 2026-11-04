@@ -54,6 +54,9 @@ export default [
     route("orders/:number", "routes/admin.order.tsx"),
     route("support", "routes/admin.support.tsx"),
     route("support/:number", "routes/admin.ticket.tsx"),
+    route("discounts", "routes/admin.discounts.tsx"),
+    route("discounts/new", "routes/admin.discount.tsx", { id: "admin-discount-new" }),
+    route("discounts/:id", "routes/admin.discount.tsx", { id: "admin-discount-edit" }),
     route("settings", "routes/admin.settings.tsx"),
   ]),
 

@@ -20,6 +20,9 @@ export type AuditAction =
   | "settings.shipping_updated"
   | "settings.checkout_opened"
   | "settings.checkout_closed"
+  // Promotions and coupons (/admin/discounts).
+  | "promotion.created"
+  | "promotion.updated"
   // Support tickets (the team's answers and status changes).
   | "ticket.replied"
   | "ticket.closed"

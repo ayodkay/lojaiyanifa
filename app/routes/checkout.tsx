@@ -9,15 +9,16 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { readCustomerSession } from "~/.server/customer-session";
 import { getCustomerProfile, listAddresses, type SavedAddress } from "~/.server/customers";
 import { env } from "~/.server/env";
-import { CartChangedError, createOrder, loadOrderDeps, ShippingUnavailableError } from "~/.server/orders";
+import { CartChangedError, CouponRefusedError, createOrder, loadOrderDeps, ShippingUnavailableError } from "~/.server/orders";
 import { parsePixKey, PixConfigError } from "~/.server/pix";
 import { getContent } from "~/.server/prismic";
 import { CheckoutClosedError, getPaymentSettings, getShippingSettings, getStoreSettings, ShippingConfigError } from "~/.server/settings";
+import { CouponStatus, DiscountRows } from "~/components/discounts";
 import { Breadcrumbs, Button, ButtonLink, cx, Notice } from "~/components/ui";
 import { formatBrPhone, formatCep, formatCpf, normalizeCep, UFS } from "~/lib/br";
 import type { CartQuoteResponse } from "~/lib/cart/quote";
 import { checkoutFieldErrors, checkoutFormToObject, checkoutSchema } from "~/lib/checkout";
-import { type CartItem, useCart } from "~/lib/client-store";
+import { type CartItem, coupon, useCart, useCoupon } from "~/lib/client-store";
 import { NO_STORE, noStore } from "~/lib/http";
 import { formatBRL } from "~/lib/money";
 import { seoMeta } from "~/lib/seo";
@@ -73,6 +74,7 @@ interface ActionResult {
   fieldErrors?: Record<string, string>;
   formError?: string;
   cartChanged?: boolean;
+  couponRefused?: boolean;
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -91,6 +93,9 @@ export async function action({ request }: Route.ActionArgs) {
         { cartChanged: true, formError: "Alguns itens do seu carrinho mudaram de preço ou de estoque. Revise o carrinho antes de finalizar." },
         { status: 409, headers: NO_STORE },
       );
+    }
+    if (error instanceof CouponRefusedError) {
+      return data<ActionResult>({ couponRefused: true, formError: error.message }, { status: 409, headers: NO_STORE });
     }
     if (error instanceof ShippingUnavailableError) {
       return data<ActionResult>(
@@ -121,7 +126,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export default function Checkout({ loaderData, actionData }: Route.ComponentProps) {
   const hydrated = useHydrated();
   const items = useCart();
-  const { data: quote, failed, retry } = useCartQuote(items, hydrated && !loaderData.unavailable);
+  const couponCode = useCoupon();
+  const { data: quote, failed, retry } = useCartQuote(items, hydrated && !loaderData.unavailable, couponCode);
 
   let body: React.ReactNode;
   if (loaderData.unavailable) body = <Notice tone="danger">{loaderData.unavailable}</Notice>;
@@ -158,6 +164,7 @@ export default function Checkout({ loaderData, actionData }: Route.ComponentProp
         expiryHours={loaderData.expiryHours}
         result={actionData}
         account={loaderData.account}
+        couponCode={couponCode}
       />
     );
   }
@@ -188,6 +195,7 @@ function CheckoutForm({
   expiryHours,
   result,
   account,
+  couponCode,
 }: {
   items: CartItem[];
   quote: CartQuoteResponse;
@@ -195,6 +203,7 @@ function CheckoutForm({
   expiryHours: number;
   result: ActionResult | undefined;
   account: CheckoutAccount | null;
+  couponCode: string | null;
 }) {
   const navigation = useNavigation();
   const submitting = navigation.state !== "idle" && navigation.formAction === "/checkout";
@@ -241,13 +250,15 @@ function CheckoutForm({
   const setField = (name: keyof typeof EMPTY_ADDRESS) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setAddress((a) => ({ ...a, [name]: e.target.value }));
 
-  const shippingCents = selected?.priceCents ?? 0;
+  const discount = quote.discount;
+  const shippingCents = discount.freeShipping ? 0 : (selected?.priceCents ?? 0);
   const cepHint = { idle: "Preenchemos o endereço a partir do CEP.", loading: "Buscando endereço…", found: "Endereço encontrado. Confira e informe o número.", not_found: "CEP não encontrado. Preencha o endereço manualmente.", error: "Não foi possível buscar o CEP agora. Preencha o endereço manualmente." }[cepStatus];
 
   return (
     <Form method="post" noValidate className="grid gap-10 lg:grid-cols-[1fr_24rem]">
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <input type="hidden" name="items" value={JSON.stringify(items)} />
+      <input type="hidden" name="couponCode" value={couponCode ?? ""} />
 
       <div className="min-w-0 space-y-10">
         {result?.formError && (
@@ -258,6 +269,11 @@ function CheckoutForm({
                 <Link to="/cart" className="underline underline-offset-4">
                   Revisar carrinho
                 </Link>
+              )}
+              {result.couponRefused && couponCode && (
+                <button type="button" className="underline underline-offset-4" onClick={() => coupon.set(null)}>
+                  Continuar sem o cupom
+                </button>
               )}
             </Notice>
           </div>
@@ -494,15 +510,31 @@ function CheckoutForm({
             <dt>Subtotal</dt>
             <dd>{formatBRL(quote.quote.subtotalCents)}</dd>
           </div>
+          <DiscountRows discount={discount} />
           <div className="flex justify-between gap-4">
             <dt>Entrega</dt>
-            <dd className={cx(!selected && "text-muted")}>{selected ? (selected.priceCents === 0 ? "Grátis" : formatBRL(selected.priceCents)) : "Escolha a entrega"}</dd>
+            <dd className={cx(!selected && "text-muted")}>
+              {selected ? (shippingCents === 0 ? "Grátis" : formatBRL(shippingCents)) : "Escolha a entrega"}
+            </dd>
           </div>
           <div className="flex justify-between gap-4 border-t border-line pt-3 text-base font-medium">
             <dt>Total</dt>
-            <dd>{formatBRL(quote.quote.subtotalCents + shippingCents)}</dd>
+            <dd>{formatBRL(quote.quote.subtotalCents - discount.itemsDiscountCents + shippingCents)}</dd>
           </div>
         </dl>
+        <div className="mt-4 border-t border-line pt-4">
+          {couponCode ? (
+            <CouponStatus current={couponCode} discount={discount} />
+          ) : (
+            <p className="text-sm text-muted">
+              Tem um cupom?{" "}
+              <Link to="/cart" className="underline underline-offset-4">
+                Aplique no carrinho
+              </Link>
+              .
+            </p>
+          )}
+        </div>
         <Button type="submit" className="mt-6 w-full" disabled={submitting}>
           {submitting ? "Finalizando…" : "Finalizar pedido"}
         </Button>

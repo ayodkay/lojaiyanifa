@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { isUf, isValidCpf, normalizeBrPhone, normalizeCep, onlyDigits } from "~/lib/br";
 import { MAX_CART_LINES, MAX_LINE_QUANTITY } from "~/lib/cart/limits";
+import { normalizeCouponCode } from "~/lib/discounts";
 
 const required = (max: number, message: string) =>
   z.string().trim().min(1, message).max(max, `Use no máximo ${max} caracteres.`);
@@ -54,6 +55,16 @@ export const checkoutSchema = z
     shippingMethod: z.enum(["flat_rate", "pickup"], { error: "Escolha a forma de entrega." }),
     address: addressSchema.nullable(),
     acceptTerms: z.literal(true, { error: "Para continuar, aceite os termos de uso e a política de privacidade." }),
+    /** The coupon typed in the cart, if any; the order transaction decides whether it applies. */
+    couponCode: z.string().transform((value, ctx) => {
+      if (!value.trim()) return null;
+      const code = normalizeCouponCode(value);
+      if (!code) {
+        ctx.addIssue({ code: "custom", message: "Cupom inválido. Confira o código." });
+        return z.NEVER;
+      }
+      return code;
+    }),
     items: z
       .array(
         z.object({
@@ -97,6 +108,7 @@ export function checkoutFormToObject(form: FormData): unknown {
     shippingMethod,
     address: shippingMethod === "flat_rate" ? Object.fromEntries(ADDRESS_FIELDS.map((f) => [f, get(f)])) : null,
     acceptTerms: form.get("acceptTerms") === "on",
+    couponCode: get("couponCode"),
     items,
   };
 }

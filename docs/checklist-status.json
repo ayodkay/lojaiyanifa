@@ -367,12 +367,12 @@
       "note": "server-computed, unit-tested (verified 2026-11-01 with Búzios/Alaká)"
     },
     "Calculate discounts": {
-      "status": "todo",
-      "note": "compare-at savings computed (unit-tested); coupons/automatic promotions pending (§11)"
+      "status": "done",
+      "note": "compare-at savings plus coupons and automatic promotions, previewed by /api/cart/quote with the order's own engine (app/lib/discounts.ts; verified 2026-11-04: Chrome on a dev stack + unit)"
     },
     "Apply coupon codes": {
-      "status": "todo",
-      "note": "pending (§11 discount engine)"
+      "status": "done",
+      "note": "coupon box in the cart (kept for the checkout), status message (applied / beaten by a better promotion / refused with the reason), remove (verified 2026-11-04: Chrome on a dev stack)"
     },
     "Calculate shipping": {
       "status": "todo",
@@ -461,8 +461,8 @@
       "note": "pickup: handling days shown; flat rate: needs the owner's transit days (shows \"prazo informado no envio\")"
     },
     "Coupon application": {
-      "status": "todo",
-      "note": "pending (§11)"
+      "status": "done",
+      "note": "the order transaction decides with the buyer known; a refused coupon stops the order with the reason and a \"continuar sem o cupom\" button (verified 2026-11-04: Chrome — first-purchase coupon refused for a CPF that had bought, accepted for a new one — + integration)"
     },
     "Order summary": {
       "status": "done",
@@ -779,6 +779,80 @@
     "Delivery notifications": {
       "status": "todo",
       "note": "_built and integration-tested 2026-11-04_ (shipped, ready for pickup, delivered, tracking changed); not sent through Brevo yet (owner's account + key)"
+    }
+  },
+  "11": {
+    "Coupon codes": {
+      "status": "done",
+      "note": "/admin/discounts (owner/admin): codes are unique (they are the document ID), normalized to uppercase (verified 2026-11-04: Chrome on a dev stack + integration)"
+    },
+    "Percentage discounts": {
+      "status": "done",
+      "note": "1–99% of the eligible products (verified 2026-11-04: Chrome + unit + integration)"
+    },
+    "Fixed-value discounts": {
+      "status": "done",
+      "note": "R$ off the eligible products, never more than they cost (unit-tested 2026-11-04)"
+    },
+    "Automatic discounts": {
+      "status": "done",
+      "note": "promotions without a code apply by themselves; the best one wins over a smaller coupon (verified 2026-11-04: Chrome + integration)"
+    },
+    "Buy one, get one promotions": {
+      "status": "done",
+      "note": "\"leve X, ganhe Y\": the cheapest units of each group are free (unit-tested 2026-11-04)"
+    },
+    "Free shipping promotions": {
+      "status": "done",
+      "note": "free shipping (automatic or coupon), combinable with a products discount; the order charges R$ 0 for delivery (verified 2026-11-04: Chrome + integration)"
+    },
+    "Flash sales": {
+      "status": "done",
+      "note": "automatic promotions with start and end (Brasília time) (unit-tested 2026-11-04); no countdown on product pages"
+    },
+    "Limited-time offers": {
+      "status": "done",
+      "note": "any promotion or coupon can have a start and an end (unit-tested 2026-11-04)"
+    },
+    "Product bundles": {
+      "status": "done",
+      "note": "a promotion on chosen products marked \"kit\" applies only when all of them are in the cart (unit-tested 2026-11-04)"
+    },
+    "Category discounts": {
+      "status": "done",
+      "note": "scope by category, subcategories included (unit-tested 2026-11-04); needs categories in Prismic to be used"
+    },
+    "First-order discounts": {
+      "status": "done",
+      "note": "\"só na primeira compra\", checked against earlier non-cancelled orders by e-mail or CPF (verified 2026-11-04: Chrome + integration)"
+    },
+    "Minimum purchase requirements": {
+      "status": "done",
+      "note": "minimum subtotal (verified 2026-11-04: Chrome — free shipping above R$ 100 — + unit)"
+    },
+    "Customer-specific discounts": {
+      "status": "done",
+      "note": "a list of e-mails allowed to use a promotion (unit-tested 2026-11-04)"
+    },
+    "Loyalty rewards": {
+      "status": "todo",
+      "note": "not built: needs a points ledger and the owner's rules"
+    },
+    "Referral discounts": {
+      "status": "todo",
+      "note": "not built: needs referral links/codes per customer and the owner's rules"
+    },
+    "Gift cards": {
+      "status": "todo",
+      "note": "not built: needs selling the cards (Pix), balances spent across orders, and the owner's rules on validity (some states regulate it)"
+    },
+    "Discount usage limits": {
+      "status": "done",
+      "note": "total uses (a counter in the transaction: two simultaneous buyers can't both take the last use, race-tested 6×) and uses per customer; an unpaid order cancelled by the store or the expiry job gives its use back (verified 2026-11-04: integration + Chrome)"
+    },
+    "Promotion scheduling": {
+      "status": "done",
+      "note": "start/end per promotion, in Brasília time (unit-tested 2026-11-04)"
     }
   },
   "13": {
@@ -1175,6 +1249,10 @@
     "`/wishlist`": {
       "status": "done",
       "note": "verified 2026-11-04 on a dev stack"
+    },
+    "`/admin/discounts`": {
+      "status": "done",
+      "note": "list (value, uses, state) + create/edit form (verified 2026-11-04 on a dev stack)"
     }
   },
   "24": {

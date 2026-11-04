@@ -63,7 +63,7 @@ const deps: OrderDeps = {
 const checkout = (email: string): CheckoutInput => ({
   idempotencyKey: randomUUID(), name: "Maria da Silva", email, phone: "+5521987654321", cpf: "52998224725", shippingMethod: "flat_rate",
   address: { cep: "21360201", street: "Estrada do Portela", number: "99", complement: null, neighborhood: "Madureira", city: "Rio de Janeiro", state: "RJ" },
-  acceptTerms: true, items: [{ productId: "colar", sku: "COLAR-1", quantity: 1 }],
+  acceptTerms: true, couponCode: null, items: [{ productId: "colar", sku: "COLAR-1", quantity: 1 }],
 });
 
 describe("customer sessions", () => {
