@@ -887,7 +887,8 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 ## Handoff for the next session (read this first)
 
 **Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
-production on 2026-11-05 (04:17 UTC, from `41e6cf8`); not merged into master yet** (pull request:
+production on 2026-11-05 (04:17 UTC, from `41e6cf8`; `ssr` + hosting again at 05:08 UTC, from `a099e30`); not
+merged into master yet** (pull request:
 `https://github.com/ayodkay/lojaiyanifa/pull/new/feat/accounts-support-promos-legal`).
 Commits on top of master `1b17582`: `d7129be` texts → Prismic, `9c734eb` Brevo e-mail, `33ff768` accounts, `68c6d1f`
 support, `b2fd334` discounts, `3db05c5` reviews, `20fb352` cookie consent, then the afternoon's mail fixes and notes
@@ -942,6 +943,9 @@ typecheck clean, lint 0 errors, build OK.
      `[mail] sent 2` at 04:51:02 UTC (the auto-reply and the store notice); no errors. Read it in the Logs Explorer
      (search `"[mail]"`): `firebase functions:log --only sendMailOutbox` went stale within the hour, like `--only ssr`.
      The owner closes ticket 1001 in `/admin/support`.
+   - Then the store phone's formatting (`9514e39`: contact page and footer show `(DDD) number` and link `tel:+55…`;
+     they printed the Prismic text as typed) went out from `a099e30` at 05:08 UTC (`--only hosting,functions:ssr`);
+     checked on both hosts.
    The procedure, for next time:
    `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
    `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then
