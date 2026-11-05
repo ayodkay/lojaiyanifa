@@ -5,9 +5,11 @@ import { data } from "react-router";
 
 import { env } from "~/.server/env";
 import { getContent } from "~/.server/prismic";
+import { listProductReviews } from "~/.server/reviews";
 import { CloseIcon } from "~/components/icons";
 import { Gallery, PurchasePanel, ShareButton, useVariantSelection, Videos } from "~/components/product";
 import { ProductGrid } from "~/components/product-card";
+import { ReviewsSection } from "~/components/reviews";
 import { RichText } from "~/components/rich-text";
 import { Breadcrumbs, ProductImage, SectionHeading } from "~/components/ui";
 import { SELLABLE } from "~/lib/catalog/map";
@@ -17,6 +19,7 @@ import { recentlyViewed } from "~/lib/client-store";
 import { PUBLIC_CACHE } from "~/lib/http";
 import { imgixSrc } from "~/lib/images";
 import { toDecimalString } from "~/lib/money";
+import { averageRating, sortReviews } from "~/lib/reviews";
 import { breadcrumbJsonLd, seoMeta } from "~/lib/seo";
 import { categoryHref } from "~/lib/shell";
 
@@ -36,6 +39,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     .filter((p): p is CatalogProduct => Boolean(p?.purchasable))
     .map(toSummary);
 
+  // Reviews come from Firestore: if it fails, the page still renders and says so (logged as an error).
+  let reviews: Awaited<ReturnType<typeof listProductReviews>> | null = null;
+  try {
+    reviews = await listProductReviews(found.id);
+  } catch (error) {
+    console.error(`[product] reviews of ${found.uid} could not be read`, error);
+  }
+
   return data(
     {
       siteUrl: env().SITE_URL,
@@ -49,6 +60,7 @@ export async function loader({ params }: Route.LoaderArgs) {
       related: relatedProducts(catalog, found).map(toSummary),
       boughtTogether,
       policies: settings.policies,
+      reviews,
     },
     { headers: PUBLIC_CACHE },
   );
@@ -68,7 +80,25 @@ const SCHEMA_AVAILABILITY: Record<Availability, string> = {
 
 export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData) return [{ title: "Produto não encontrado" }, { name: "robots", content: "noindex" }];
-  const { product: p, siteUrl, storeName, breadcrumbs } = loaderData;
+  const { product: p, siteUrl, storeName, breadcrumbs, reviews } = loaderData;
+  const average = reviews ? averageRating(reviews.stats) : null;
+  // Only real, approved reviews; nothing when there are none (structured data must match what the page shows).
+  const reviewData =
+    reviews && average !== null
+      ? {
+          aggregateRating: { "@type": "AggregateRating", ratingValue: average, reviewCount: reviews.stats.count, bestRating: 5, worstRating: 1 },
+          review: sortReviews(reviews.reviews, "helpful")
+            .slice(0, 5)
+            .map((r) => ({
+              "@type": "Review",
+              author: { "@type": "Person", name: r.authorName },
+              reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+              reviewBody: r.text,
+              datePublished: r.createdAt.slice(0, 10),
+              ...(r.title ? { name: r.title } : {}),
+            })),
+        }
+      : {};
   const url = `${siteUrl}/products/${p.uid}`;
   const description = p.seo.description ?? (asText(p.shortDescription) || asText(p.description) || null);
   const range = priceRange(p as CatalogProduct);
@@ -112,6 +142,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
         ...(description ? { description } : {}),
         ...(p.images.length ? { image: p.images.map((i) => imgixSrc(i.url, { w: 1200, fit: "max" })) } : {}),
         ...(offers ? { offers } : {}),
+        ...reviewData,
       },
       breadcrumbJsonLd(siteUrl, breadcrumbs.map((b) => ({ name: b.name, path: b.href }))),
     ],
@@ -133,7 +164,7 @@ function Details({ summary, children }: { summary: string; children: React.React
 }
 
 export default function Product({ loaderData }: Route.ComponentProps) {
-  const { product, breadcrumbs, related, boughtTogether, policies, siteUrl } = loaderData;
+  const { product, breadcrumbs, related, boughtTogether, policies, siteUrl, reviews } = loaderData;
   const p = product as CatalogProduct;
   const state = useVariantSelection(p);
   const sizeGuide = useRef<HTMLDialogElement>(null);
@@ -216,6 +247,7 @@ export default function Product({ loaderData }: Route.ComponentProps) {
 
       <Videos videos={p.videos} />
 
+      <ReviewsSection productUid={product.uid} stats={reviews?.stats ?? null} reviews={reviews?.reviews ?? null} />
       {boughtTogether.length > 0 && (
         <section aria-labelledby="juntos" className="mt-24">
           <SectionHeading id="juntos" eyebrow="Combina com" title="Frequentemente comprados juntos" />

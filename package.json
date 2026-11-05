@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "firebase --config firebase.test.json emulators:exec --only firestore,auth --project demo-lojaiyanifa \"vitest run --config vitest.integration.config.ts\"",
+    "test:mail-live": "firebase --config firebase.test.json emulators:exec --only firestore,auth --project demo-lojaiyanifa \"vitest run --config vitest.mail-live.config.ts\"",
     "emulators": "firebase emulators:start --project demo-lojaiyanifa",
     "preview": "npm run build && firebase emulators:start --project demo-lojaiyanifa",
     "prismic:types": "prismic-ts-codegen",

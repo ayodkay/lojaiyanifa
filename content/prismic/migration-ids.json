@@ -1,0 +1,48 @@
+{
+  "faq": {
+    "id": "aukFxxEAACoApfqD",
+    "type": "faq",
+    "complete": true
+  },
+  "about": {
+    "id": "aurgRBEAAC0AqYqy",
+    "type": "page",
+    "complete": true
+  },
+  "cookies": {
+    "id": "aurgRhEAACwAqYq3",
+    "type": "page",
+    "complete": true
+  },
+  "privacy": {
+    "id": "aurgSBEAACgAqYq-",
+    "type": "page",
+    "complete": true
+  },
+  "returns": {
+    "id": "aurgShEAACwAqYrE",
+    "type": "page",
+    "complete": true
+  },
+  "shipping": {
+    "id": "aurgTBEAACcAqYrL",
+    "type": "page",
+    "complete": true
+  },
+  "terms": {
+    "id": "aurgThEAACwAqYrQ",
+    "type": "page",
+    "complete": true
+  },
+  "warranty": {
+    "id": "aurgUBEAACgAqYrV",
+    "type": "page",
+    "complete": true
+  },
+  "settings": {
+    "id": "audNGREAACoAomV3",
+    "type": "settings",
+    "complete": false,
+    "external": "the owner's settings document, restored and filled in by the owner on 2026-11-04: never --adopt or overwrite it (the Migration API would replace what the owner typed); paste the policy summaries from content/prismic/settings.md by hand"
+  }
+}

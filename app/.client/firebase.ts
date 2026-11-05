@@ -14,6 +14,7 @@ import { getApps, initializeApp } from "firebase/app";
 import {
   type Auth,
   connectAuthEmulator,
+  createUserWithEmailAndPassword,
   getMultiFactorResolver,
   inMemoryPersistence,
   initializeAuth,
@@ -26,6 +27,7 @@ import {
   signOut,
   TotpMultiFactorGenerator,
   type TotpSecret,
+  updatePassword,
 } from "firebase/auth";
 
 import type { FirebaseWebConfig } from "~/.server/firebase";
@@ -119,6 +121,56 @@ export async function sendVerificationEmail(config: FirebaseWebConfig): Promise<
 
 export async function sendPasswordReset(config: FirebaseWebConfig, email: string): Promise<void> {
   await sendPasswordResetEmail(authFor(config), email);
+}
+
+// --- customer accounts (/register, /login, /account) ------------------------------------------------
+// Same rule as the admin: the SDK signs in, in memory only, just long enough to hand the server a fresh ID token.
+// Sensitive changes (password, deleting the account) ask for the password again for the same reason.
+
+/** After verifying the e-mail, Firebase's page links back to the account. */
+const verificationSettings = () => ({ url: `${window.location.origin}/account` });
+
+export interface NewAccount {
+  idToken: string;
+  /** false when Firebase couldn't send the verification e-mail now (the account page offers to resend it). */
+  verificationSent: boolean;
+}
+
+/** Creates the sign-in, sends the verification e-mail and returns the fresh ID token for the server. */
+export async function createAccount(config: FirebaseWebConfig, email: string, password: string): Promise<NewAccount> {
+  const { user } = await createUserWithEmailAndPassword(authFor(config), email, password);
+  let verificationSent = true;
+  try {
+    await sendEmailVerification(user, verificationSettings());
+  } catch (error) {
+    console.warn("[account] the verification e-mail could not be sent", error);
+    verificationSent = false;
+  }
+  return { idToken: await user.getIdToken(), verificationSent };
+}
+
+/** The password typed again: a fresh ID token proving it (for deleting the account). Accounts with a second factor are refused. */
+export async function confirmPassword(config: FirebaseWebConfig, email: string, password: string): Promise<string> {
+  const result = await signInWithPassword(config, email, password);
+  if (result.kind !== "signed_in") throw appError("app/second-factor-account", "this account signs in with a second factor (an admin account)");
+  return result.idToken;
+}
+
+/** Changes the password after the current one is typed again. Firebase ends the other sessions; the new ID token starts this one again. */
+export async function changePassword(config: FirebaseWebConfig, email: string, current: string, next: string): Promise<string> {
+  await confirmPassword(config, email, current);
+  const user = authFor(config).currentUser;
+  if (!user) throw new Error("changePassword: the sign-in vanished");
+  await updatePassword(user, next);
+  return user.getIdToken(true);
+}
+
+/** Sends the verification e-mail again, after the password is typed again (the session cookie can't do it). */
+export async function resendVerification(config: FirebaseWebConfig, email: string, password: string): Promise<void> {
+  await confirmPassword(config, email, password);
+  const user = authFor(config).currentUser;
+  if (!user) throw new Error("resendVerification: the sign-in vanished");
+  await sendEmailVerification(user, verificationSettings());
 }
 
 /** Forgets the in-memory sign-in (and any half-done second step) once the server has answered. No-op if the SDK was never used. */

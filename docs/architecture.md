@@ -79,7 +79,17 @@ app's `Cache-Control` headers, which both CDNs honour).
   it), and — when `ADMIN_REQUIRE_MFA=true` — the sign-in used a second factor.
   It then sets a Firebase **session cookie** in `__session`
   (`HttpOnly; Secure; SameSite=Lax; Path=/`) valid **12 hours** for admins.
-  Customers (not built yet) will get their own sign-in route; 14-day sessions planned.
+  **Customers (built 2026-11-04)**: `/register`, `/login`, `/forgot-password`, `POST /logout`, and `/account/*`
+  behind its own middleware gate (`app/.server/account-guard.ts`), same mechanism with a **14-day** cookie
+  (`app/.server/customer-session.ts`): no role, second factor or verified e-mail needed to sign in. Passwords never
+  reach our server (the inputs have no `name`; the SDK talks to Firebase). Registration checks the form with the
+  server's own schema in the browser *before* creating the Firebase sign-in, then the action saves the profile and
+  consents. Sensitive changes type the password again in the browser: changing it (Firebase then revokes every session,
+  so the new ID token goes to `/login`'s action, outside the gate that would refuse the old cookie), re-sending the
+  verification e-mail, deleting the account (the action re-checks a < 5 min sign-in of the same UID). Sign-out
+  revokes every session of the account. Admin accounts (TOTP) can't get a customer session through `/login`.
+  Which orders are a customer's: those placed signed in (`customer.uid`) plus, once the e-mail is **verified**, guest
+  orders with the same e-mail (otherwise anyone could register someone else's address and read their orders).
 - **Every `/admin` request** passes the admin layout's middleware
   (`app/.server/admin-guard.ts`), which runs before any admin loader or action
   (a parent loader would not do: loaders run in parallel). It calls
@@ -156,14 +166,15 @@ All money is stored as **integer centavos** (BRL). All timestamps are Firestore
 | `inventory/{encodeURIComponent(sku)}` | SKU | `sku`, `onHand`, `reserved`, `lowStockThreshold`, `productId`; `movements/{id}` history (ID encoding: a "/" in an editor-typed SKU would otherwise become a sub-path; ordinary SKUs are unchanged) |
 | `orders/{number}` | sequential number | order snapshot, status, totals, addresses, shipping, Pix, timeline, notes |
 | `counters/orders` | – | next order number (transaction) |
-| `customers/{uid}` | Auth UID | profile, consents, notification prefs; `addresses/{id}` |
-| `carts/{uid}` | Auth UID | signed-in cart for cross-device persistence |
-| `wishlists/{uid}` | Auth UID | product IDs |
-| `coupons/{CODE}` | code | rules, limits, schedule; `redemptions/{orderNumber}` |
-| `reviews/{id}` | auto | rating, text, media, status, verified purchase; `votes/{uid}`, `reports/{uid}` |
-| `productStats/{productId}` | Prismic ID | rating aggregates, units sold |
+| `customers/{uid}` | Auth UID | profile (name, e-mail, phone, CPF), `marketingEmail`, `consents` (`termsAcceptedAt`, `marketingEmail: { granted, at, source }`, `history` of consent changes, max 50); `addresses/{id}` (max 10, exactly one `isDefault`). Built 2026-11-04 (`app/.server/customers.ts`) |
+| `carts/{uid}` | Auth UID | signed-in cart for cross-device persistence (not built) |
+| `wishlists/{uid}` | Auth UID | `productIds` (max 100). The browser keeps its own list; `/wishlist` merges both three-way against the last synced list (`app/lib/wishlist-sync.ts`, base in `li.wishlist-base.v1`) |
+| `promotions/{id}` | the coupon's code (uppercase), or `auto_…` for automatic promotions | built 2026-11-04 (`app/.server/promotions.ts`, engine `app/lib/discounts.ts`): `kind` percent / fixed / free_shipping / buy_x_get_y, `scope` all / products (`requireAll` = bundle) / categories, `minSubtotalCents`, `startsAt`/`endsAt`, `maxRedemptions` + `redemptionCount`, `maxPerCustomer`, `firstOrderOnly` (by e-mail **or** CPF), `allowedEmails`, `active`. Per order: at most one products discount (the best for the customer; a tie keeps the coupon) + one free shipping. Chosen inside the order transaction with the buyer known; `redemptionCount` goes up there and down when the unpaid order is cancelled (store or expiry). Orders keep `discounts[]`, `couponCode`, `totals.discountCents` (products) and `totals.shippingCents` (charged; 0 with free shipping, `shipping.priceCents` keeps the list price) |
+| `reviews/{productId}_{uid}` | one per customer and product | built 2026-11-04 (`app/.server/reviews.ts`): `rating` 1–5, `title`, `text`, `displayName`, `videoUrl` (YouTube/Vimeo, shown with the privacy-friendly players), `verifiedPurchase` (a paid order with the product, checked when sent), `status` pending → approved / rejected (`rejectReason`), `storeReply`, `helpfulCount`, `reportCount`; `votes/{uid}`, `reports/{uid}`. Signed-in customers only; editing sends it back to moderation. Photos not built (needs a Storage bucket and an upload path that strips EXIF) |
+| `productStats/{productId}` | Prismic ID | `count`, `sum`, `distribution[5]` of APPROVED reviews, changed in the same transaction as the review's status. The product page reads it with the approved reviews (equality queries, no index; ≤ 200 per product) and sorts in the browser |
 | `questions/{id}` | auto | product Q&A |
-| `tickets/{id}` | auto | support tickets and messages |
+| `tickets/{number}` | sequential from 1001 (`counters/tickets`) | support tickets (built 2026-11-04, `app/.server/support.ts`): `status` open → answered → closed (reopenable), `topic`, contact, `orderNumber`, `customerUid` (sent signed in), `returnRequest: { reason, preference, items }` for topic "returns", `messages: [{ id, at, from: customer \| store, text, by }]` (max 100). Created by the contact form with its automatic confirmation e-mail (+ store notice) in the same transaction; answered from `/admin/support` (e-mail to the customer, audited) |
+| `rateLimits/{key}` | `contact-ip-<sha256(ip\|hour)>`, `contact-email-<sha256(email\|hour)>`, `contact-all-<hour>` | hourly counters for the contact form (5 per IP, 5 per e-mail, 60 in all); `expiresAt` for a Firestore TTL policy (not set up yet) |
 | `newsletter/{emailHash}` | sha256(email) | subscription + consent record |
 | `mail/{id}` | auto | email outbox |
 | `settings/{store,payment,shipping,tax,email}` | fixed | commerce settings, edited in `/admin/settings` (store, payment, shipping; tax and email not built). `store.checkoutOpen`: absent or false = checkout closed. Each save from the admin stamps `updatedAt` / `updatedBy` |
@@ -268,12 +279,32 @@ rate rules from `settings/shipping` (flat/weight/price/location based, free
 shipping thresholds) + local pickup (if enabled). Delivery estimates add the
 store's handling days to the carrier's business days. CEP lookup uses ViaCEP.
 
-## 7. Email
+## 7. Email (built 2026-11-04, `app/.server/mail/`)
 
-Business events write a document to the `mail` outbox; a Firestore-triggered
-function renders the template and sends it over SMTP (nodemailer), recording
-`sent`/`failed` and retrying. Firebase Auth sends its own verification and
-password-reset emails.
+- **Outbox:** each business event writes a small `mail/{id}` document (`template`, `to`, `orderNumber`, `data`) in
+  the SAME transaction as the change (`queueMailInTransaction`), so an e-mail is never lost nor sent for a change
+  that didn't happen, and a repeated submission (idempotent order, refund form key) queues nothing new.
+  Events: order placed (customer + `store_new_order` to `MAIL_STORE_TO` when set), Pix confirmed, cancelled by the
+  store or by the expiry job, shipped / ready for pickup / delivered (not "processing"), tracking changed, refunded.
+- **Sender:** the scheduled function `sendMailOutbox` (every 2 minutes, one instance) — not a Firestore trigger,
+  whose first deploy needs Eventarc permissions to propagate. Each due e-mail is claimed in a transaction
+  (`pending → sending`, 10-minute lease: at-least-once), rendered from the order **as it is at send time**
+  (`render.ts`, pt-BR, every value HTML-escaped, HTML + text), and sent over SMTP with nodemailer. A failure counts
+  against the e-mail only when the server refused its recipient or its content (`sendErrorKind`): a 4xx is retried
+  after 2, 4, 8, 16 minutes (5 attempts), a 5xx — or a rendering error — fails at once. Login, sender, connection,
+  TLS and timeout errors are the service's: the e-mail goes back without using an attempt (tried again 5 minutes
+  later), the run stops (`blocked`, logged as an error), and nothing is lost before the 72-hour expiry. E-mails older
+  than 72 hours expire unsent. Without configuration nothing is claimed and each run logs an error with the count
+  waiting. Live check from a dev machine: `npm run test:mail-live` (one fake order's e-mails, to `MAIL_STORE_TO` only).
+- **SMTP:** Brevo's relay (`smtp-relay.brevo.com`, 587 with STARTTLS required, or 465). `MAIL_FROM` (a sender on a
+  domain verified in Brevo), optional `MAIL_REPLY_TO` (default: the Prismic support e-mail), `SMTP_USER` in
+  `.env.<project-id>`; the SMTP key in Secret Manager as `SMTP_PASSWORD` (the functions predeploy hook refuses it in
+  an env file). The secret must exist before `sendMailOutbox` is deployed.
+- **Order links in e-mails:** the checkout key is stored only as a hash, so new orders also get a random
+  `customerLinkToken`, which the order page accepts like the checkout key (both compared in constant time). Orders
+  created before 2026-11-04 have none; their e-mails say where to follow the order instead of linking.
+- Firebase Auth sends its own verification and password-reset e-mails (its SMTP can also be pointed at Brevo in the
+  Firebase console → Authentication → Templates → SMTP settings).
 
 ## 8. Configuration
 
@@ -360,3 +391,16 @@ tests/               unit + integration (emulators) + e2e
 | 2026-11-03 | Checkout opens and closes only through an explicit switch in `/admin/settings` (`settings/store.checkoutOpen`; absent = closed); saving the Pix or delivery settings never opens it | Owner |
 | 2026-11-04 | A missing `/assets/` file gets a short `no-store` 404 from the function (`app/routes/missing-asset.ts`), not the store's 404 page, which Firebase sent on as `max-age=600` (a page loaded mid-deploy stayed broken for 10 minutes) | Owner |
 | 2026-11-04 | Paths no route takes match a catch-all route (`app/routes/not-found.tsx`) that throws a 404, so they pass through the root middleware (security headers) and render the same 404 page | Owner |
+| 2026-11-04 | E-mail through Brevo's SMTP relay (owner: "smtp which we will be using brevo.com"); outbox written in the business transaction, sent by a scheduled function every 2 minutes, rendered at send time; SMTP key in Secret Manager | Owner (Brevo) / Proposed (design) |
+| 2026-11-04 | New orders get a random `customerLinkToken` for links in e-mails (the checkout key is only stored hashed) | Proposed |
+| 2026-11-04 | Store texts (legal pages, about, FAQ, policy summaries) are kept in `content/prismic/` and sent with `scripts/prismic/seed-content.mjs` to the Migration Release; the owner publishes them | Proposed (owner asked for the texts and the Prismic API) |
+| 2026-11-04 | Customer accounts: 14-day session cookie, sign-out revokes every session; guest orders join an account only once its e-mail is verified; deleting an account keeps its orders (legal retention) and audits the UID only; data export as JSON (`/account/export`) | Proposed |
+| 2026-11-04 | Phone verification (optional item) not built: SMS sign-in is off in the project (owner, 2026-11-03), phones are checked by format and customers reach the store by WhatsApp | Proposed |
+| 2026-11-04 | Support: the contact form opens a numbered ticket and answers at once by e-mail with the number (Decreto 7.962 art. 4 VI; art. 5 §4 for withdrawals); return requests are tickets with reason/preference, coming from order pages; the whole team (owner/admin/staff) reads and answers in `/admin/support`; customers' replies come back by e-mail, not into the ticket | Proposed |
+| 2026-11-04 | Contact form anti-abuse: honeypot, fill time measured in the browser (≥ 3 s), hourly limits per hashed IP / e-mail / store; Cloudflare Turnstile recommended once the owner creates its keys | Proposed |
+| 2026-11-04 | Discounts: one products discount per order (the best for the customer) + one free shipping, as the terms of use say; coupon limits are a counter in the promotion (two buyers can't both take the last use) released when an unpaid order is cancelled; a coupon refused at order time stops the order with the reason (409), never silently dropped; percent capped at 99 and a total of R$ 0,00 refused (a Pix needs an amount) | Proposed |
+| 2026-11-04 | Not built (owner decisions needed): gift cards (selling them, balances, state rules on validity), loyalty points, referral rewards | Proposed |
+| 2026-11-04 | Reviews: signed-in customers, one per product, all moderated before publication (owner/admin), never refused for being negative (the terms promise it); "Compra verificada" from a paid order; review structured data only when approved reviews exist; a Firestore failure on a product page shows "avaliações indisponíveis" (logged) instead of breaking the page | Proposed |
+| 2026-11-04 | Cookie consent: the store uses only essential cookies and browser storage, so the notice informs without blocking the page; analytics/marketing stay off unless the visitor turns them on in "Preferências de cookies" (footer); any future analytics or advertising tool must check `hasConsent()` (`app/lib/consent.ts`) before loading; the choice is stored in `li.consent.v1` with a version, and raising `CONSENT_VERSION` asks everyone again | Proposed |
+| 2026-11-04 | Mail sender: only a refused recipient or content counts against an e-mail; login, sender and connection errors (Brevo answers 5xx at login, e.g. 525 for an IP it doesn't authorize) put the e-mail back without using an attempt and stop the run, so a misconfiguration delays e-mails (up to 72 h) instead of failing them all for good. Found by the first live send | Owner (approved the fix) |
+| 2026-11-04 | Production `SITE_URL` = `https://lojaiyanifa.com.br`: canonical URLs, sitemap, robots.txt and e-mail links name the store's own domain, the one its e-mails come from; `lojaiyanifa.web.app` keeps serving the same site (the same-origin check compares with the forwarded host, so forms work on both) | Owner |

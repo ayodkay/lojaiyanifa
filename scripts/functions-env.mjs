@@ -28,6 +28,7 @@ const FORBIDDEN = {
   GOOGLE_APPLICATION_CREDENTIALS: "a local key file; Cloud Functions provides the credentials",
   PRISMIC_WRITE_TOKEN: "a secret; use Secret Manager (firebase functions:secrets:set) if the server ever needs it",
   PRISMIC_ACCESS_TOKEN: "a secret; use Secret Manager (firebase functions:secrets:set) if the Content API becomes private",
+  SMTP_PASSWORD: "a secret (the Brevo SMTP key); use Secret Manager: firebase functions:secrets:set SMTP_PASSWORD --project prod",
 };
 
 /** Prefixes the Firebase CLI refuses in a function's environment (firebase-tools lib/functions/env.js). */

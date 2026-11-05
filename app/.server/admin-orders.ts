@@ -20,7 +20,9 @@ import type { OrderStatus } from "~/lib/orders";
 import { type SystemActor, writeAuditInTransaction } from "./audit";
 import { db } from "./firebase";
 import { inventoryRef, skuDocId } from "./inventory";
+import { queueMailInTransaction } from "./mail/outbox";
 import { fulfillmentOf, iso, notesOf, refundedCentsOf, refundsOf } from "./order-doc";
+import { readOrderPromotions, releaseRedemptions } from "./promotions";
 import type { AdminUser } from "./session";
 
 export class OrderNotFoundError extends Error {
@@ -190,6 +192,8 @@ async function settleInTransaction(number: number, settlement: Settlement, now: 
     if (settlement.kind === "expired" && (order.expiresAt as Timestamp).toMillis() > now.getTime()) throw new OrderNotExpiredError(number);
     const reservations = reservationsOf(number, order);
     const stock = reservations.length > 0 ? await tx.getAll(...reservations.map((r) => inventoryRef(r.sku))) : [];
+    // A cancelled unpaid order gives back the coupon uses it took (app/.server/promotions.ts).
+    const usedPromotions = settlement.kind === "paid" ? [] : await readOrderPromotions(tx, order);
 
     const sold = settlement.kind === "paid";
     const stockWrites = reservations.map((r, i) => {
@@ -212,6 +216,7 @@ async function settleInTransaction(number: number, settlement: Settlement, now: 
     const cancel = settlement.kind === "cancelled" ? settlement.form : settlement.kind === "expired" ? EXPIRED : null;
     const status: OrderStatus = cancel ? "cancelled" : "paid";
     for (const w of stockWrites) tx.update(w.ref, { onHand: w.onHand, reserved: w.reserved, updatedAt: ts });
+    releaseRedemptions(tx, usedPromotions, now);
     const timeline = [...(order.timeline as unknown[]), { at: ts, status, by: admin ? "admin" : "system", actor, note: cancel?.note ?? null }];
     if (cancel) {
       tx.update(ref, { status, updatedAt: ts, timeline, cancellation: { at: ts, reason: cancel.reason, note: cancel.note, by: actor } });
@@ -226,6 +231,13 @@ async function settleInTransaction(number: number, settlement: Settlement, now: 
         target: `orders/${number}`,
         details: cancel ? { reason: cancel.reason, note: cancel.note } : { amountCents: order.payment.amountCents, txid: order.payment.txid },
       },
+      now,
+    );
+    queueMailInTransaction(
+      tx,
+      cancel
+        ? { template: "order_cancelled", to: order.customer.email, orderNumber: number, data: { expired: settlement.kind === "expired" } }
+        : { template: "payment_confirmed", to: order.customer.email, orderNumber: number, data: {} },
       now,
     );
   });

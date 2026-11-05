@@ -478,6 +478,8 @@ function Delivery({ order, allowed, busy, result }: { order: AdminOrderView; all
         </h2>
         <p>
           {shipping.label} · {shipping.priceCents === 0 ? "sem custo" : formatBRL(shipping.priceCents)}
+          {/* Free shipping by a promotion: the customer paid nothing for delivery (totals.shippingCents). */}
+          {shipping.priceCents > 0 && order.totals.shippingCents === 0 && <> · cliente não pagou (frete grátis por promoção)</>}
         </p>
         {shipping.address && (
           <address className="not-italic">

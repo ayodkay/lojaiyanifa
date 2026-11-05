@@ -41,7 +41,7 @@ const input = (overrides: Partial<CheckoutInput> = {}): CheckoutInput => ({
   cpf: "52998224725",
   shippingMethod: "flat_rate",
   address: { cep: "21360201", street: "Estrada do Portela", number: "99", complement: null, neighborhood: "Madureira", city: "Rio de Janeiro", state: "RJ" },
-  acceptTerms: true,
+  acceptTerms: true, couponCode: null,
   items: [{ productId: "colar", sku: "COLAR-1", quantity: 2 }],
   ...overrides,
 });

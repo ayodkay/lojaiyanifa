@@ -53,6 +53,36 @@ function AdminShell({ user, children }: { user: AdminUser | null; children: Reac
                   Pedidos
                 </NavLink>
               </li>
+              {user && can(user.role, "support.view") && (
+                <li>
+                  <NavLink
+                    to="/admin/support"
+                    className={({ isActive }) => cx("border-b-2 py-1", isActive ? "border-ink font-medium" : "border-transparent text-muted hover:text-ink")}
+                  >
+                    Atendimento
+                  </NavLink>
+                </li>
+              )}
+              {user && can(user.role, "reviews.moderate") && (
+                <li>
+                  <NavLink
+                    to="/admin/reviews"
+                    className={({ isActive }) => cx("border-b-2 py-1", isActive ? "border-ink font-medium" : "border-transparent text-muted hover:text-ink")}
+                  >
+                    Avaliações
+                  </NavLink>
+                </li>
+              )}
+              {user && can(user.role, "discounts.manage") && (
+                <li>
+                  <NavLink
+                    to="/admin/discounts"
+                    className={({ isActive }) => cx("border-b-2 py-1", isActive ? "border-ink font-medium" : "border-transparent text-muted hover:text-ink")}
+                  >
+                    Descontos
+                  </NavLink>
+                </li>
+              )}
               {user && can(user.role, "settings.view") && (
                 <li>
                   <NavLink

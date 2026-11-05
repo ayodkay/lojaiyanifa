@@ -2,6 +2,7 @@ import { Outlet } from "react-router";
 
 import { env } from "~/.server/env";
 import { getContent } from "~/.server/prismic";
+import { ConsentManager } from "~/components/consent";
 import { Footer, WhatsAppButton } from "~/components/footer";
 import { Header } from "~/components/header";
 import { buildShell } from "~/lib/shell";
@@ -28,6 +29,7 @@ export default function StoreLayout({ loaderData }: Route.ComponentProps) {
       </main>
       <Footer shell={shell} />
       <WhatsAppButton shell={shell} />
+      <ConsentManager />
     </div>
   );
 }

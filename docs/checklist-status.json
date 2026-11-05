@@ -17,12 +17,12 @@
       "note": "localStorage count, \"1 item\"/\"N itens\" label (verified 2026-11-01 with Búzios/Alaká)"
     },
     "Account / login icon": {
-      "status": "todo",
-      "note": "_icon present_; /account not built yet"
+      "status": "done",
+      "note": "header icon → /account; signed out, the account gate sends it to /login (verified 2026-11-04 on a dev stack)"
     },
     "Wishlist icon": {
-      "status": "todo",
-      "note": "_icon + counter present_; /wishlist not built yet"
+      "status": "done",
+      "note": "header icon + counter → /wishlist (verified 2026-11-04 on a dev stack)"
     },
     "Hero banner with promotional message": {
       "status": "todo",
@@ -62,7 +62,7 @@
     },
     "Customer reviews or testimonials": {
       "status": "todo",
-      "note": "_testimonials implemented_ (Prismic, real customers only); reviews pending"
+      "note": "_reviews on product pages built 2026-11-04_ (moderated, verified on a dev stack); the homepage's testimonials come from Prismic (real customers only) and need content"
     },
     "Newsletter subscription": {
       "status": "todo",
@@ -74,7 +74,7 @@
     },
     "Footer with important links": {
       "status": "todo",
-      "note": "_rendered_; the target pages (/about, /privacy…) are routes that return 404 until their Prismic pages are published"
+      "note": "_rendered_; the texts of /about, /privacy, /terms, /cookies, /shipping, /returns, /warranty and /faq were written and placed in Prismic's Migration Release on 2026-11-04 (content/prismic/); the links stop returning 404 when the owner publishes that release"
     },
     "Recently viewed products": {
       "status": "todo",
@@ -216,8 +216,8 @@
       "note": "_implemented_; checkout exists since session 2 (verified there on the dev server); this button's path to checkout not verified in a browser"
     },
     "Add to wishlist": {
-      "status": "todo",
-      "note": "_implemented_ (localStorage); /wishlist page pending"
+      "status": "done",
+      "note": "heart on product pages/cards (localStorage); /wishlist lists them and, signed in, syncs with the account (verified 2026-11-04 on a dev stack)"
     },
     "Shipping cost calculator": {
       "status": "todo",
@@ -244,8 +244,8 @@
       "note": "_implemented_; needs content"
     },
     "Product reviews and ratings": {
-      "status": "todo",
-      "note": "pending"
+      "status": "done",
+      "note": "average, distribution and the approved reviews on the product page, written at /products/:uid/review by signed-in customers (verified 2026-11-04: Chrome on a dev stack + integration)"
     },
     "Customer questions and answers": {
       "status": "todo",
@@ -269,11 +269,11 @@
     },
     "Return policy information": {
       "status": "todo",
-      "note": "_implemented_ (product notes or store summary); needs content"
+      "note": "_implemented_ (product notes or store summary); the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)"
     },
     "Warranty information": {
       "status": "todo",
-      "note": "_implemented_; needs content"
+      "note": "_implemented_; the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)"
     }
   },
   "4": {
@@ -367,12 +367,12 @@
       "note": "server-computed, unit-tested (verified 2026-11-01 with Búzios/Alaká)"
     },
     "Calculate discounts": {
-      "status": "todo",
-      "note": "compare-at savings computed (unit-tested); coupons/automatic promotions pending (§11)"
+      "status": "done",
+      "note": "compare-at savings plus coupons and automatic promotions, previewed by /api/cart/quote with the order's own engine (app/lib/discounts.ts; verified 2026-11-04: Chrome on a dev stack + unit)"
     },
     "Apply coupon codes": {
-      "status": "todo",
-      "note": "pending (§11 discount engine)"
+      "status": "done",
+      "note": "coupon box in the cart (kept for the checkout), status message (applied / beaten by a better promotion / refused with the reason), remove (verified 2026-11-04: Chrome on a dev stack)"
     },
     "Calculate shipping": {
       "status": "todo",
@@ -417,8 +417,8 @@
       "note": "no account needed; order 1001/1002 placed as guest (verified 2026-11-01 (browser + live action on the dev server))"
     },
     "Customer login during checkout": {
-      "status": "todo",
-      "note": "pending (customer accounts / auth)"
+      "status": "done",
+      "note": "\"Já tem conta? Entrar\" → /login?redirectTo=/checkout; signed in, name/e-mail/phone/CPF and the default saved address are filled in, another saved address can be picked, and the order is linked to the account (verified 2026-11-04: Chrome on a dev stack, order 1001 with customer.uid)"
     },
     "Contact information": {
       "status": "done",
@@ -461,8 +461,8 @@
       "note": "pickup: handling days shown; flat rate: needs the owner's transit days (shows \"prazo informado no envio\")"
     },
     "Coupon application": {
-      "status": "todo",
-      "note": "pending (§11)"
+      "status": "done",
+      "note": "the order transaction decides with the buyer known; a refused coupon stops the order with the reason and a \"continuar sem o cupom\" button (verified 2026-11-04: Chrome — first-purchase coupon refused for a CPF that had bought, accepted for a new one — + integration)"
     },
     "Order summary": {
       "status": "done",
@@ -478,11 +478,11 @@
     },
     "Terms and conditions acceptance": {
       "status": "todo",
-      "note": "_checkbox required and enforced server-side_; /terms page content pending in Prismic (link 404s until published)"
+      "note": "_checkbox required and enforced server-side_; the terms text is in Prismic's Migration Release (2026-11-04): /terms goes live when the owner publishes it"
     },
     "Privacy policy acceptance where required": {
       "status": "todo",
-      "note": "_same checkbox_; /privacy content pending in Prismic (legal review)"
+      "note": "_same checkbox_; the privacy policy text is in Prismic's Migration Release (2026-11-04): /privacy goes live when the owner publishes it"
     },
     "Place order button": {
       "status": "done",
@@ -494,7 +494,7 @@
     },
     "Payment confirmation": {
       "status": "todo",
-      "note": "the admin confirms a Pix payment by hand (built and verified on the dev server, session 3: reservation → sale, stock as computed); the customer's order page after a confirmation not verified; no confirmation e-mail (transactional e-mails not built); not exercised in production (checkout closed)"
+      "note": "the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; the payment-confirmed e-mail is built, integration-tested and deployed (2026-11-05) but none has gone out from production yet; not exercised in production"
     },
     "Error handling": {
       "status": "done",
@@ -567,6 +567,92 @@
       "note": "any amount up to what remains; the order becomes \"Reembolsado parcialmente\" and shipping goes on (owner decision 2026-11-02); partial refunds add up to a full one, which ends the order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
     }
   },
+  "8": {
+    "Customer registration": {
+      "status": "done",
+      "note": "/register: name, e-mail, phone, CPF (owner decision), password, terms + optional marketing consent; checked in the browser with the server's schema before the Firebase sign-in is created (a rejected form creates no account), profile + consents saved, verification and welcome e-mails (verified 2026-11-04: Chrome on a dev stack + integration)"
+    },
+    "Login": {
+      "status": "done",
+      "note": "/login → 14-day HttpOnly session cookie, redirectTo kept; wrong/old password refused (verified 2026-11-04: Chrome + HTTP + integration)"
+    },
+    "Logout": {
+      "status": "done",
+      "note": "POST /logout revokes every session of the account (verified 2026-11-04: Chrome + integration)"
+    },
+    "Password recovery": {
+      "status": "done",
+      "note": "/forgot-password: Firebase's reset e-mail; same message for unknown e-mails (verified 2026-11-04: Chrome; the emulator generated the reset only for the existing account)"
+    },
+    "Email verification": {
+      "status": "done",
+      "note": "Firebase sends the verification e-mail at registration (continue URL /account) and again from Senha e acesso; verifying makes guest orders with the same e-mail appear (verified 2026-11-04: emulator recorded the e-mail; linking integration-tested). Clicking the link itself was not tried in a browser"
+    },
+    "Phone verification (optional)": {
+      "status": "na",
+      "note": "SMS sign-in is off in the project (owner decision 2026-11-03); phones are format-checked and the store answers by WhatsApp"
+    },
+    "Profile management": {
+      "status": "done",
+      "note": "/account/profile: name, phone, CPF, marketing consent (each change recorded with time and source); e-mail changes via support (verified 2026-11-04: Chrome + integration)"
+    },
+    "Change password": {
+      "status": "done",
+      "note": "/account/security: current password typed again; Firebase revokes every session and the new ID token re-signs this browser in through /login (verified 2026-11-04: Chrome — wrong current password refused, old password refused afterwards)"
+    },
+    "Address book": {
+      "status": "done",
+      "note": "/account/addresses: add/edit/delete with ViaCEP fill, one default (verified 2026-11-04: Chrome + integration)"
+    },
+    "Multiple saved addresses": {
+      "status": "done",
+      "note": "up to 10, default moves when the default is deleted; checkout offers them (integration + Chrome 2026-11-04)"
+    },
+    "Order history": {
+      "status": "done",
+      "note": "/account/orders: placed signed in, plus guest orders with the verified e-mail (verified 2026-11-04: Chrome + integration)"
+    },
+    "Order details": {
+      "status": "done",
+      "note": "/account/orders/:number: the same view as the guest page (shared app/components/order-view.tsx), Pix code while unpaid; another customer's order → 404 (verified 2026-11-04: Chrome + integration)"
+    },
+    "Order tracking": {
+      "status": "done",
+      "note": "progress steps, carrier, tracking code and link on the order page (shared view; tracking verified on the guest page in session 4)"
+    },
+    "Wishlist": {
+      "status": "done",
+      "note": "/wishlist for guests (browser) and accounts (wishlists/{uid}, three-way merge so removals stick; verified 2026-11-04: Chrome + unit)"
+    },
+    "Saved payment methods (secure tokenization)": {
+      "status": "na",
+      "note": "Pix only (owner decision 2026-10-31): there is no card or payment credential to store"
+    },
+    "Return requests": {
+      "status": "done",
+      "note": "order pages link \"Pedir troca, devolução ou desistência\" → the contact form with the order and the topic filled in; reason + preferred outcome + items; the ticket arrives in /admin/support with the request's details; immediate confirmation (verified 2026-11-04: Chrome on a dev stack + integration)"
+    },
+    "Refund history": {
+      "status": "done",
+      "note": "each order's refunds (amount, date) on its page in Minha conta (shared view; refunds verified on the guest page in session 4)"
+    },
+    "Downloadable invoices": {
+      "status": "todo",
+      "note": "**blocked**: invoices in Brazil are NF-e, which needs the owner's/accountant's issuing setup; not invented"
+    },
+    "Notification preferences": {
+      "status": "done",
+      "note": "marketing e-mail consent on the profile (off unless ticked; history kept); order e-mails always go (verified 2026-11-04: Chrome + integration)"
+    },
+    "Account deletion": {
+      "status": "done",
+      "note": "/account/privacy: password typed again → profile, addresses, wishlist and the sign-in deleted; orders kept (legal retention); audited by UID (verified 2026-11-04: Chrome + integration)"
+    },
+    "Privacy settings": {
+      "status": "done",
+      "note": "/account/privacy: data download (JSON, audited), consents, deletion (verified 2026-11-04: Chrome + HTTP + integration)"
+    }
+  },
   "9": {
     "Unique order number": {
       "status": "done",
@@ -578,7 +664,7 @@
     },
     "Order confirmation": {
       "status": "done",
-      "note": "confirmation page; e-mail pending (§15)"
+      "note": "confirmation page; order e-mail built, integration-tested, sent through Brevo from a dev machine (2026-11-04, received) and deployed 2026-11-05 (sendMailOutbox)"
     },
     "Order status": {
       "status": "done",
@@ -623,6 +709,18 @@
     "Order notes": {
       "status": "done",
       "note": "internal notes on each order: team only, never on the customer page, can't be edited or deleted, max 200 per order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)"
+    },
+    "Order notifications": {
+      "status": "todo",
+      "note": "_built and integration-tested 2026-11-04, deployed 2026-11-05_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail). Order placed + store notice went through Brevo from a dev machine (received); none sent from production yet (Brevo accepts only authorized IPs unless the owner turned that off; the sendmailoutbox log shows it)"
+    },
+    "Return management": {
+      "status": "todo",
+      "note": "_partial_: return requests arrive as tickets (reason, preference, items; withdrawals flagged) and refunds are recorded on the order (§7); no return status tracking or reverse-shipping labels"
+    },
+    "Exchange management": {
+      "status": "todo",
+      "note": "_partial_: exchange requests arrive as tickets (preference \"troca\"); the exchange itself is handled by hand (no exchange order flow)"
     }
   },
   "10": {
@@ -677,6 +775,130 @@
     "Tracking integration": {
       "status": "todo",
       "note": "_manual tracking built_: carrier + code + link typed by the team and shown to the customer (2026-11-02); carrier API tracking waits for Melhor Envio"
+    },
+    "Delivery notifications": {
+      "status": "todo",
+      "note": "_built and integration-tested 2026-11-04, deployed 2026-11-05_ (shipped, ready for pickup, delivered, tracking changed); none sent from production yet"
+    }
+  },
+  "11": {
+    "Coupon codes": {
+      "status": "done",
+      "note": "/admin/discounts (owner/admin): codes are unique (they are the document ID), normalized to uppercase (verified 2026-11-04: Chrome on a dev stack + integration)"
+    },
+    "Percentage discounts": {
+      "status": "done",
+      "note": "1–99% of the eligible products (verified 2026-11-04: Chrome + unit + integration)"
+    },
+    "Fixed-value discounts": {
+      "status": "done",
+      "note": "R$ off the eligible products, never more than they cost (unit-tested 2026-11-04)"
+    },
+    "Automatic discounts": {
+      "status": "done",
+      "note": "promotions without a code apply by themselves; the best one wins over a smaller coupon (verified 2026-11-04: Chrome + integration)"
+    },
+    "Buy one, get one promotions": {
+      "status": "done",
+      "note": "\"leve X, ganhe Y\": the cheapest units of each group are free (unit-tested 2026-11-04)"
+    },
+    "Free shipping promotions": {
+      "status": "done",
+      "note": "free shipping (automatic or coupon), combinable with a products discount; the order charges R$ 0 for delivery (verified 2026-11-04: Chrome + integration)"
+    },
+    "Flash sales": {
+      "status": "done",
+      "note": "automatic promotions with start and end (Brasília time) (unit-tested 2026-11-04); no countdown on product pages"
+    },
+    "Limited-time offers": {
+      "status": "done",
+      "note": "any promotion or coupon can have a start and an end (unit-tested 2026-11-04)"
+    },
+    "Product bundles": {
+      "status": "done",
+      "note": "a promotion on chosen products marked \"kit\" applies only when all of them are in the cart (unit-tested 2026-11-04)"
+    },
+    "Category discounts": {
+      "status": "done",
+      "note": "scope by category, subcategories included (unit-tested 2026-11-04); needs categories in Prismic to be used"
+    },
+    "First-order discounts": {
+      "status": "done",
+      "note": "\"só na primeira compra\", checked against earlier non-cancelled orders by e-mail or CPF (verified 2026-11-04: Chrome + integration)"
+    },
+    "Minimum purchase requirements": {
+      "status": "done",
+      "note": "minimum subtotal (verified 2026-11-04: Chrome — free shipping above R$ 100 — + unit)"
+    },
+    "Customer-specific discounts": {
+      "status": "done",
+      "note": "a list of e-mails allowed to use a promotion (unit-tested 2026-11-04)"
+    },
+    "Loyalty rewards": {
+      "status": "todo",
+      "note": "not built: needs a points ledger and the owner's rules"
+    },
+    "Referral discounts": {
+      "status": "todo",
+      "note": "not built: needs referral links/codes per customer and the owner's rules"
+    },
+    "Gift cards": {
+      "status": "todo",
+      "note": "not built: needs selling the cards (Pix), balances spent across orders, and the owner's rules on validity (some states regulate it)"
+    },
+    "Discount usage limits": {
+      "status": "done",
+      "note": "total uses (a counter in the transaction: two simultaneous buyers can't both take the last use, race-tested 6×) and uses per customer; an unpaid order cancelled by the store or the expiry job gives its use back (verified 2026-11-04: integration + Chrome)"
+    },
+    "Promotion scheduling": {
+      "status": "done",
+      "note": "start/end per promotion, in Brasília time (unit-tested 2026-11-04)"
+    }
+  },
+  "12": {
+    "Product ratings": {
+      "status": "done",
+      "note": "1–5 stars per review; average and distribution per product (verified 2026-11-04: Chrome + integration)"
+    },
+    "Written reviews": {
+      "status": "done",
+      "note": "title, text, display name; one per customer and product, editable (back to moderation) (verified 2026-11-04: Chrome + integration)"
+    },
+    "Verified purchase badges": {
+      "status": "done",
+      "note": "\"Compra verificada\" when the customer has a paid order with the product (integration: a pending order doesn't count, a confirmed one does; Chrome showed the unverified case)"
+    },
+    "Customer photos": {
+      "status": "todo",
+      "note": "**blocked**: needs a Cloud Storage bucket for the project and an upload path that checks the files and strips their metadata (GPS); not improvised"
+    },
+    "Customer videos": {
+      "status": "done",
+      "note": "a YouTube or Vimeo link, shown after approval with youtube-nocookie / Vimeo dnt (verified 2026-11-04 on a dev stack)"
+    },
+    "Review moderation": {
+      "status": "done",
+      "note": "/admin/reviews (owner/admin): publish, refuse with a reason the customer sees, delete, answer publicly; audited; stats change in the same transaction (verified 2026-11-04: Chrome + integration)"
+    },
+    "Review reporting": {
+      "status": "done",
+      "note": "\"Denunciar\" with a reason, once per customer; \"Denunciadas\" tab (verified 2026-11-04: Chrome + integration)"
+    },
+    "Review sorting": {
+      "status": "done",
+      "note": "most helpful, newest, highest, lowest (unit-tested; rendered 2026-11-04)"
+    },
+    "Helpful review voting": {
+      "status": "done",
+      "note": "\"Útil\", once per signed-in customer, never on one's own review (verified 2026-11-04: Chrome + integration)"
+    },
+    "Average rating calculation": {
+      "status": "done",
+      "note": "productStats (count, sum, distribution) of approved reviews, updated transactionally on approve/refuse/delete/edit and on account deletion (integration 2026-11-04)"
+    },
+    "Trust indicators": {
+      "status": "done",
+      "note": "stars, review count and \"Compra verificada\" on product pages (2026-11-04), plus the factual trust strip (Pix, secure checkout, support channel)"
     }
   },
   "13": {
@@ -686,11 +908,11 @@
     },
     "Frequently asked questions": {
       "status": "todo",
-      "note": "_implemented_ (/faq + FAQPage JSON-LD); needs the Prismic FAQ document"
+      "note": "_implemented_ (/faq + FAQPage JSON-LD); 24 questions written (content/prismic/faq.md) and placed in Prismic's Migration Release 2026-11-04: live when the owner publishes it"
     },
     "Help center": {
       "status": "todo",
-      "note": "_FAQ by topic implemented_; needs content"
+      "note": "_FAQ by topic implemented_; its 24 answers and the policy pages are in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "Business hours": {
       "status": "todo",
@@ -699,6 +921,46 @@
     "WhatsApp integration (particularly useful in Brazil)": {
       "status": "todo",
       "note": "_implemented_ (floating button, contact page, product sharing); needs the number in Prismic settings to verify"
+    },
+    "Contact form": {
+      "status": "done",
+      "note": "/contact: name, e-mail, optional phone and order, topic, message (+ reason/preference for returns); opens ticket nº … shown at once; honeypot, fill time and hourly limits (verified 2026-11-04: Chrome on a dev stack + unit + integration)"
+    },
+    "Support email": {
+      "status": "todo",
+      "note": "_implemented_: the Prismic support e-mail is shown on /contact and the footer, and is the reply-to of the store's e-mails and the inbox for new-message notices (unless MAIL_STORE_TO is set); needs the address in Prismic settings"
+    },
+    "Phone support (if offered)": {
+      "status": "todo",
+      "note": "_implemented_ (Prismic settings → /contact and footer); needs the owner's decision and number"
+    },
+    "Live chat": {
+      "status": "todo",
+      "note": "not built: WhatsApp (floating button) is the live channel today; a chat widget would add a third-party script and cookies (privacy and cookie policies, consent) — owner decision"
+    },
+    "Order support": {
+      "status": "done",
+      "note": "\"Precisa de ajuda com este pedido?\" on every order page → contact form with the order number; the admin ticket links the order (verified 2026-11-04 on a dev stack)"
+    },
+    "Return and refund support": {
+      "status": "done",
+      "note": "return requests with reason and preference; a withdrawal gets the confirmation required by Decreto 7.962 art. 5 §4 in the automatic e-mail; the team records refunds on the order (verified 2026-11-04: Chrome + integration)"
+    },
+    "Shipping support": {
+      "status": "done",
+      "note": "topic \"Entrega\" in the contact form; tracking on the order page (verified 2026-11-04 on a dev stack)"
+    },
+    "Complaint management": {
+      "status": "done",
+      "note": "topic \"Reclamação\" in the contact form → ticket handled in /admin/support (verified 2026-11-04 on a dev stack); tickets waiting more than 5 days for an answer are flagged in the list (Decreto 7.962 art. 4, parágrafo único) — that flag has no test yet"
+    },
+    "Support ticket system": {
+      "status": "done",
+      "note": "/admin/support (tabs by status with counts, thread, reply by e-mail, close/reopen, audited; owner/admin/staff) and /account/support for customers (verified 2026-11-04: Chrome on a dev stack + 8 integration tests)"
+    },
+    "Automated responses": {
+      "status": "todo",
+      "note": "_built 2026-11-04, deployed 2026-11-05_: the protocol number on screen at once (verified) and an automatic confirmation e-mail queued in the same transaction (integration-tested); none sent from production yet"
     }
   },
   "14": {
@@ -755,6 +1017,12 @@
       "note": "_built 2026-11-03_: /admin/settings — preparation days, flat rate (on/off, label, price, optional transit days) and pickup (on/off, label, address, instructions); turning both off is refused while checkout is open; verified on a dev stack (unit, integration, mutations, browser); deployed 2026-11-03"
     }
   },
+  "15": {
+    "Order confirmation emails": {
+      "status": "todo",
+      "note": "_built and integration-tested 2026-11-04_: pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; sent for real from a dev machine (2026-11-04, received); deployed 2026-11-05, not yet seen from production"
+    }
+  },
   "16": {
     "SEO-friendly URLs": {
       "status": "done"
@@ -796,8 +1064,8 @@
       "note": "Offer/AggregateOffer only when a price exists (verified)"
     },
     "Review structured data": {
-      "status": "todo",
-      "note": "pending (with reviews)"
+      "status": "done",
+      "note": "AggregateRating + up to 5 Review on the Product JSON-LD, only when approved reviews exist (verified 2026-11-04 on a dev stack)"
     },
     "Breadcrumb structured data": {
       "status": "done"
@@ -829,8 +1097,8 @@
       "note": "same-origin check on every non-GET request (verified live: cross-site / foreign Origin → 403); SameSite=Lax session cookie with auth"
     },
     "Secure authentication": {
-      "status": "todo",
-      "note": "_admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending"
+      "status": "done",
+      "note": "admin (2026-11-02, TOTP in production 2026-11-04) and customers (2026-11-04): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax) minted only from a sign-in < 5 min old, revocation checked on every request"
     },
     "Two-factor authentication for administrators": {
       "status": "done",
@@ -845,12 +1113,20 @@
       "note": "auditLogs: admin sign-in/out, Pix confirmations, cancellations (admin and the expiry job as a system actor), fulfilment, tracking, notes, refunds, role changes, 2FA resets; order changes and their entries are written in one transaction (integration-tested 2026-11-02)"
     },
     "Session management": {
-      "status": "todo",
-      "note": "_admin done_: 12-hour admin sessions; Sair revokes every session of the account; role changes revoke; dead cookies cleared (verified 2026-11-02). Customer sessions pending"
+      "status": "done",
+      "note": "admin 12 h, customers 14 days; signing out revokes every session of the account; role and password changes revoke; dead cookies cleared (integration + Chrome 2026-11-02 / 2026-11-04)"
     },
     "Account lockout policies": {
       "status": "todo",
       "note": "Firebase Auth throttles repeated failed sign-ins (auth/too-many-requests; message mapped on /admin/login, not triggered in tests)"
+    },
+    "Secure password hashing": {
+      "status": "done",
+      "note": "passwords never reach our server; Firebase Authentication stores them hashed (its scrypt variant)"
+    },
+    "Spam protection": {
+      "status": "todo",
+      "note": "_partial_: contact form honeypot, browser-measured fill time (≥ 3 s) and hourly limits per hashed IP / e-mail / store (unit + integration + Chrome 2026-11-04); Cloudflare Turnstile needs the owner's keys"
     }
   },
   "18": {
@@ -861,6 +1137,58 @@
     "Contact information": {
       "status": "todo",
       "note": "_implemented_; needs owner data in Prismic settings"
+    },
+    "Privacy policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/privacy.md: controller, data per situation, the sensitive-data clause for religious items, LGPD bases, processors, transfers, retention, rights, ANPD) and placed in Prismic's Migration Release; /privacy goes live when the owner publishes it — lawyer review recommended"
+    },
+    "Terms and conditions": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/terms.md) and placed in Prismic's Migration Release; /terms goes live when the owner publishes it — lawyer review recommended"
+    },
+    "Cookie policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ and published by the owner the same day; the updated version (the browser keys this release adds and the preferences link) is in Prismic's Migration Release since 2026-11-05, sent after the deploy: the owner publishes it"
+    },
+    "Return and refund policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/returns.md: CDC art. 49 withdrawal with return shipping paid by the store, arts. 18/26 defects, exchanges, Pix refunds) and placed in Prismic's Migration Release; live when the owner publishes it"
+    },
+    "Shipping policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/shipping.md) and placed in Prismic's Migration Release; live when the owner publishes it"
+    },
+    "Warranty policy": {
+      "status": "todo",
+      "note": "_text written 2026-11-04_ (content/prismic/pages/warranty.md: legal warranty 30/90 days, what isn't a defect, how to claim) and placed in Prismic's Migration Release; live when the owner publishes it"
+    },
+    "Data access and deletion requests": {
+      "status": "done",
+      "note": "account holders: download their data (JSON) and delete the account in /account/privacy; anyone: the contact form's topic \"Privacidade e dados pessoais\" (verified 2026-11-04 on a dev stack)"
+    },
+    "Consent management": {
+      "status": "done",
+      "note": "terms acceptance (checkout, registration), marketing e-mail consent with time/source/history, cookie choices; account holders change them in Minha conta (verified 2026-11-04 on a dev stack + integration)"
+    },
+    "Cookie consent management": {
+      "status": "done",
+      "note": "a non-blocking notice that says only essential cookies/storage are used, a \"Preferências de cookies\" dialog (footer link) with analytics/marketing off unless chosen, and hasConsent() for any future tool (verified 2026-11-04: Chrome on a dev stack + unit). Nothing non-essential runs today"
+    },
+    "LGPD compliance (Brazil)": {
+      "status": "todo",
+      "note": "_in place_: privacy policy (bases, sensitive-data clause for religious items, processors, rights), data export/deletion, consent records, privacy channel; _open_: lawyer review, Cloud Logging retention ≥ 6 months for access logs (Marco Civil art. 15), confirming the small-agent status / naming a DPO, processors' contracts (Google, Cloudflare, Brevo)"
+    },
+    "GDPR compliance (if applicable)": {
+      "status": "na",
+      "note": "the store sells only in Brazil (prices in BRL, Brazilian CPF and CEP required) and doesn't target people in the EU"
+    },
+    "Consumer protection disclosures": {
+      "status": "todo",
+      "note": "_in place_: withdrawal (CDC art. 49) explained in the returns policy, the contact form and the confirmation e-mail; answers within 5 days and immediate confirmation of requests (Decreto 7.962); delivery cost shown before ordering; Procon and CDC references in the terms. _Open_: the owner's company data in Prismic settings (name, CNPJ/CPF, address — Decreto 7.962 art. 2) and publishing the texts"
+    },
+    "Clear pricing and shipping disclosures": {
+      "status": "done",
+      "note": "prices in R$; delivery cost and every discount itemized in the cart/checkout summary before the order (Decreto 7.962 art. 2 IV); shipping policy text in the release (verified 2026-11-04 on a dev stack)"
     }
   },
   "19": {
@@ -880,6 +1208,12 @@
     },
     "Proper heading hierarchy": {
       "status": "done"
+    }
+  },
+  "22": {
+    "Email service": {
+      "status": "todo",
+      "note": "_Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested; a refused login or connection keeps e-mails waiting instead of failing them). The owner's Brevo account, sender domain (DKIM, DMARC), settings and the SMTP_PASSWORD secret are in place; sendMailOutbox deployed 2026-11-05; e-mails went through Brevo from the owner's machine (IP authorized). Production not proven yet: Brevo accepts only authorized IPs unless the owner turned that off, and Cloud Functions have no fixed IP; the first real e-mail shows [mail] sent or SMTP refused in the sendmailoutbox log"
     }
   },
   "23": {
@@ -909,34 +1243,34 @@
     },
     "`/about`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"about\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_ (Prismic page uid \"about\"); a factual draft is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/shipping`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"shipping\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/returns`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"returns\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/privacy`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"privacy\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/terms`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"terms\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/cookies`": {
       "status": "todo",
-      "note": "_route implemented_ (Prismic page uid \"cookies\"); returns 404 until the owner publishes it"
+      "note": "_route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/contact`": {
       "status": "done"
     },
     "`/faq`": {
       "status": "todo",
-      "note": "_route implemented_; needs the Prismic FAQ document"
+      "note": "_route implemented_; the FAQ (24 questions) is in Prismic's Migration Release (2026-11-04), live when the owner publishes it"
     },
     "`/cart`": {
       "status": "done",
@@ -961,6 +1295,30 @@
     "`/admin/settings`": {
       "status": "done",
       "note": "_built 2026-11-03_: Pix payment, delivery methods and the checkout open/close switch; verified on a dev stack (unit, integration, mutations, browser); deployed 2026-11-03"
+    },
+    "`/account`": {
+      "status": "done",
+      "note": "overview + orders, profile, addresses, security, privacy (verified 2026-11-04 on a dev stack)"
+    },
+    "`/login`": {
+      "status": "done",
+      "note": "verified 2026-11-04 on a dev stack"
+    },
+    "`/register`": {
+      "status": "done",
+      "note": "verified 2026-11-04 on a dev stack"
+    },
+    "`/orders`": {
+      "status": "done",
+      "note": "301 → /account/orders (footer \"Meus pedidos\")"
+    },
+    "`/wishlist`": {
+      "status": "done",
+      "note": "verified 2026-11-04 on a dev stack"
+    },
+    "`/admin/discounts`": {
+      "status": "done",
+      "note": "list (value, uses, state) + create/edit form (verified 2026-11-04 on a dev stack)"
     }
   },
   "24": {
@@ -974,6 +1332,26 @@
     "Refund and return system": {
       "status": "todo",
       "note": "_refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built"
+    },
+    "Transactional emails": {
+      "status": "todo",
+      "note": "_built 2026-11-04, deployed 2026-11-05_ (Brevo SMTP outbox: 9 order e-mails and the support e-mails; secret set); sent for real from a dev machine; none from production yet (Brevo IP restriction to confirm)"
+    },
+    "Legal pages and compliance": {
+      "status": "todo",
+      "note": "texts in Prismic's Migration Release (2026-11-04); cookie consent, data requests and accounts' privacy tools in progress"
+    },
+    "Customer authentication": {
+      "status": "done",
+      "note": "built and verified 2026-11-04 on a dev stack; deployed 2026-11-05 (/register, /login, /forgot-password answer on both hosts)"
+    },
+    "Customer account": {
+      "status": "todo",
+      "note": "built 2026-11-04 (all of §8 but return requests and invoices); deployed 2026-11-05"
+    },
+    "Customer support": {
+      "status": "todo",
+      "note": "contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; deployed 2026-11-05 (/contact answers on both hosts); automatic e-mails: none sent from production yet"
     }
   }
 }

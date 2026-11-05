@@ -60,8 +60,8 @@ The homepage is the main entry point of your store.
 - [x] Navigation menu — header nav from Prismic categories + "Todos os produtos" (verified desktop)
 - [x] Search bar — header combobox with live suggestions (verified against real catalogue)
 - [x] Shopping cart icon with item counter — localStorage count, "1 item"/"N itens" label (verified 2026-11-01 with Búzios/Alaká)
-- [ ] Account / login icon — _icon present_; /account not built yet
-- [ ] Wishlist icon — _icon + counter present_; /wishlist not built yet
+- [x] Account / login icon — header icon → /account; signed out, the account gate sends it to /login (verified 2026-11-04 on a dev stack)
+- [x] Wishlist icon — header icon + counter → /wishlist (verified 2026-11-04 on a dev stack)
 - [ ] Hero banner with promotional message — _implemented_ from Prismic `homepage`; verify after the owner creates the homepage document (fallback hero verified)
 - [x] Main call-to-action buttons — Prismic-driven CTAs with "Ver todos os produtos" default (verified)
 - [ ] Featured products — _implemented_ (homepage curation); needs Prismic content to verify
@@ -71,10 +71,10 @@ The homepage is the main entry point of your store.
 - [ ] Promotional banners — _implemented_ with start/end scheduling and cache capped at next boundary; needs Prismic content to verify
 - [x] Discounts and special offers — "Ofertas" section + /offers list products with original_price > price (verified 2026-11-01 with Búzios/Alaká: Alaká listed, Búzios not)
 - [ ] Benefits section (free shipping, secure payment, etc.) — _implemented_ from Prismic; footer trust strip verified
-- [ ] Customer reviews or testimonials — _testimonials implemented_ (Prismic, real customers only); reviews pending
+- [ ] Customer reviews or testimonials — _reviews on product pages built 2026-11-04_ (moderated, verified on a dev stack); the homepage's testimonials come from Prismic (real customers only) and need content
 - [ ] Newsletter subscription — pending (needs Firestore + consent + Turnstile)
 - [ ] Social media links — _implemented_ (Prismic settings → footer); needs content
-- [ ] Footer with important links — _rendered_; the target pages (/about, /privacy…) are routes that return 404 until their Prismic pages are published
+- [ ] Footer with important links — _rendered_; the texts of /about, /privacy, /terms, /cookies, /shipping, /returns, /warranty and /faq were written and placed in Prismic's Migration Release on 2026-11-04 (content/prismic/); the links stop returning 404 when the owner publishes that release
 - [ ] Recently viewed products — _implemented_ (localStorage + /api/products); browser flow not verified yet
 - [x] Trust badges — factual trust strip: Pix, secure checkout, support channel (verified)
 
@@ -117,21 +117,21 @@ One of the most important parts of an e-commerce website.
 - [x] Quantity selector — adds the chosen quantity (verified 2026-11-01 with Búzios/Alaká)
 - [x] Add to cart button — adds to the cart with confirmation; disabled without price/SKU; refuses a 51st line (verified 2026-11-01 with Búzios/Alaká)
 - [ ] Buy now button — _implemented_; checkout exists since session 2 (verified there on the dev server); this button's path to checkout not verified in a browser
-- [ ] Add to wishlist — _implemented_ (localStorage); /wishlist page pending
+- [x] Add to wishlist — heart on product pages/cards (localStorage); /wishlist lists them and, signed in, syncs with the account (verified 2026-11-04 on a dev stack)
 - [ ] Shipping cost calculator — pending (Melhor Envio + store rates)
 - [ ] Estimated delivery date — pending (with shipping quotes)
 - [ ] Product specifications — _implemented_ (specs + SKU/weight/dimensions); needs content
 - [ ] Product dimensions — _model + UI ready_; needs content
 - [ ] Product weight — _model + UI ready_; needs content
 - [ ] Materials and ingredients (where applicable) — _implemented_; needs content
-- [ ] Product reviews and ratings — pending
+- [x] Product reviews and ratings — average, distribution and the approved reviews on the product page, written at /products/:uid/review by signed-in customers (verified 2026-11-04: Chrome on a dev stack + integration)
 - [ ] Customer questions and answers — pending
 - [ ] Related products — _implemented_ (editor picks, then same category); needs categories/picks
 - [ ] Frequently bought together — _implemented_; needs content
 - [ ] Recently viewed products — _tracking implemented_; list shown on home
 - [x] Share product button — Web Share API / copy link + WhatsApp share (verified rendered)
-- [ ] Return policy information — _implemented_ (product notes or store summary); needs content
-- [ ] Warranty information — _implemented_; needs content
+- [ ] Return policy information — _implemented_ (product notes or store summary); the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)
+- [ ] Warranty information — _implemented_; the summary text is written (content/prismic/settings.md) but not sent: the store's settings document is archived in Prismic (2026-11-04)
 
 ### 4. Search System
 
@@ -160,8 +160,8 @@ One of the most important parts of an e-commerce website.
 - [x] Display product names — verified, incl. deleted products shown as "Produto indisponível"
 - [x] Display individual prices — unit price + compare-at + % (verified 2026-11-01 with Búzios/Alaká)
 - [x] Display subtotal — server-computed, unit-tested (verified 2026-11-01 with Búzios/Alaká)
-- [ ] Calculate discounts — compare-at savings computed (unit-tested); coupons/automatic promotions pending (§11)
-- [ ] Apply coupon codes — pending (§11 discount engine)
+- [x] Calculate discounts — compare-at savings plus coupons and automatic promotions, previewed by /api/cart/quote with the order's own engine (app/lib/discounts.ts; verified 2026-11-04: Chrome on a dev stack + unit)
+- [x] Apply coupon codes — coupon box in the cart (kept for the checkout), status message (applied / beaten by a better promotion / refused with the reason), remove (verified 2026-11-04: Chrome on a dev stack)
 - [ ] Calculate shipping — pending (Melhor Envio + store rates); cart says "calculado no checkout"
 - [ ] Display estimated taxes — **blocked**: the owner/accountant must define which tax information to show and its source; not invented
 - [x] Display total price — = subtotal until shipping/discounts join at checkout (verified 2026-11-01 with Búzios/Alaká)
@@ -175,7 +175,7 @@ One of the most important parts of an e-commerce website.
 ### 6. Checkout System
 
 - [x] Guest checkout — no account needed; order 1001/1002 placed as guest (verified 2026-11-01 (browser + live action on the dev server))
-- [ ] Customer login during checkout — pending (customer accounts / auth)
+- [x] Customer login during checkout — "Já tem conta? Entrar" → /login?redirectTo=/checkout; signed in, name/e-mail/phone/CPF and the default saved address are filled in, another saved address can be picked, and the order is linked to the account (verified 2026-11-04: Chrome on a dev stack, order 1001 with customer.uid)
 - [x] Contact information — name, e-mail, mobile (verified 2026-11-01 (browser + live action on the dev server))
 - [x] Email address — validated, stored lowercase (verified 2026-11-01 (browser + live action on the dev server))
 - [x] Phone number — validated Brazilian number, stored as +55… (verified 2026-11-01 (browser + live action on the dev server))
@@ -186,15 +186,15 @@ One of the most important parts of an e-commerce website.
 - [x] Shipping method selection — flat rate or pickup; pickup-only products hide delivery (verified 2026-11-01 (browser + live action on the dev server) + integration tests)
 - [x] Shipping price calculation — flat rate R$ 25,00 for all of Brazil (owner, for now) + free pickup, from settings/shipping (verified)
 - [ ] Delivery estimate — pickup: handling days shown; flat rate: needs the owner's transit days (shows "prazo informado no envio")
-- [ ] Coupon application — pending (§11)
+- [x] Coupon application — the order transaction decides with the buyer known; a refused coupon stops the order with the reason and a "continuar sem o cupom" button (verified 2026-11-04: Chrome — first-purchase coupon refused for a CPF that had bought, accepted for a new one — + integration)
 - [x] Order summary — lines, subtotal, delivery, total (verified 2026-11-01 (browser + live action on the dev server))
 - [ ] Tax calculation — **blocked**: owner/accountant must define tax handling; not invented
 - [x] Payment method selection — Pix only (owner decision 2026-10-31), shown as the payment step
-- [ ] Terms and conditions acceptance — _checkbox required and enforced server-side_; /terms page content pending in Prismic (link 404s until published)
-- [ ] Privacy policy acceptance where required — _same checkbox_; /privacy content pending in Prismic (legal review)
+- [ ] Terms and conditions acceptance — _checkbox required and enforced server-side_; the terms text is in Prismic's Migration Release (2026-11-04): /terms goes live when the owner publishes it
+- [ ] Privacy policy acceptance where required — _same checkbox_; the privacy policy text is in Prismic's Migration Release (2026-11-04): /privacy goes live when the owner publishes it
 - [x] Place order button — disabled while submitting; double submit returns the same order (verified 2026-11-01 (browser + live action on the dev server))
 - [ ] Payment processing — Pix code generated per order (session 2) and payment confirmed by hand in the admin (session 3), both verified on the dev server; production checkout still closed (settings/payment absent)
-- [ ] Payment confirmation — the admin confirms a Pix payment by hand (built and verified on the dev server, session 3: reservation → sale, stock as computed); the customer's order page after a confirmation not verified; no confirmation e-mail (transactional e-mails not built); not exercised in production (checkout closed)
+- [ ] Payment confirmation — the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; the payment-confirmed e-mail is built, integration-tested and deployed (2026-11-05) but none has gone out from production yet; not exercised in production
 - [x] Error handling — per-field Portuguese errors + focus (browser), changed cart → 409 with review link, store not configured → 503 notice (verified 2026-11-01 (browser + live action on the dev server) + integration tests)
 - [x] Order confirmation page — QR + copia e cola + copy button + summary; guest secret link, wrong secret → 404 (verified 2026-11-01 (browser + live action on the dev server))
 
@@ -221,33 +221,33 @@ One of the most important parts of an e-commerce website.
 - [ ] Duplicate payment prevention — orders are idempotent (double submit → one order, verified); a static Pix code can still be paid twice — admin must spot/refund (automatic prevention needs a PSP)
 
 ### 8. Customer Account
-- [ ] Customer registration
-- [ ] Login
-- [ ] Logout
-- [ ] Password recovery
-- [ ] Email verification
-- [ ] Phone verification (optional)
-- [ ] Profile management
-- [ ] Change password
-- [ ] Address book
-- [ ] Multiple saved addresses
-- [ ] Order history
-- [ ] Order details
-- [ ] Order tracking
-- [ ] Wishlist
-- [ ] Saved payment methods (secure tokenization)
-- [ ] Return requests
-- [ ] Refund history
-- [ ] Downloadable invoices
-- [ ] Notification preferences
-- [ ] Account deletion
-- [ ] Privacy settings
+- [x] Customer registration — /register: name, e-mail, phone, CPF (owner decision), password, terms + optional marketing consent; checked in the browser with the server's schema before the Firebase sign-in is created (a rejected form creates no account), profile + consents saved, verification and welcome e-mails (verified 2026-11-04: Chrome on a dev stack + integration)
+- [x] Login — /login → 14-day HttpOnly session cookie, redirectTo kept; wrong/old password refused (verified 2026-11-04: Chrome + HTTP + integration)
+- [x] Logout — POST /logout revokes every session of the account (verified 2026-11-04: Chrome + integration)
+- [x] Password recovery — /forgot-password: Firebase's reset e-mail; same message for unknown e-mails (verified 2026-11-04: Chrome; the emulator generated the reset only for the existing account)
+- [x] Email verification — Firebase sends the verification e-mail at registration (continue URL /account) and again from Senha e acesso; verifying makes guest orders with the same e-mail appear (verified 2026-11-04: emulator recorded the e-mail; linking integration-tested). Clicking the link itself was not tried in a browser
+- [ ] Phone verification (optional) — **N/A**: SMS sign-in is off in the project (owner decision 2026-11-03); phones are format-checked and the store answers by WhatsApp
+- [x] Profile management — /account/profile: name, phone, CPF, marketing consent (each change recorded with time and source); e-mail changes via support (verified 2026-11-04: Chrome + integration)
+- [x] Change password — /account/security: current password typed again; Firebase revokes every session and the new ID token re-signs this browser in through /login (verified 2026-11-04: Chrome — wrong current password refused, old password refused afterwards)
+- [x] Address book — /account/addresses: add/edit/delete with ViaCEP fill, one default (verified 2026-11-04: Chrome + integration)
+- [x] Multiple saved addresses — up to 10, default moves when the default is deleted; checkout offers them (integration + Chrome 2026-11-04)
+- [x] Order history — /account/orders: placed signed in, plus guest orders with the verified e-mail (verified 2026-11-04: Chrome + integration)
+- [x] Order details — /account/orders/:number: the same view as the guest page (shared app/components/order-view.tsx), Pix code while unpaid; another customer's order → 404 (verified 2026-11-04: Chrome + integration)
+- [x] Order tracking — progress steps, carrier, tracking code and link on the order page (shared view; tracking verified on the guest page in session 4)
+- [x] Wishlist — /wishlist for guests (browser) and accounts (wishlists/{uid}, three-way merge so removals stick; verified 2026-11-04: Chrome + unit)
+- [ ] Saved payment methods (secure tokenization) — **N/A**: Pix only (owner decision 2026-10-31): there is no card or payment credential to store
+- [x] Return requests — order pages link "Pedir troca, devolução ou desistência" → the contact form with the order and the topic filled in; reason + preferred outcome + items; the ticket arrives in /admin/support with the request's details; immediate confirmation (verified 2026-11-04: Chrome on a dev stack + integration)
+- [x] Refund history — each order's refunds (amount, date) on its page in Minha conta (shared view; refunds verified on the guest page in session 4)
+- [ ] Downloadable invoices — **blocked**: invoices in Brazil are NF-e, which needs the owner's/accountant's issuing setup; not invented
+- [x] Notification preferences — marketing e-mail consent on the profile (off unless ticked; history kept); order e-mails always go (verified 2026-11-04: Chrome + integration)
+- [x] Account deletion — /account/privacy: password typed again → profile, addresses, wishlist and the sign-in deleted; orders kept (legal retention); audited by UID (verified 2026-11-04: Chrome + integration)
+- [x] Privacy settings — /account/privacy: data download (JSON, audited), consents, deletion (verified 2026-11-04: Chrome + HTTP + integration)
 
 ### 9. Order Management
 
 - [x] Unique order number — transactional counter from 1001; concurrency-tested (integration)
 - [x] Order creation — one transaction: re-price, stock reservation, number, Pix (verified 2026-11-01 (browser + live action on the dev server) + 11 integration tests)
-- [x] Order confirmation — confirmation page; e-mail pending (§15)
+- [x] Order confirmation — confirmation page; order e-mail built, integration-tested, sent through Brevo from a dev machine (2026-11-04, received) and deployed 2026-11-05 (sendMailOutbox)
 - [x] Order status — pending_payment → paid → processing → shipped → delivered (pickup: ready → picked up); cancelled (admin or expiry job); refunded / partially_refunded (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Pending orders — "Aguardando pagamento" work queue with overdue Pix flagged; the expiry job cancels unpaid orders after expiryHours (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [x] Paid orders — confirming the Pix moves the order to paid and sells the reserved stock; "Pagos" tab (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
@@ -259,10 +259,10 @@ One of the most important parts of an e-commerce website.
 - [ ] Order history
 - [x] Order tracking number — carrier + code + https link, editable after shipping, shown on the customer's order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Shipping carrier integration
-- [ ] Order notifications
+- [ ] Order notifications — _built and integration-tested 2026-11-04, deployed 2026-11-05_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail). Order placed + store notice went through Brevo from a dev machine (received); none sent from production yet (Brevo accepts only authorized IPs unless the owner turned that off; the sendmailoutbox log shows it)
 - [ ] Invoice generation
-- [ ] Return management
-- [ ] Exchange management
+- [ ] Return management — _partial_: return requests arrive as tickets (reason, preference, items; withdrawals flagged) and refunds are recorded on the order (§7); no return status tracking or reverse-shipping labels
+- [ ] Exchange management — _partial_: exchange requests arrive as tickets (preference "troca"); the exchange itself is handled by hand (no exchange order flow)
 - [x] Refund management — refund history per order (amount, reason, note, units back on sale, who, when); customers see amounts and dates only (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Partial fulfillment
 - [x] Order notes — internal notes on each order: team only, never on the customer page, can't be edited or deleted, max 200 per order (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
@@ -282,7 +282,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Delivery estimates — needs the owner's flat-rate transit days
 - [ ] Tracking integration — _manual tracking built_: carrier + code + link typed by the team and shown to the customer (2026-11-02); carrier API tracking waits for Melhor Envio
 - [ ] Shipping labels
-- [ ] Delivery notifications
+- [ ] Delivery notifications — _built and integration-tested 2026-11-04, deployed 2026-11-05_ (shipped, ready for pickup, delivered, tracking changed); none sent from production yet
 - [x] Local pickup (optional) — Mercadão de Madureira – Anexo, Galeria K, Lojas 219-220 (verified order 1002)
 - [ ] International shipping (if applicable)
 - [ ] Shipping restrictions — _pickup-only products enforced (integration-tested)_; other restrictions not defined
@@ -290,56 +290,56 @@ One of the most important parts of an e-commerce website.
 
 ### 11. Discounts and Promotions
 
-- [ ] Coupon codes
-- [ ] Percentage discounts
-- [ ] Fixed-value discounts
-- [ ] Automatic discounts
-- [ ] Buy one, get one promotions
-- [ ] Free shipping promotions
-- [ ] Flash sales
-- [ ] Limited-time offers
-- [ ] Product bundles
-- [ ] Category discounts
-- [ ] First-order discounts
-- [ ] Minimum purchase requirements
-- [ ] Customer-specific discounts
-- [ ] Loyalty rewards
-- [ ] Referral discounts
-- [ ] Gift cards
-- [ ] Discount usage limits
-- [ ] Promotion scheduling
+- [x] Coupon codes — /admin/discounts (owner/admin): codes are unique (they are the document ID), normalized to uppercase (verified 2026-11-04: Chrome on a dev stack + integration)
+- [x] Percentage discounts — 1–99% of the eligible products (verified 2026-11-04: Chrome + unit + integration)
+- [x] Fixed-value discounts — R$ off the eligible products, never more than they cost (unit-tested 2026-11-04)
+- [x] Automatic discounts — promotions without a code apply by themselves; the best one wins over a smaller coupon (verified 2026-11-04: Chrome + integration)
+- [x] Buy one, get one promotions — "leve X, ganhe Y": the cheapest units of each group are free (unit-tested 2026-11-04)
+- [x] Free shipping promotions — free shipping (automatic or coupon), combinable with a products discount; the order charges R$ 0 for delivery (verified 2026-11-04: Chrome + integration)
+- [x] Flash sales — automatic promotions with start and end (Brasília time) (unit-tested 2026-11-04); no countdown on product pages
+- [x] Limited-time offers — any promotion or coupon can have a start and an end (unit-tested 2026-11-04)
+- [x] Product bundles — a promotion on chosen products marked "kit" applies only when all of them are in the cart (unit-tested 2026-11-04)
+- [x] Category discounts — scope by category, subcategories included (unit-tested 2026-11-04); needs categories in Prismic to be used
+- [x] First-order discounts — "só na primeira compra", checked against earlier non-cancelled orders by e-mail or CPF (verified 2026-11-04: Chrome + integration)
+- [x] Minimum purchase requirements — minimum subtotal (verified 2026-11-04: Chrome — free shipping above R$ 100 — + unit)
+- [x] Customer-specific discounts — a list of e-mails allowed to use a promotion (unit-tested 2026-11-04)
+- [ ] Loyalty rewards — not built: needs a points ledger and the owner's rules
+- [ ] Referral discounts — not built: needs referral links/codes per customer and the owner's rules
+- [ ] Gift cards — not built: needs selling the cards (Pix), balances spent across orders, and the owner's rules on validity (some states regulate it)
+- [x] Discount usage limits — total uses (a counter in the transaction: two simultaneous buyers can't both take the last use, race-tested 6×) and uses per customer; an unpaid order cancelled by the store or the expiry job gives its use back (verified 2026-11-04: integration + Chrome)
+- [x] Promotion scheduling — start/end per promotion, in Brasília time (unit-tested 2026-11-04)
 
 ### 12. Reviews and Social Proof
 
-- [ ] Product ratings
-- [ ] Written reviews
-- [ ] Verified purchase badges
-- [ ] Customer photos
-- [ ] Customer videos
-- [ ] Review moderation
-- [ ] Review reporting
-- [ ] Review sorting
-- [ ] Helpful review voting
-- [ ] Average rating calculation
+- [x] Product ratings — 1–5 stars per review; average and distribution per product (verified 2026-11-04: Chrome + integration)
+- [x] Written reviews — title, text, display name; one per customer and product, editable (back to moderation) (verified 2026-11-04: Chrome + integration)
+- [x] Verified purchase badges — "Compra verificada" when the customer has a paid order with the product (integration: a pending order doesn't count, a confirmed one does; Chrome showed the unverified case)
+- [ ] Customer photos — **blocked**: needs a Cloud Storage bucket for the project and an upload path that checks the files and strips their metadata (GPS); not improvised
+- [x] Customer videos — a YouTube or Vimeo link, shown after approval with youtube-nocookie / Vimeo dnt (verified 2026-11-04 on a dev stack)
+- [x] Review moderation — /admin/reviews (owner/admin): publish, refuse with a reason the customer sees, delete, answer publicly; audited; stats change in the same transaction (verified 2026-11-04: Chrome + integration)
+- [x] Review reporting — "Denunciar" with a reason, once per customer; "Denunciadas" tab (verified 2026-11-04: Chrome + integration)
+- [x] Review sorting — most helpful, newest, highest, lowest (unit-tested; rendered 2026-11-04)
+- [x] Helpful review voting — "Útil", once per signed-in customer, never on one's own review (verified 2026-11-04: Chrome + integration)
+- [x] Average rating calculation — productStats (count, sum, distribution) of approved reviews, updated transactionally on approve/refuse/delete/edit and on account deletion (integration 2026-11-04)
 - [ ] Testimonials
-- [ ] Trust indicators
+- [x] Trust indicators — stars, review count and "Compra verificada" on product pages (2026-11-04), plus the factual trust strip (Pix, secure checkout, support channel)
 
 ### 13. Customer Support
 
 - [x] Contact page — channels, hours, company details from Prismic (verified)
-- [ ] Contact form
-- [ ] Support email
-- [ ] Phone support (if offered)
+- [x] Contact form — /contact: name, e-mail, optional phone and order, topic, message (+ reason/preference for returns); opens ticket nº … shown at once; honeypot, fill time and hourly limits (verified 2026-11-04: Chrome on a dev stack + unit + integration)
+- [ ] Support email — _implemented_: the Prismic support e-mail is shown on /contact and the footer, and is the reply-to of the store's e-mails and the inbox for new-message notices (unless MAIL_STORE_TO is set); needs the address in Prismic settings
+- [ ] Phone support (if offered) — _implemented_ (Prismic settings → /contact and footer); needs the owner's decision and number
 - [ ] WhatsApp integration (particularly useful in Brazil) — _implemented_ (floating button, contact page, product sharing); needs the number in Prismic settings to verify
-- [ ] Live chat
-- [ ] Frequently asked questions — _implemented_ (/faq + FAQPage JSON-LD); needs the Prismic FAQ document
-- [ ] Help center — _FAQ by topic implemented_; needs content
-- [ ] Order support
-- [ ] Return and refund support
-- [ ] Shipping support
-- [ ] Complaint management
-- [ ] Support ticket system
-- [ ] Automated responses
+- [ ] Live chat — not built: WhatsApp (floating button) is the live channel today; a chat widget would add a third-party script and cookies (privacy and cookie policies, consent) — owner decision
+- [ ] Frequently asked questions — _implemented_ (/faq + FAQPage JSON-LD); 24 questions written (content/prismic/faq.md) and placed in Prismic's Migration Release 2026-11-04: live when the owner publishes it
+- [ ] Help center — _FAQ by topic implemented_; its 24 answers and the policy pages are in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [x] Order support — "Precisa de ajuda com este pedido?" on every order page → contact form with the order number; the admin ticket links the order (verified 2026-11-04 on a dev stack)
+- [x] Return and refund support — return requests with reason and preference; a withdrawal gets the confirmation required by Decreto 7.962 art. 5 §4 in the automatic e-mail; the team records refunds on the order (verified 2026-11-04: Chrome + integration)
+- [x] Shipping support — topic "Entrega" in the contact form; tracking on the order page (verified 2026-11-04 on a dev stack)
+- [x] Complaint management — topic "Reclamação" in the contact form → ticket handled in /admin/support (verified 2026-11-04 on a dev stack); tickets waiting more than 5 days for an answer are flagged in the list (Decreto 7.962 art. 4, parágrafo único) — that flag has no test yet
+- [x] Support ticket system — /admin/support (tabs by status with counts, thread, reply by e-mail, close/reopen, audited; owner/admin/staff) and /account/support for customers (verified 2026-11-04: Chrome on a dev stack + 8 integration tests)
+- [ ] Automated responses — _built 2026-11-04, deployed 2026-11-05_: the protocol number on screen at once (verified) and an automatic confirmation e-mail queued in the same transaction (integration-tested); none sent from production yet
 - [ ] Business hours — _implemented_ (open-now in São Paulo time); needs hours in Prismic settings
 
 ### 14. Admin Dashboard / Back Office
@@ -407,7 +407,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Email marketing integration
 - [ ] Abandoned cart emails
 - [ ] Welcome emails
-- [ ] Order confirmation emails
+- [ ] Order confirmation emails — _built and integration-tested 2026-11-04_: pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; sent for real from a dev machine (2026-11-04, received); deployed 2026-11-05, not yet seen from production
 - [ ] Promotional emails
 - [ ] Product recommendation engine
 - [ ] Upselling
@@ -436,7 +436,7 @@ The administrative system is what allows the business owner to manage the entire
 - [x] Canonical URLs — filters/sort dropped, pagination kept (verified)
 - [x] Structured data / Schema.org — WebSite+SearchAction, Organization, CollectionPage (verified)
 - [x] Product structured data — Offer/AggregateOffer only when a price exists (verified)
-- [ ] Review structured data — pending (with reviews)
+- [x] Review structured data — AggregateRating + up to 5 Review on the Product JSON-LD, only when approved reviews exist (verified 2026-11-04 on a dev stack)
 - [x] Breadcrumb structured data
 - [x] Open Graph metadata — verified on product page
 - [x] Social sharing previews — server-rendered OG/Twitter tags (WhatsApp/Facebook read them without JS)
@@ -449,8 +449,8 @@ The administrative system is what allows the business owner to manage the entire
 ### 17. Security
 
 - [ ] HTTPS / SSL certificate
-- [ ] Secure password hashing
-- [ ] Secure authentication — _admin done_ (verified 2026-11-02): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax, 12 h) minted only from a sign-in < 5 min old; revocation checked on every request; verified e-mail required; production refuses emulator (unsigned-token) mode. Customer accounts pending
+- [x] Secure password hashing — passwords never reach our server; Firebase Authentication stores them hashed (its scrypt variant)
+- [x] Secure authentication — admin (2026-11-02, TOTP in production 2026-11-04) and customers (2026-11-04): Firebase Auth sign-in → server session cookie (HttpOnly, Secure, SameSite=Lax) minted only from a sign-in < 5 min old, revocation checked on every request
 - [x] Two-factor authentication for administrators — _verified in production 2026-11-04_: /admin/login asks accounts with an authenticator for the code, and admins without one enrol (QR shown only in the browser) before they can enter; scripts/admin/reset-mfa.mjs for a lost phone. Built 2026-11-02 and checked against the emulator except the TOTP exchange itself (the Auth emulator has no TOTP); deployed 2026-11-03, with TOTP turned on in the project that day (it was off). The owner's first production sign-in (enrolment, then a code) worked on 2026-11-04 (owner confirmed)
 - [x] Role-based access control — owner/admin/staff claims + per-action capability checks on the server (unit, integration and Chrome tests, 2026-11-02)
 - [ ] Protection against SQL injection
@@ -458,14 +458,14 @@ The administrative system is what allows the business owner to manage the entire
 - [x] CSRF protection — same-origin check on every non-GET request (verified live: cross-site / foreign Origin → 403); SameSite=Lax session cookie with auth
 - [ ] Rate limiting
 - [ ] Bot protection
-- [ ] Spam protection
+- [ ] Spam protection — _partial_: contact form honeypot, browser-measured fill time (≥ 3 s) and hourly limits per hashed IP / e-mail / store (unit + integration + Chrome 2026-11-04); Cloudflare Turnstile needs the owner's keys
 - [ ] Secure payment processing
 - [ ] PCI DSS considerations
 - [ ] Secure API endpoints
 - [ ] Database backups
 - [ ] Security monitoring
 - [x] Audit logs — auditLogs: admin sign-in/out, Pix confirmations, cancellations (admin and the expiry job as a system actor), fulfilment, tracking, notes, refunds, role changes, 2FA resets; order changes and their entries are written in one transaction (integration-tested 2026-11-02)
-- [ ] Session management — _admin done_: 12-hour admin sessions; Sair revokes every session of the account; role changes revoke; dead cookies cleared (verified 2026-11-02). Customer sessions pending
+- [x] Session management — admin 12 h, customers 14 days; signing out revokes every session of the account; role and password changes revoke; dead cookies cleared (integration + Chrome 2026-11-02 / 2026-11-04)
 - [ ] Account lockout policies — Firebase Auth throttles repeated failed sign-ins (auth/too-many-requests; message mapped on /admin/login, not triggered in tests)
 - [ ] Secrets management
 - [ ] Disaster recovery plan
@@ -473,22 +473,22 @@ The administrative system is what allows the business owner to manage the entire
 ### 18. Legal and Compliance
 
 Especially important if you're selling in Brazil.
-- [ ] Privacy policy
-- [ ] Terms and conditions
-- [ ] Cookie policy
-- [ ] Cookie consent management
-- [ ] Return and refund policy
-- [ ] Shipping policy
-- [ ] Warranty policy
+- [ ] Privacy policy — _text written 2026-11-04_ (content/prismic/pages/privacy.md: controller, data per situation, the sensitive-data clause for religious items, LGPD bases, processors, transfers, retention, rights, ANPD) and placed in Prismic's Migration Release; /privacy goes live when the owner publishes it — lawyer review recommended
+- [ ] Terms and conditions — _text written 2026-11-04_ (content/prismic/pages/terms.md) and placed in Prismic's Migration Release; /terms goes live when the owner publishes it — lawyer review recommended
+- [ ] Cookie policy — _text written 2026-11-04_ and published by the owner the same day; the updated version (the browser keys this release adds and the preferences link) is in Prismic's Migration Release since 2026-11-05, sent after the deploy: the owner publishes it
+- [x] Cookie consent management — a non-blocking notice that says only essential cookies/storage are used, a "Preferências de cookies" dialog (footer link) with analytics/marketing off unless chosen, and hasConsent() for any future tool (verified 2026-11-04: Chrome on a dev stack + unit). Nothing non-essential runs today
+- [ ] Return and refund policy — _text written 2026-11-04_ (content/prismic/pages/returns.md: CDC art. 49 withdrawal with return shipping paid by the store, arts. 18/26 defects, exchanges, Pix refunds) and placed in Prismic's Migration Release; live when the owner publishes it
+- [ ] Shipping policy — _text written 2026-11-04_ (content/prismic/pages/shipping.md) and placed in Prismic's Migration Release; live when the owner publishes it
+- [ ] Warranty policy — _text written 2026-11-04_ (content/prismic/pages/warranty.md: legal warranty 30/90 days, what isn't a defect, how to claim) and placed in Prismic's Migration Release; live when the owner publishes it
 - [ ] Company information — _implemented_ (footer + contact: legal name, CNPJ/CPF, address); needs owner data in Prismic settings
 - [ ] Contact information — _implemented_; needs owner data in Prismic settings
-- [ ] Consumer protection disclosures
-- [ ] LGPD compliance (Brazil)
-- [ ] GDPR compliance (if applicable)
-- [ ] Data access and deletion requests
-- [ ] Consent management
+- [ ] Consumer protection disclosures — _in place_: withdrawal (CDC art. 49) explained in the returns policy, the contact form and the confirmation e-mail; answers within 5 days and immediate confirmation of requests (Decreto 7.962); delivery cost shown before ordering; Procon and CDC references in the terms. _Open_: the owner's company data in Prismic settings (name, CNPJ/CPF, address — Decreto 7.962 art. 2) and publishing the texts
+- [ ] LGPD compliance (Brazil) — _in place_: privacy policy (bases, sensitive-data clause for religious items, processors, rights), data export/deletion, consent records, privacy channel; _open_: lawyer review, Cloud Logging retention ≥ 6 months for access logs (Marco Civil art. 15), confirming the small-agent status / naming a DPO, processors' contracts (Google, Cloudflare, Brevo)
+- [ ] GDPR compliance (if applicable) — **N/A**: the store sells only in Brazil (prices in BRL, Brazilian CPF and CEP required) and doesn't target people in the EU
+- [x] Data access and deletion requests — account holders: download their data (JSON) and delete the account in /account/privacy; anyone: the contact form's topic "Privacidade e dados pessoais" (verified 2026-11-04 on a dev stack)
+- [x] Consent management — terms acceptance (checkout, registration), marketing e-mail consent with time/source/history, cookie choices; account holders change them in Minha conta (verified 2026-11-04 on a dev stack + integration)
 - [ ] Tax and invoice requirements
-- [ ] Clear pricing and shipping disclosures
+- [x] Clear pricing and shipping disclosures — prices in R$; delivery cost and every discount itemized in the cart/checkout summary before the order (Decreto 7.962 art. 2 IV); shipping policy text in the release (verified 2026-11-04 on a dev stack)
 - [ ] Clear delivery deadlines
 
 ### 19. Performance and Technical Requirements
@@ -568,7 +568,7 @@ These aren't necessary for every store, but can make it significantly more power
 | Manage business operations |
 - [ ] CRM
 | Manage customer relationships |
-- [ ] Email service
+- [ ] Email service — _Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested; a refused login or connection keeps e-mails waiting instead of failing them). The owner's Brevo account, sender domain (DKIM, DMARC), settings and the SMTP_PASSWORD secret are in place; sendMailOutbox deployed 2026-11-05; e-mails went through Brevo from the owner's machine (IP authorized). Production not proven yet: Brevo accepts only authorized IPs unless the owner turned that off, and Cloud Functions have no fixed IP; the first real e-mail shows [mail] sent or SMTP refused in the sendmailoutbox log
 | Send transactional emails |
 - [ ] WhatsApp
 | Customer communication |
@@ -604,21 +604,21 @@ This is how I would organize the actual website's pages and routes.
 - [x] `/checkout` — verified (verified 2026-11-01 (browser + live action on the dev server))
 - [x] `/order-confirmation` — `/order-confirmation/:number?t=…` (verified)
 #### Customer
-- [ ] `/account`
-- [ ] `/login`
-- [ ] `/register`
-- [ ] `/orders`
-- [ ] `/wishlist`
+- [x] `/account` — overview + orders, profile, addresses, security, privacy (verified 2026-11-04 on a dev stack)
+- [x] `/login` — verified 2026-11-04 on a dev stack
+- [x] `/register` — verified 2026-11-04 on a dev stack
+- [x] `/orders` — 301 → /account/orders (footer "Meus pedidos")
+- [x] `/wishlist` — verified 2026-11-04 on a dev stack
 #### Information
-- [ ] `/about` — _route implemented_ (Prismic page uid "about"); returns 404 until the owner publishes it
+- [ ] `/about` — _route implemented_ (Prismic page uid "about"); a factual draft is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 - [x] `/contact`
-- [ ] `/faq` — _route implemented_; needs the Prismic FAQ document
-- [ ] `/shipping` — _route implemented_ (Prismic page uid "shipping"); returns 404 until the owner publishes it
-- [ ] `/returns` — _route implemented_ (Prismic page uid "returns"); returns 404 until the owner publishes it
+- [ ] `/faq` — _route implemented_; the FAQ (24 questions) is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/shipping` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/returns` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 #### Legal
-- [ ] `/privacy` — _route implemented_ (Prismic page uid "privacy"); returns 404 until the owner publishes it
-- [ ] `/terms` — _route implemented_ (Prismic page uid "terms"); returns 404 until the owner publishes it
-- [ ] `/cookies` — _route implemented_ (Prismic page uid "cookies"); returns 404 until the owner publishes it
+- [ ] `/privacy` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/terms` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
+- [ ] `/cookies` — _route implemented_; the text is in Prismic's Migration Release (2026-11-04), live when the owner publishes it
 #### Marketing
 - [x] `/offers`
 - [ ] `/gift-cards`
@@ -630,7 +630,7 @@ This is how I would organize the actual website's pages and routes.
 - [x] `/admin/orders` — list + /admin/orders/:number with confirm/cancel (verified 2026-11-02)
 - [ ] `/admin/customers`
 - [ ] `/admin/inventory`
-- [ ] `/admin/discounts`
+- [x] `/admin/discounts` — list (value, uses, state) + create/edit form (verified 2026-11-04 on a dev stack)
 - [ ] `/admin/analytics`
 - [x] `/admin/settings` — _built 2026-11-03_: Pix payment, delivery methods and the checkout open/close switch; verified on a dev stack (unit, integration, mutations, browser); deployed 2026-11-03
 - [ ] `/admin/users` — **N/A**: the store has a single admin account, the owner (owner decision 2026-11-03); roles change only through scripts/admin/grant-role.mjs, which also signs the account out everywhere
@@ -646,16 +646,16 @@ This is how I would organize the actual website's pages and routes.
 - [ ] Checkout
 - [ ] Payment gateway
 - [ ] Shipping calculation
-- [ ] Customer authentication
-- [ ] Customer account
+- [x] Customer authentication — built and verified 2026-11-04 on a dev stack; deployed 2026-11-05 (/register, /login, /forgot-password answer on both hosts)
+- [ ] Customer account — built 2026-11-04 (all of §8 but return requests and invoices); deployed 2026-11-05
 - [ ] Order management
 - [ ] Inventory management
 #### Admin dashboard
-- [ ] Transactional emails
-- [ ] Customer support
+- [ ] Transactional emails — _built 2026-11-04, deployed 2026-11-05_ (Brevo SMTP outbox: 9 order e-mails and the support e-mails; secret set); sent for real from a dev machine; none from production yet (Brevo IP restriction to confirm)
+- [ ] Customer support — contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; deployed 2026-11-05 (/contact answers on both hosts); automatic e-mails: none sent from production yet
 - [ ] Refund and return system — _refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built
 - [ ] Security
-- [ ] Legal pages and compliance
+- [ ] Legal pages and compliance — texts in Prismic's Migration Release (2026-11-04); cookie consent, data requests and accounts' privacy tools in progress
 - [ ] Mobile responsiveness
 - [ ] SEO
 - [ ] Analytics

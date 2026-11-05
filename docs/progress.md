@@ -695,7 +695,277 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Whether the owner read the R$ 1,00 test code in the bank app (it checks that the key reaches the right account).
 - The order tabs other than "Aguardando pagamento"; a second device for the authenticator.
 
+## Session 6 — 2026-11-04 (night): legal texts, FAQ, e-mail; accounts, support, discounts, reviews
+
+### Owner's request and ground rules
+- Asked (before going to bed, "go ahead with any recommendation"): §8 customer accounts, §11 discounts, §12 reviews,
+  §13 support, §18 legal (texts for each page and the FAQ), e-mail through **Brevo SMTP**, using the Prismic API (or
+  Chrome) to create and update content.
+- Ground rules Claude kept, since nobody could approve anything overnight: work on the branch
+  `feat/accounts-support-promos-legal` (master untouched, nothing pushed); **no deploy**; no `--production` script and
+  no write to the real Firestore/Auth; Prismic writes only through the Migration API, whose **Migration Release must be
+  published by the owner** — nothing went live.
+
+### A. Store texts → Prismic Migration Release (commit `d7129be`)
+- Texts in `content/prismic/` (pt-BR): `pages/{terms,privacy,cookies,returns,shipping,warranty,about}.md`, `faq.md`
+  (24 questions), `settings.md` (the three policy summaries + store name + default meta description).
+  - Written to be true for production **today** (guest checkout, Pix only, automatic cancellation, flat rate/pickup);
+    no mention of features that aren't deployed, except conditional sentences ("se você criar uma conta").
+  - Legal grounds checked against planalto.gov.br on 2026-11-04: CDC arts. 18 §1, 26, 49, 50, 101 I; Decreto
+    7.962/2013 arts. 2, 4 (5-day answer), 5; LGPD arts. 5 II, 7, 11 II, 18, 19, 33, 41, 48; Marco Civil art. 15;
+    ANPD Res. 2/2022 art. 11 (small agents: no DPO needed, a contact channel is).
+  - The privacy policy has a **sensitive-data clause**: most products are religious items, so purchase history can
+    reveal religious conviction (LGPD art. 5 II); it commits to no ad targeting/profiling with it. Adding Meta Pixel
+    or similar (§15) would contradict it: consent + policy change first.
+- Pipeline: `scripts/prismic/markdown.mjs` (Markdown subset → rich text, throws on anything it can't represent),
+  `content.mjs` (checks every field against `customtypes/`), `seed-content.mjs` (dry run by default; two passes with
+  every created ID recorded in `content/prismic/migration-ids.json` so a failure resumes; never overwrites a published
+  or completed document without `--overwrite`; never touches an existing settings document; `--adopt`, `--skip`).
+  21 unit tests incl. one that parses the real content files; 4 of 4 mutations caught.
+- **Sent** (`--apply`): 7 pages created; the FAQ filled into an existing **empty draft** (`aukFxxEAACoApfqD`, "Untitled
+  Nov 2", checked empty in Chrome: placeholder title, one blank item) with `--adopt`, because the FAQ type allows one
+  document; **settings skipped**: an **archived** settings document exists (`audNGREAACoAomV3`, "Untitled Nov 1"), which
+  blocks a new one. Verified in the Prismic UI: 8 documents "Planned" in "migration-api-release"; the privacy page's
+  links: `/contact` relative, `https://www.gov.br/anpd`, document links with the right IDs; the FAQ shows 24 questions.
+- Found: the Content API token can't see releases (refs list only Master), so release content is checked in the UI.
+- Found: the FAQ now has two versions: the old empty draft ("Edited Nov 2") and the release version. After publishing
+  the release, discard that old draft, or publishing it later would empty the FAQ.
+
+### B. E-mail through Brevo SMTP (commit after this entry)
+- `app/.server/mail/`: `outbox.ts` (`queueMailInTransaction`), `render.ts` (9 templates, pt-BR, HTML + text, every
+  value escaped), `html.ts`, `send.ts` (claim → render → send; retries 2/4/8/16 min, 5 attempts; SMTP 5xx and render
+  errors fail at once; 72 h expiry; without configuration nothing is claimed). Scheduled function `sendMailOutbox`
+  (every 2 min) in `server/app.ts` with the secret `SMTP_PASSWORD`. Index `mail (status, nextAttemptAt)` added.
+  Design and reasons: docs/architecture.md §7.
+- Hooks (same transaction as the change): order placed (+ store notice to `MAIL_STORE_TO`), Pix confirmed, cancelled
+  (store/expiry), shipped, ready for pickup, delivered, tracking changed (only when code/link changed), refunded.
+- New orders get `customerLinkToken`; the order page accepts it like the checkout key (`orderTokenMatches`,
+  constant-time). The predeploy hook now refuses `SMTP_PASSWORD` in an env file.
+- Tests: unit 193 (15 new: renderer, escaping, https-only links, config, STARTTLS/TLS options, token matching);
+  integration 82 (11 new in `tests/integration/mail.test.ts`, fake transport); 6 of 6 mutations caught; typecheck
+  clean; lint 0 errors; build OK (bundle imports 14 packages, nodemailer added; `sendMailOutbox` exported).
+- **Not verified:** a real send through Brevo (no account/key here); the new index in production.
+- Oops: commit `9c734eb` left a type error in `tests/unit/mail.test.ts` (tsc ran before the test was written; vitest
+  doesn't type-check). Fixed in batch C's commit. Since then: typecheck after writing tests, right before committing.
+
+### C. Customer accounts (§8)
+- Server: `app/.server/customer-session.ts` (14-day cookie, recent sign-in, revocation; `verifyRecentSignIn` for
+  deletion), `account-guard.ts` (middleware gate for `/account/*`), `customers.ts` (profile + consents with history,
+  addresses, orders by UID / verified e-mail, wishlist, JSON export, deletion keeping orders), audit actions
+  `customer.data_exported` / `customer.account_deleted` (actor `{ type: "customer", name: uid }`).
+- Pages: `/register`, `/login`, `/forgot-password`, `POST /logout`, `/orders` (301), `/wishlist`, `/account` (overview,
+  completing an interrupted registration), `/account/orders[/:number]`, `/profile`, `/addresses`, `/security`,
+  `/privacy`, `/export`; `/api/wishlist`. The guest order page's view moved verbatim into
+  `app/components/order-view.tsx` (shared with the account) and gained a discount row and a "precisa de ajuda" link.
+  Checkout: signed-in prefill, saved-address picker, order linked to the account, "Já tem conta? Entrar".
+- Browser SDK (`app/.client/firebase.ts`): `createAccount`, `confirmPassword`, `changePassword`, `resendVerification`.
+- Found in Chrome and fixed: a password change revokes the old cookie, so its new ID token must go to `/login`'s action
+  (the account gate would already refuse it); after saving an address the confirmation was off-screen; after a password
+  change the button stayed on "Trocando…" with the fields filled.
+- Tests: unit 205 (12 new: forms/redirects, wishlist three-way merge), integration 93 (11 new in
+  `tests/integration/customers.test.ts`), full suite green; a mail test that compared e-mails queued by one transaction
+  in Firestore's (random ID) order was flaky — now sorted, 3 runs green. typecheck clean; lint 0 errors; build OK.
+- **Chrome on a separate dev stack** (`firebase.verify.json`: Firestore 8480, Auth 9095, hub 4410, logging 4510; dev
+  server :5176; Banco Central test key; Q's :5173 stack untouched — checked with netstat):
+  rejected registration form → no Firebase account; registration → `/account`, profile + consents + welcome e-mail +
+  verification e-mail (emulator); address with ViaCEP fill; checkout prefilled → order 1001 with `customer.uid` and
+  `customerLinkToken`; account order list/detail; wishlist synced to `wishlists/{uid}`; password change (wrong current
+  refused; session kept; old password refused at the next sign-in); sign-out → gate → sign-in with `redirectTo`;
+  export over HTTP (headers, keys, CPF present, 302 without a session); deletion (unticked refused; data and sign-in
+  gone; order kept; audit by UID); reset e-mail only for an existing address, same message for an unknown one;
+  profile save with consent history.
+- Not verified: clicking the verification link (then signing in again to see guest orders) in a browser; the reset link
+  itself; the account pages on a phone width; anything in production (not deployed).
+
+### D. Customer support (§13) and return requests
+- `app/lib/support.ts` (topics, return reasons/preferences, statuses, form schema, `botReason`), `app/.server/support.ts`
+  (tickets numbered from 1001; creation with hourly limits + automatic confirmation e-mail + store notice in one
+  transaction; admin list/count/reply/close/reopen, audited `ticket.*`; the customer's tickets by UID / verified
+  e-mail). Mail templates `ticket_received` (withdrawal → the art. 5 §4 confirmation wording), `store_new_ticket`,
+  `ticket_reply`; mail context gained the business hours. Capabilities `support.view` / `support.reply` (whole team).
+  Index `tickets (status, number desc)`.
+- Pages: `/contact` (form; `?pedido=&assunto=` fill it in; the action's answer is `no-store` while the page stays
+  public), `/admin/support` + `/admin/support/:number` ("Atendimento" in the admin nav), `/account/support[/:number]`;
+  order pages link "Pedir troca, devolução ou desistência".
+- Tests: unit 216 (contact form 6, support e-mails 5), integration +8 (`tests/integration/support.test.ts`).
+- Chrome (dev stack :5176): return request from an order link (fields filled; missing reason/preference → errors;
+  sent → "atendimento nº 1001"; ticket + `ticket_received` with `withdrawal` queued; rate-limit docs hold hashes only);
+  an instant (bot-like) submit refused; admin (dev owner) → inbox, ticket page with the return details and the
+  withdrawal guidance, reply → "Respondido" + `ticket_reply` queued + `ticket.replied` audited, close → counts moved.
+  Found and fixed: textareas had the inputs' pill radius.
+- Not verified: staff's view in a browser (capability table only); the 5-day overdue flag; a signed-in customer's
+  ticket list in a browser (integration only).
+
+### E. Discounts and promotions (§11)
+- Engine `app/lib/discounts.ts` (pure): percent / fixed / free shipping / buy X get Y; scope all / products (+ "kit":
+  all required) / categories; schedule, minimum, total and per-customer limits, first order, allowed e-mails; one
+  products discount (best for the customer) + one free shipping; provisional while the buyer is unknown (the cart).
+- `app/.server/promotions.ts`: Firestore mapping, reads inside the order transaction, the buyer's earlier orders by
+  e-mail **and** CPF, `redemptionCount` up at order time and down when the unpaid order is cancelled (store or expiry,
+  in `settleInTransaction`), admin save (audited `promotion.created/updated`). `app/lib/admin/promotions.ts` parses
+  the admin form (R$ decimals, Brasília datetime-local).
+- `createOrder`: discounts decided in the transaction; `CouponRefusedError` (409 at checkout, "continuar sem o cupom");
+  totals keep the products discount and the charged shipping; a R$ 0,00 total is refused. Quote API previews with
+  the same engine; cart coupon box (code kept in `li.coupon.v1`); checkout summary + coupon status.
+  `/admin/discounts` (+ new/edit; "Descontos" in the nav; capability `discounts.manage`: owner/admin). The admin order
+  page says when the customer paid nothing for delivery.
+- Tests: unit 236 (engine 14, admin form 6), integration 108 (7 new: coupon totals and Pix amount, refused coupons
+  write nothing, first order by CPF, free shipping on top, better automatic wins, **race for the last use** (6 runs
+  green), cancellation and expiry give the use back). Mutations: 6 meaningful caught; one survivor showed the explicit
+  tie-break was dead code (the coupon is always the first candidate) — simplified to what the test pins.
+- Chrome (dev stack): created `BEMVINDO10` (10%, first purchase) and an automatic free shipping above R$ 100; cart →
+  free shipping, then the coupon (typed lowercase) → −R$ 12,99, total R$ 116,91 with the "confirmed at checkout"
+  note; checkout with the CPF of order 1001 → refused with the reason; with a new CPF → order 1002, Pix R$ 116,91;
+  counters 1/1; cancelled in the admin → 0/0. Found and fixed: the discount amount wrapped in the narrow summary.
+  My own slip: clicked hidden cancel controls before opening the "Cancelar pedido…" disclosure.
+- Seen: the admin's own `__session` counts as a signed-in customer at checkout (order 1002 shows "Cliente com conta",
+  linked to the dev owner). Expected with one session cookie per browser; harmless.
+
+### F. Reviews and social proof (§12)
+- `app/lib/reviews.ts` (form, sorting, stats maths), `app/.server/reviews.ts` (submit with "compra verificada",
+  moderation with stats in the same transaction, helpful votes, reports, admin lists, deletion with the account),
+  `app/.server/ownership.ts` (the order-ownership rule, moved out of customers.ts to avoid an import cycle).
+  Audit actions `review.*`; capability `reviews.moderate` (owner/admin).
+- Pages: `/products/:uid/review` (signed-in), `POST /api/reviews` (helpful / report), `/admin/reviews` ("Avaliações"),
+  the reviews section on product pages (`app/components/reviews.tsx`), Product JSON-LD `AggregateRating` + `Review`
+  only with approved reviews. Account export and deletion include reviews.
+- Tests: unit 242 (6 new), integration 113 (5 new); 3 of 3 mutations caught.
+- Chrome (fresh dev stack): customer sign-in with `redirectTo` straight to the form; review with a YouTube link →
+  pending (not on the page); owner publishes → stars, 5,0 average, distribution, youtube-nocookie player, JSON-LD
+  rating; "Útil" twice → 1; report → "Denunciadas 1".
+- **Found: Vite caches a route file that `routes.ts` names before the file exists** (as in session 2). I registered
+  `admin.reviews.tsx` a moment before writing it, so my dev stack had to be restarted — and **Q's old :5173 dev
+  server, which hot-reloads this working tree, shows "Failed to load url … wishlist.tsx" since batch C**. Not
+  restarted on purpose: it runs inside `emulators:exec`, so stopping it would end its emulators and lose Q's dev data
+  (order 1003). Restart it whenever convenient (`npm run dev:emulated`). Lesson: write the route file first.
+
+### G. Cookie consent (§18)
+- `app/lib/consent.ts` (`li.consent.v1`, versioned; `hasConsent()` for any future analytics/marketing tool; never
+  assumes consent), `app/components/consent.tsx` (non-blocking notice that says only essential cookies/storage are
+  used; "Preferências de cookies" dialog, analytics/marketing off unless chosen), mounted in the store layout; footer
+  link + "Garantia" added to the footer's legal column. 2 unit tests.
+- Chrome: notice on first visit; dialog (found and fixed: Tailwind's reset left `<dialog>` in the top-left corner →
+  `m-auto`); saved both off → notice gone, choice stored; reopened from the footer with the saved state; Escape
+  closes it.
+- `content/prismic/pages/cookies.md` now also lists the keys this branch adds and the preferences link. **Not sent**:
+  the copy in Prismic's release must stay true for production until the branch is deployed (handoff, step 5).
+- `seed-content.mjs` learns `external` state entries; the archived settings document is recorded as one, so a plain
+  `--apply` skips it with the reason.
+- The final `npm run build` caught a batch D bug that dev mode and typecheck don't: `admin.ticket.tsx` imported
+  `REPLY_MAX` (used by the form) from the server-only `~/.server/support` ("Server-only module referenced by
+  client"). The constant moved to `app/lib/support.ts`; build OK. Lesson: run the build after every batch.
+- Intermittent test, seen once: in the first full integration run at the end, `orders.test.ts` › "never sells the
+  last unit twice, even to simultaneous buyers" got `3 INVALID_ARGUMENT: Transaction is…` (Vitest cut the message)
+  instead of `CartChangedError`, after 8.3 s. No order code had changed since the last green run (`git diff 3db05c5`);
+  the test then passed 3/3 alone and the next full run passed 113/113. Theory, unverified: the emulator answers
+  INVALID_ARGUMENT (not retried by the SDK) to a transaction that lost a slow lock race, where production answers
+  ABORTED (retried). If it comes back, capture the full error before changing the test or the order code.
+
+### H. Brevo live check and a sender fix (afternoon, with the owner)
+- The owner published the Migration Release (verified: the 7 pages and the FAQ answer 200 on both hosts), restored
+  and partly filled the settings document, and created the Brevo account (domain records checked by DNS lookup).
+- The SMTP settings were in a root `.env`, which nothing reads (dev reads `.env.local`, deployed functions read
+  `.env.lojaiyanifa`). `.env.example` (committed) also held the real SMTP login and key: never committed (no commit on
+  any branch has an SMTP-key-shaped string); restored to its placeholders. With the owner's yes, the settings were
+  copied into `.env.local` and, without the key, `.env.lojaiyanifa` (passes the predeploy rules). The root `.env` is
+  unused and can be deleted.
+- Live send through the production path (one fake order on the test emulator; its two e-mails to `MAIL_STORE_TO`
+  only): refused at login, `525 5.7.1 Unauthorized IP address`, three times, also after the owner turned Brevo's IP
+  blocking off; **passed once the owner authorized this machine's IP** in Brevo. Production is still affected: see
+  the handoff, step 4. The check is now a command: `npm run test:mail-live` (`tests/mail-live/`, its own vitest
+  config; the unit and integration runs never include it). It prints what it sent: Vitest 5 hides a passing test's
+  console output, so its config sets `silent: false` (the passing run above printed nothing; checked with a marker test).
+- **Bug the live send found (batch B):** every SMTP 5xx counted as "this e-mail is refused for good", but Brevo also
+  answers 5xx at login, so a blocked IP or a wrong key would have failed every e-mail at once, for good. Now
+  `sendErrorKind` (nodemailer's code and SMTP command, checked in its source) decides: only a refused recipient
+  (RCPT TO) or content (EMESSAGE) is the e-mail's problem (5xx final, 4xx retried); login, sender, connection, TLS and
+  timeouts are the service's: the e-mail goes back without using an attempt, waits 5 minutes, the run stops
+  (`blocked`, logged as an error) and the next runs try again until the 72-hour expiry. Unit tests (classifier) and an
+  integration test (an hour-long login outage, then recovery); mutation check: each of 5 mutations caught by the unit
+  or the integration tests. Seen live: the refused runs left both e-mails pending with no attempt used.
+
 ## Handoff for the next session (read this first)
+
+**Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
+production on 2026-11-05 (04:17 UTC, from `41e6cf8`); not merged into master yet** (pull request:
+`https://github.com/ayodkay/lojaiyanifa/pull/new/feat/accounts-support-promos-legal`).
+Commits on top of master `1b17582`: `d7129be` texts → Prismic, `9c734eb` Brevo e-mail, `33ff768` accounts, `68c6d1f`
+support, `b2fd334` discounts, `3db05c5` reviews, `20fb352` cookie consent, then the afternoon's mail fixes and notes
+(`git log`).
+Checks at the end (after H): unit 246, integration 114 (fresh emulators; one intermittent failure earlier, see G),
+typecheck clean, lint 0 errors, build OK.
+
+**What the owner does next, in this order:**
+1. **Done 2026-11-04** (the 7 pages and the FAQ answer 200 on both hosts).
+   **Prismic → Migration release** ("migration-api-release"): read the 7 pages and the FAQ (lawyer review
+   recommended for terms, privacy, returns, warranty), edit freely, then **Publish**. This alone fixes the 404s that
+   checkout links to; it needs no deploy. Choices the texts make that are business decisions (change them if wrong):
+   exchanges for size/colour at the customer's shipping cost; a re-delivery may be charged when the address was wrong
+   or nobody was home; refunds by Pix right after the returned product arrives; the FAQ explains that the bank app
+   shows the Pix account holder's name, not "Loja Iyanifa" (session 2 left that open).
+2. **After publishing, discard the old empty FAQ draft** ("Untitled Nov 2", same document `aukFxxEAACoApfqD`, shown as
+   "Edited" beside the release version): publishing that draft later would empty the FAQ.
+3. **Store settings in Prismic** (company name, CNPJ/CPF, address, support e-mail, WhatsApp, hours): the settings
+   document is **archived** ("Untitled Nov 1", `audNGREAACoAomV3`). Restore it and fill it in. The three product-page
+   policy summaries are ready in `content/prismic/settings.md`: paste them by hand. **2026-11-04: restored and partly
+   filled by the owner**, so the `--adopt` route is closed (the Migration API would replace what was typed).
+4. **Brevo** (e-mail): add `lojaiyanifa.com.br` as a sender domain and put Brevo's DNS records in Cloudflare
+   (DNS only, not proxied); create an SMTP key (SMTP & API → SMTP); then
+   `firebase functions:secrets:set SMTP_PASSWORD --project prod` (paste the key), and add to `.env.lojaiyanifa`:
+   `MAIL_FROM="Loja Iyanifa <pedidos@lojaiyanifa.com.br>"` (a sender Brevo verified), `SMTP_USER=<Brevo SMTP login>`,
+   `MAIL_STORE_TO=<the store's inbox>`, optionally `MAIL_REPLY_TO`. Not ready yet? Set the secret to `unset`: e-mails
+   wait (each run logs how many) and expire after 72 h. Optional: Firebase console → Authentication → Templates → SMTP
+   settings → the same Brevo relay, so verification/reset e-mails come from the store's domain.
+   **Status 2026-11-04:** account, sender domain and DNS done (Zoho MX; Brevo code; DKIM `brevo1`/`brevo2`; DMARC
+   `p=reject`); settings in `.env.local` (dev) and `.env.lojaiyanifa` (production, without the key). Sending works
+   from the owner's machine since the owner authorized its IP in Brevo (`npm run test:mail-live` passed; it sends one
+   fake order's 2 e-mails to `MAIL_STORE_TO` only). **Open before deploying `sendMailOutbox`:** Brevo now accepts
+   only authorized IPs, and Cloud Functions have no fixed IP, so production would be refused (`525 5.7.1
+   Unauthorized IP address`; the e-mails then wait, and every run logs "SMTP refused"). Either turn Brevo's IP
+   blocking off (Security → Authorized IPs; the first attempt didn't take effect, so check with
+   `npm run test:mail-live` from a non-authorized network, or watch the function's logs after deploying), or give the
+   functions a fixed outgoing IP (VPC connector + Cloud NAT, a monthly cost) and authorize it. The production secret
+   was set on 2026-11-05 (version 1; create it with `--project prod`: the repo's default project is the demo one).
+5. **Deployed 2026-11-05** from `41e6cf8`, on the owner's go (the branch is not merged into master yet):
+   - Firestore: indexes `mail` and `tickets` deployed and READY; the rules were unchanged.
+   - `firebase deploy --only hosting,functions`: hooks OK (`.env.lojaiyanifa` copied without the key, robots.txt from
+     `SITE_URL`), the functions' service account got access to the secret, `ssr` and `expirePixOrders` updated,
+     `sendMailOutbox` created (revision `sendmailoutbox-00001`), hosting released; no invoker warning.
+   - Live on both hosts: every page 200 (legal pages, FAQ, `/register`, `/login`, `/forgot-password`, `/contact`,
+     `/wishlist`, a product page with its reviews section), `/admin` and `/account` 302 to their sign-in pages,
+     `/health` 200, immutable assets, a made-up asset 404 `no-store`, an unknown path 404 with the security headers;
+     canonical links, the sitemap and robots.txt name `https://lojaiyanifa.com.br`.
+   - Logs (Logs Explorer, first hour): no errors; the only warnings were the checks' own 404s and a scanner asking for
+     `/.env` (404). `firebase functions:log --only ssr` showed a stale slice again, while `--only sendMailOutbox` (a
+     new function, little history) was current.
+   - The updated cookie policy (dated 2026-11-05) is in the Migration Release: **the owner publishes it**.
+   - **Not proven yet: an e-mail from production.** The first real order or contact message shows `[mail] sent …` or
+     `[mail] SMTP refused …` in the `sendmailoutbox` log (Brevo's IP setting, step 4).
+   The procedure, for next time:
+   `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
+   `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then
+   `firebase deploy --only functions,hosting --project prod > <log> 2>&1` — this creates the new scheduled function
+   `sendMailOutbox`, which needs the secret from step 4. Then send the cookie policy that matches the deployed site:
+   `node scripts/prismic/seed-content.mjs --apply --overwrite cookies` and publish the release again. Live checks as in
+   "Redeploying" below, plus `/register`, `/login`, `/contact` (form), `/wishlist`, a product page's reviews section.
+6. Recommended, not built: Cloud Logging retention ≥ 183 days (the privacy policy promises 6 months of access logs,
+   Marco Civil art. 15; the default bucket keeps 30); a Firestore TTL policy on `rateLimits.expiresAt`; Cloudflare
+   Turnstile keys for the contact form.
+   **`SITE_URL` is `https://lojaiyanifa.com.br`** since 2026-11-04 (owner's decision, in `.env.lojaiyanifa`; the
+   predeploy check passes): canonical URLs, the sitemap, robots.txt and e-mail links switch at the next functions +
+   hosting deploy. `lojaiyanifa.web.app` keeps working: the same-origin check compares a form's Origin with the
+   forwarded host (a POST to `/` reached the router, 405, on both hosts). After the deploy, check the canonical link
+   and `/robots.txt` on both hosts (Cloudflare may serve `.com.br` from cache for a while).
+7. This machine: Q's old dev server on :5173 shows "Failed to load url … wishlist.tsx" since this branch changed
+   `routes.ts` under it; restarting it ends its emulators and their data (order 1003). Start fresh with
+   `npm run dev:emulated` when convenient. Claude's verification stack (`firebase.verify.json`, dev server :5176) was
+   stopped at the end of the session (its ports no longer answer; :5173 and :8180 were left as they were).
+
+**Still open from tonight's scope (needs the owner):** customer photos in reviews (a Storage bucket + an upload path
+that strips EXIF), gift cards / loyalty points / referrals (rules), NF-e invoices (accountant), live chat (WhatsApp is
+the channel; a widget means a third party + consent), phone support (number), the flat rate's transit days.
+
+**Earlier handoff (sessions 1–5) follows.**
 **State:**
 - Sessions 1–2: storefront, cart, checkout, orders and Pix codes.
 - Session 3: admin sign-in with roles.

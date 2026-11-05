@@ -19,7 +19,22 @@ export type AuditAction =
   | "settings.payment_updated"
   | "settings.shipping_updated"
   | "settings.checkout_opened"
-  | "settings.checkout_closed";
+  | "settings.checkout_closed"
+  // Promotions and coupons (/admin/discounts).
+  | "promotion.created"
+  | "promotion.updated"
+  // Review moderation (deletions by a customer deleting their account are audited with the customer as actor).
+  | "review.approved"
+  | "review.rejected"
+  | "review.deleted"
+  | "review.replied"
+  // Support tickets (the team's answers and status changes).
+  | "ticket.replied"
+  | "ticket.closed"
+  | "ticket.reopened"
+  // LGPD requests made by customers themselves (no personal data in the entry: the UID only).
+  | "customer.data_exported"
+  | "customer.account_deleted";
 
 /** A signed-in admin. */
 export interface AuditActor {
@@ -34,9 +49,15 @@ export interface SystemActor {
   name: string;
 }
 
+/** A customer acting on their own account; `name` is the Auth UID. */
+export interface CustomerActor {
+  type: "customer";
+  name: string;
+}
+
 export interface AuditEntry {
   action: AuditAction;
-  actor: AuditActor | SystemActor;
+  actor: AuditActor | SystemActor | CustomerActor;
   /** Document path the action is about, e.g. "orders/1001" or "users/<uid>". */
   target: string;
   details?: Record<string, unknown>;

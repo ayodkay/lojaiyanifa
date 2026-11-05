@@ -16,8 +16,16 @@ import { canEditTracking, canTakeStep, type FulfillmentStage, type FulfillmentSt
 import { OrderNotFoundError, orderRef } from "./admin-orders";
 import { writeAuditInTransaction } from "./audit";
 import { db } from "./firebase";
+import { type MailTemplate, queueMailInTransaction } from "./mail/outbox";
 import { rawFulfillmentOf, rawNotesOf } from "./order-doc";
 import type { AdminUser } from "./session";
+
+/** The customer e-mail for a step (none for "processing", an internal step). Pickup orders are "ready", not shipped. */
+export function stepMail(step: FulfillmentStep, method: string): MailTemplate | null {
+  if (step === "shipped") return method === "pickup" ? "order_ready_for_pickup" : "order_shipped";
+  if (step === "delivered") return "order_delivered";
+  return null;
+}
 
 /** The order's state doesn't allow the change (someone else changed it first, or the request was crafted). */
 export class OrderStateError extends Error {
@@ -77,6 +85,8 @@ async function stepInTransaction(number: number, step: FulfillmentStep, tracking
       timeline: [...(order.timeline as unknown[]), { at: ts, status: step, by: "admin", actor: by, note: trackingNote(tracking) }],
     });
     writeAuditInTransaction(tx, { action: "order.fulfillment_updated", actor, target: `orders/${number}`, details: { step, ...(tracking ?? {}) } }, now);
+    const template = stepMail(step, order.shipping?.method);
+    if (template) queueMailInTransaction(tx, { template, to: order.customer.email, orderNumber: number, data: {} }, now);
   });
 }
 
@@ -95,6 +105,11 @@ export async function updateTracking(number: number, tracking: TrackingInput, ac
     const ts = Timestamp.fromDate(now);
     tx.update(ref, { updatedAt: ts, fulfillment: { ...fulfillment, ...tracking } });
     writeAuditInTransaction(tx, { action: "order.tracking_updated", actor, target: `orders/${number}`, details: { ...tracking } }, now);
+    // Tell the customer only when there is something new to follow (a code or link that changed).
+    const changed = tracking.trackingCode !== (fulfillment.trackingCode ?? null) || tracking.trackingUrl !== (fulfillment.trackingUrl ?? null);
+    if (changed && (tracking.trackingCode || tracking.trackingUrl)) {
+      queueMailInTransaction(tx, { template: "order_tracking_updated", to: order.customer.email, orderNumber: number, data: {} }, now);
+    }
   });
 }
 

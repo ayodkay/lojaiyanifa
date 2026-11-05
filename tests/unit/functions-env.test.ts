@@ -36,6 +36,15 @@ describe("productionEnvProblems", () => {
     }
   });
 
+  it("keeps the SMTP key out of the deployed env file (it belongs in Secret Manager); the rest of the mail settings may go", () => {
+    const mail = { MAIL_FROM: "Loja <pedidos@loja.example>", MAIL_STORE_TO: "dono@exemplo.com", SMTP_USER: "login@smtp-brevo.com" };
+    expect(productionEnvProblems(file({ ...VALID, ...mail }))).toEqual([]);
+    const problems = productionEnvProblems(file({ ...VALID, ...mail, SMTP_PASSWORD: "xsmtpsib-fake" }));
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/^SMTP_PASSWORD must not be deployed: .*functions:secrets:set SMTP_PASSWORD/);
+    expect(problems[0]).not.toContain("xsmtpsib-fake");
+  });
+
   it("names the variables the Firebase CLI would refuse, such as the old FIREBASE_WEB_API_KEY", () => {
     const reserved = { FIREBASE_WEB_API_KEY: "x", FIREBASE_AUTH_DOMAIN: "x", X_GOOGLE_SETTING: "x", EXT_SETTING: "x" };
     const problems = productionEnvProblems(file({ ...VALID, ...reserved }));

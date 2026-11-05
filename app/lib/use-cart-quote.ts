@@ -25,11 +25,11 @@ interface QuoteResult {
  * on screen while a new one loads. Quantities the server had to lower (stock)
  * are applied to the stored cart and reported through `adjustments`.
  */
-export function useCartQuote(items: CartItem[], enabled: boolean) {
+export function useCartQuote(items: CartItem[], enabled: boolean, couponCode: string | null = null) {
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<QuoteResult | null>(null);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
-  const body = JSON.stringify({ items });
+  const body = JSON.stringify({ items, coupon: couponCode });
   const key = `${attempt}:${body}`;
   const empty = items.length === 0;
 

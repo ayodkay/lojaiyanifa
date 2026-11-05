@@ -7,21 +7,25 @@
 // submission (double click, retry after a lost response) returns the same
 // order. That key is also the guest's secret for the order page; only its
 // SHA-256 is stored.
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 
 import { type DocumentData, Timestamp } from "firebase-admin/firestore";
 
 import { type CartQuote, prismicStockBySku, quoteCart, type StockLevel } from "~/lib/cart/quote";
 import type { CheckoutInput } from "~/lib/checkout";
 import type { Catalog } from "~/lib/catalog/query";
+import { chooseDiscounts } from "~/lib/discounts";
 import type { CustomerOrderView, OrderLine, OrderStatus } from "~/lib/orders";
 import { type PaymentSettings, type ShippingSettings, shippingOptions } from "~/lib/store-settings";
 
+import { env } from "./env";
 import { db } from "./firebase";
 import { availableFrom, inventoryRef } from "./inventory";
+import { queueMailInTransaction } from "./mail/outbox";
 import { fulfillmentOf, iso, NEW_FULFILLMENT, rawRefundsOf, refundedCentsOf } from "./order-doc";
 import { buildPixPayment, pixTxid } from "./pix";
 import { getContent } from "./prismic";
+import { buyerInTransaction, discountLines, loadPromotionsInTransaction, redeemInTransaction } from "./promotions";
 import { CheckoutClosedError, getPaymentSettings, getShippingSettings, getStoreSettings } from "./settings";
 
 export const FIRST_ORDER_NUMBER = 1001;
@@ -39,6 +43,11 @@ export class CartChangedError extends Error {
 /** The chosen delivery method isn't offered for this cart. */
 export class ShippingUnavailableError extends Error {
   override name = "ShippingUnavailableError";
+}
+
+/** The coupon typed doesn't apply to this order (the message says why, for the customer). Nothing was written. */
+export class CouponRefusedError extends Error {
+  override name = "CouponRefusedError";
 }
 
 export interface OrderDeps {
@@ -99,7 +108,22 @@ export async function createOrder(
     if (typeof number !== "number" || !Number.isInteger(number) || number < FIRST_ORDER_NUMBER) {
       throw new Error(`counters/orders is corrupt (next=${String(number)})`);
     }
-    const totalCents = quote.subtotalCents + option.priceCents;
+
+    // Discounts (app/lib/discounts.ts): decided here, with the buyer known, on promotions read in this transaction.
+    const promotions = await loadPromotionsInTransaction(tx, input.couponCode);
+    const buyer = await buyerInTransaction(tx, input.email, input.cpf, now);
+    const discount = chooseDiscounts({
+      lines: discountLines(catalog, quote.lines),
+      subtotalCents: quote.subtotalCents,
+      couponCode: input.couponCode,
+      coupon: promotions.coupon,
+      automatic: promotions.automatic,
+      buyer,
+    });
+    if (discount.coupon && (discount.coupon.state === "refused" || discount.coupon.state === "unknown")) throw new CouponRefusedError(discount.coupon.message);
+    const shippingCents = discount.freeShipping ? 0 : option.priceCents;
+    const totalCents = quote.subtotalCents - discount.itemsDiscountCents + shippingCents;
+    if (totalCents < 1) throw new CouponRefusedError("Com este desconto o pedido ficaria sem valor a pagar. Fale com a loja.");
     const pix = buildPixPayment(payment.pix, totalCents, pixTxid(number)); // throws PixConfigError when unset
 
     // --- writes ---
@@ -155,7 +179,11 @@ export async function createOrder(
         estimateDays: option.estimateDays,
       },
       lines,
-      totals: { subtotalCents: quote.subtotalCents, shippingCents: option.priceCents, discountCents: 0, totalCents, savingsCents: quote.savingsCents },
+      // shippingCents is what the customer pays for delivery (0 with free shipping; the option's price stays in
+      // shipping.priceCents); discountCents is what came off the products.
+      totals: { subtotalCents: quote.subtotalCents, shippingCents, discountCents: discount.itemsDiscountCents, totalCents, savingsCents: quote.savingsCents },
+      discounts: discount.applied.map(({ provisional: _decided, ...applied }) => applied),
+      couponCode: input.couponCode,
       payment: {
         method: "pix",
         status: "pending",
@@ -173,15 +201,22 @@ export async function createOrder(
       refunds: [],
       consents: { termsAcceptedAt: ts },
       accessTokenHash: sha256(input.idempotencyKey),
+      // The checkout key is the guest's secret but only its hash is kept, so e-mails sent later (payment confirmed,
+      // shipped…) link to the order page with this second secret, which the order page also accepts.
+      customerLinkToken: randomUUID(),
       timeline: [{ at: ts, status, by: "customer", note: null }],
     });
     tx.set(counterRef, { next: number + 1 }, { merge: true });
     tx.create(attemptRef, { orderNumber: number, createdAt: ts });
+    redeemInTransaction(tx, promotions.snapshots, discount.applied.map((a) => a.promotionId), now);
+    queueMailInTransaction(tx, { template: "order_placed", to: input.email, orderNumber: number, data: {} }, now);
+    const storeInbox = env().MAIL_STORE_TO;
+    if (storeInbox) queueMailInTransaction(tx, { template: "store_new_order", to: storeInbox, orderNumber: number, data: {} }, now);
     return { number, accessToken: input.idempotencyKey, reused: false };
   });
 }
 
-function toCustomerView(d: DocumentData): CustomerOrderView {
+export function toCustomerView(d: DocumentData): CustomerOrderView {
   return {
     number: d.number,
     status: d.status,
@@ -204,13 +239,28 @@ function toCustomerView(d: DocumentData): CustomerOrderView {
   };
 }
 
+const sameSecret = (a: string, b: string) => {
+  // Compare digests: equal length, and the time taken says nothing about where two strings differ.
+  const x = createHash("sha256").update(a).digest();
+  const y = createHash("sha256").update(b).digest();
+  return timingSafeEqual(x, y);
+};
+
+/**
+ * Whether `token` opens this order's page: the checkout key (only its hash is stored) or the link token of the
+ * e-mails. Both comparisons always run, so the answer takes the same time either way.
+ */
+export function orderTokenMatches(order: DocumentData, token: string): boolean {
+  if (!token) return false;
+  const byCheckoutKey = typeof order.accessTokenHash === "string" && sameSecret(order.accessTokenHash, sha256(token));
+  const byEmailLink = typeof order.customerLinkToken === "string" && sameSecret(order.customerLinkToken, token);
+  return byCheckoutKey || byEmailLink;
+}
+
 /** The order for its guest link, or null (unknown number or wrong secret — indistinguishable on purpose). */
 export async function getOrderForCustomer(number: number, accessToken: string): Promise<CustomerOrderView | null> {
   if (!Number.isInteger(number) || number < FIRST_ORDER_NUMBER || !accessToken) return null;
   const data = (await db().collection("orders").doc(String(number)).get()).data();
-  if (!data || typeof data.accessTokenHash !== "string") return null;
-  const expected = Buffer.from(data.accessTokenHash, "hex");
-  const given = Buffer.from(sha256(accessToken), "hex");
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+  if (!data || !orderTokenMatches(data, accessToken)) return null;
   return toCustomerView(data);
 }
