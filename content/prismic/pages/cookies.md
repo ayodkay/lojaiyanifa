@@ -2,7 +2,7 @@
 title: Política de Cookies
 meta_title: Política de cookies
 meta_description: Quais cookies e dados do navegador o site da Loja Iyanifa usa, para que servem e como gerenciá-los.
-last_updated: 2026-11-04
+last_updated: 2026-11-05
 ---
 
 Cookies são pequenos arquivos que um site guarda no seu navegador. Além deles, o site usa o armazenamento local do navegador, que funciona de forma parecida. Esta política explica o que usamos e por quê.

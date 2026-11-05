@@ -886,9 +886,12 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 
 ## Handoff for the next session (read this first)
 
-**Session 6 (night of 2026-11-04) — branch `feat/accounts-support-promos-legal`, not merged, not pushed, not deployed.**
+**Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
+production on 2026-11-05 (04:17 UTC, from `41e6cf8`); not merged into master yet** (pull request:
+`https://github.com/ayodkay/lojaiyanifa/pull/new/feat/accounts-support-promos-legal`).
 Commits on top of master `1b17582`: `d7129be` texts → Prismic, `9c734eb` Brevo e-mail, `33ff768` accounts, `68c6d1f`
-support, `b2fd334` discounts, `3db05c5` reviews, and the cookie-consent/handoff commit after it (`git log`).
+support, `b2fd334` discounts, `3db05c5` reviews, `20fb352` cookie consent, then the afternoon's mail fixes and notes
+(`git log`).
 Checks at the end (after H): unit 246, integration 114 (fresh emulators; one intermittent failure earlier, see G),
 typecheck clean, lint 0 errors, build OK.
 
@@ -921,9 +924,24 @@ typecheck clean, lint 0 errors, build OK.
    Unauthorized IP address`; the e-mails then wait, and every run logs "SMTP refused"). Either turn Brevo's IP
    blocking off (Security → Authorized IPs; the first attempt didn't take effect, so check with
    `npm run test:mail-live` from a non-authorized network, or watch the function's logs after deploying), or give the
-   functions a fixed outgoing IP (VPC connector + Cloud NAT, a monthly cost) and authorize it. And the production
-   secret: `firebase functions:secrets:set SMTP_PASSWORD --project prod`.
-5. **Deploy the branch** (after reviewing/merging it; only on the owner's go):
+   functions a fixed outgoing IP (VPC connector + Cloud NAT, a monthly cost) and authorize it. The production secret
+   was set on 2026-11-05 (version 1; create it with `--project prod`: the repo's default project is the demo one).
+5. **Deployed 2026-11-05** from `41e6cf8`, on the owner's go (the branch is not merged into master yet):
+   - Firestore: indexes `mail` and `tickets` deployed and READY; the rules were unchanged.
+   - `firebase deploy --only hosting,functions`: hooks OK (`.env.lojaiyanifa` copied without the key, robots.txt from
+     `SITE_URL`), the functions' service account got access to the secret, `ssr` and `expirePixOrders` updated,
+     `sendMailOutbox` created (revision `sendmailoutbox-00001`), hosting released; no invoker warning.
+   - Live on both hosts: every page 200 (legal pages, FAQ, `/register`, `/login`, `/forgot-password`, `/contact`,
+     `/wishlist`, a product page with its reviews section), `/admin` and `/account` 302 to their sign-in pages,
+     `/health` 200, immutable assets, a made-up asset 404 `no-store`, an unknown path 404 with the security headers;
+     canonical links, the sitemap and robots.txt name `https://lojaiyanifa.com.br`.
+   - Logs (Logs Explorer, first hour): no errors; the only warnings were the checks' own 404s and a scanner asking for
+     `/.env` (404). `firebase functions:log --only ssr` showed a stale slice again, while `--only sendMailOutbox` (a
+     new function, little history) was current.
+   - The updated cookie policy (dated 2026-11-05) is in the Migration Release: **the owner publishes it**.
+   - **Not proven yet: an e-mail from production.** The first real order or contact message shows `[mail] sent …` or
+     `[mail] SMTP refused …` in the `sendmailoutbox` log (Brevo's IP setting, step 4).
+   The procedure, for next time:
    `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
    `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then
    `firebase deploy --only functions,hosting --project prod > <log> 2>&1` — this creates the new scheduled function
