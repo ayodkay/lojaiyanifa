@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatBrPhone, formatCep, formatCpf, isUf, isValidCnpj, isValidCpf, normalizeBrPhone, normalizeCep } from "~/lib/br";
+import { formatBrPhone, formatCep, formatCpf, isUf, isValidCnpj, isValidCpf, normalizeBrPhone, normalizeCep, phoneLink } from "~/lib/br";
 
 describe("CPF / CNPJ", () => {
   it("checks CPF digits and refuses repeated digits", () => {
@@ -36,6 +36,12 @@ describe("phones", () => {
   it("formats E.164 numbers for display", () => {
     expect(formatBrPhone("+5521987654321")).toBe("(21) 98765-4321");
     expect(formatBrPhone("+552134567890")).toBe("(21) 3456-7890");
+  });
+
+  it("shows a phone typed by hand formatted, with a tel:+55 link; anything else as typed", () => {
+    expect(phoneLink("5521987654321")).toEqual({ text: "(21) 98765-4321", href: "tel:+5521987654321" });
+    expect(phoneLink("(21) 3456-7890")).toEqual({ text: "(21) 3456-7890", href: "tel:+552134567890" });
+    expect(phoneLink(" 0800 123 4567 ")).toEqual({ text: "0800 123 4567", href: "tel:08001234567" });
   });
 });
 
