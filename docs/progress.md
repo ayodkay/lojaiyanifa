@@ -919,12 +919,10 @@ typecheck clean, lint 0 errors, build OK.
    **Status 2026-11-04:** account, sender domain and DNS done (Zoho MX; Brevo code; DKIM `brevo1`/`brevo2`; DMARC
    `p=reject`); settings in `.env.local` (dev) and `.env.lojaiyanifa` (production, without the key). Sending works
    from the owner's machine since the owner authorized its IP in Brevo (`npm run test:mail-live` passed; it sends one
-   fake order's 2 e-mails to `MAIL_STORE_TO` only). **Open before deploying `sendMailOutbox`:** Brevo now accepts
-   only authorized IPs, and Cloud Functions have no fixed IP, so production would be refused (`525 5.7.1
-   Unauthorized IP address`; the e-mails then wait, and every run logs "SMTP refused"). Either turn Brevo's IP
-   blocking off (Security → Authorized IPs; the first attempt didn't take effect, so check with
-   `npm run test:mail-live` from a non-authorized network, or watch the function's logs after deploying), or give the
-   functions a fixed outgoing IP (VPC connector + Cloud NAT, a monthly cost) and authorize it. The production secret
+   fake order's 2 e-mails to `MAIL_STORE_TO` only). Production sends too: Brevo
+   accepted the deployed function's first e-mails on 2026-11-05 (step 5). If it ever refuses (`[mail] SMTP refused …
+   525 5.7.1 Unauthorized IP address` in the log; the e-mails wait up to 72 hours), check Brevo → Security →
+   Authorized IPs: Cloud Functions have no fixed IP. The production secret
    was set on 2026-11-05 (version 1; create it with `--project prod`: the repo's default project is the demo one).
 5. **Deployed 2026-11-05** from `41e6cf8`, on the owner's go (the branch is not merged into master yet):
    - Firestore: indexes `mail` and `tickets` deployed and READY; the rules were unchanged.
@@ -939,8 +937,11 @@ typecheck clean, lint 0 errors, build OK.
      `/.env` (404). `firebase functions:log --only ssr` showed a stale slice again, while `--only sendMailOutbox` (a
      new function, little history) was current.
    - The updated cookie policy (dated 2026-11-05) is in the Migration Release: **the owner publishes it**.
-   - **Not proven yet: an e-mail from production.** The first real order or contact message shows `[mail] sent …` or
-     `[mail] SMTP refused …` in the `sendmailoutbox` log (Brevo's IP setting, step 4).
+   - **E-mail from production works.** A test contact message on `lojaiyanifa.com.br/contact` (ticket 1001,
+     2026-11-05 04:50 UTC, the store inbox as the customer address, on the owner's go): the next run logged
+     `[mail] sent 2` at 04:51:02 UTC (the auto-reply and the store notice); no errors. Read it in the Logs Explorer
+     (search `"[mail]"`): `firebase functions:log --only sendMailOutbox` went stale within the hour, like `--only ssr`.
+     The owner closes ticket 1001 in `/admin/support`.
    The procedure, for next time:
    `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
    `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then
