@@ -921,14 +921,24 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Prismic's street address has a space after the hyphen in the stall numbers; footer and JSON-LD show it as typed.
 - Offered, not built: `openingHoursSpecification` from the Prismic business hours.
 
-### Deploy
-- `ssr` + hosting (no Firestore change), from the commit that adds this entry. Results: see the next docs commit.
-  Afterwards check `/llms.txt` and the home JSON-LD on both hosts. The custom domain may serve an earlier cached 404 for
-  up to 10 minutes (the 404 page sends `max-age=600`).
+### Deployed 2026-11-06 (owner's go)
+- From `5e643f9`: `firebase deploy --only hosting,functions:ssr --project prod`, 05:34:26 → 05:36:17 UTC, exit 0. Both
+  hooks ran (`.env.lojaiyanifa` checked and copied; robots.txt written), `ssr` updated, hosting released, no invoker
+  warning. No Firestore change.
+- Live on both hosts: `/llms.txt` 200 `text/plain; charset=utf-8`, `public, max-age=0, s-maxage=3600`, 32 products,
+  the same differences from the paste as on dev (custom domain: `cf-cache-status: DYNAMIC`, no stale 404). Home page:
+  the LocalBusiness block with the address, `url` `https://lojaiyanifa.com.br/` and the paste's phone; no Organization
+  block. The standard checks pass on both: `/products/alaka`, `/sitemap.xml`, `/health`, `/robots.txt` 200; `/admin`
+  302 to the sign-in; `/favicon.ico` 301; an asset `immutable`; a made-up asset 404 `no-store`; an unknown path 404 with
+  `nosniff` and the CSP.
+- Not checked: the function log (no gcloud on this machine). Logs Explorer:
+  `resource.type="cloud_run_revision" AND resource.labels.service_name="ssr" AND timestamp>="2026-11-06T05:34:00Z"`.
+- Not pushed: the owner asked for commit + deploy. The branch is still not merged into master.
 
 ## Handoff for the next session (read this first)
 
-**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD with the store's address; see "Session 7" above.**
+**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD with the store's address, deployed 05:36 UTC from
+`5e643f9` (`ssr` + hosting; not pushed); see "Session 7" above.**
 
 **Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
 production on 2026-11-05 (04:17 UTC, from `41e6cf8`; `ssr` + hosting again at 05:08 UTC, from `a099e30`); not
