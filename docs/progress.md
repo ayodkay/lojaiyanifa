@@ -941,12 +941,16 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - Tests: 6 unit, 20 of 20 mutations caught. Totals: unit 253 (32 files), typecheck 0 errors, lint 0 errors, build OK.
   Dev server (:5173, GET only): Monday–Saturday 10:00:00–18:00:00, as the footer shows it ("segunda a sábado,
   10:00–18:00").
-- Deploy: `ssr` + hosting, from the commit that adds this entry; results in the next docs commit.
+- **Deployed** from `e48aec3`: `firebase deploy --only hosting,functions:ssr --project prod`, 06:23:14 → 06:25:03 UTC,
+  exit 0; both hooks ran, `ssr` updated, hosting released, no invoker warning. Live on both hosts: the LocalBusiness
+  block has Monday–Saturday 10:00:00–18:00:00, with the address, phone and profiles as before; `/llms.txt` and the
+  standard checks unchanged and passing (same list as above). Function log not checked (no gcloud; same query, from
+  `2026-11-06T06:23:00Z`). Not pushed.
 
 ## Handoff for the next session (read this first)
 
-**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD (store address, opening hours), deployed from
-`5e643f9` at 05:36 UTC; opening hours: see "Session 7" above.**
+**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD (store address, opening hours), deployed at 05:36
+and 06:25 UTC (last from `e48aec3`, `ssr` + hosting; not pushed); see "Session 7" above.**
 
 **Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
 production on 2026-11-05 (04:17 UTC, from `41e6cf8`; `ssr` + hosting again at 05:08 UTC, from `a099e30`); not
