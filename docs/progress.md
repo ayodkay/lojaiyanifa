@@ -884,10 +884,77 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   integration test (an hour-long login outage, then recovery); mutation check: each of 5 mutations caught by the unit
   or the integration tests. Seen live: the refused runs left both e-mails pending with no attempt used.
 
+## Session 7 — 2026-11-06: `/llms.txt` and LocalBusiness JSON-LD
+
+### Owner's request
+- Add an `llms.txt` and a LocalBusiness JSON-LD, both pasted by the owner (generated elsewhere). Both carried the store
+  phone (the WhatsApp link, `telephone`), so neither is a static file: both are built from the Prismic settings at
+  request time, like the footer.
+- Then the owner's choice (the pasted JSON-LD had no address, which Google requires for a LocalBusiness): keep
+  LocalBusiness, with the physical store's address, the store at Mercadão de Madureira. The Prismic company address
+  (Street address, City, State, CEP) already holds exactly that address, so the JSON-LD reads it. Commit and deploy.
+
+### Done and verified
+- `app/lib/store-profile.ts`: the owner's description and four offerings as fixed text (the paste's "Panas tradicionais"
+  corrected to "Panos"); `localBusinessJsonLd(settings, siteUrl)` (`telephone` = `contact.phone` normalized to +55…,
+  `address` = a PostalAddress from the company address with country BR, only when a street address is set and without
+  the parts that are empty, `sameAs` = the social links; each left out when empty); `llmsTxt(...)` (home + about +
+  every catalog product under its page title, sorted pt-BR; profiles = the social links, network lowercased, + the
+  WhatsApp link with its message; a closing `Website:` line).
+- `/llms.txt` (`app/routes/llms-txt.ts`, registered after `sitemap.xml`): `text/plain; charset=utf-8`,
+  `public, max-age=0, s-maxage=3600`. A route works in production: on 2026-11-06 the live `/llms.txt` 404 was the
+  store's own 404 page, so the request reaches the app (unlike `/robots.txt`, which the Functions Framework answers).
+- Home page: the bare `Organization` block is replaced by the LocalBusiness block (a LocalBusiness is an Organization;
+  one entity, not two). `WebSite` unchanged.
+- Tests: 5 unit (`tests/unit/store-profile.test.ts`), 13 of 13 mutations caught. Totals: unit 252 (32 files),
+  typecheck 0 errors, lint 0 errors, build OK.
+- Against the live Prismic content (GET requests to the :5173 dev server only): `/llms.txt` differs from the paste only
+  by one blank line, "Panos", and the product list: all 32 catalog products (the sitemap's set) instead of 10. The
+  profile lines, phone included, are identical. The home JSON-LD has the paste's fields and values (dev origin aside),
+  plus the address exactly as typed in Prismic (street, Rio de Janeiro, RJ, CEP, BR).
+- Owner-data scan: 0 hits (the changed files: phone, owner e-mail, 13 env values; 259 committable files: phone).
+- Checklist: the note of "Structured data / Schema.org" now says LocalBusiness (was Organization).
+
+### Notes
+- The LocalBusiness address is the company address, the same one the footer shows. Should the registered (legal)
+  address ever differ from the store's, the store needs fields of its own (comment in `app/lib/store-profile.ts`).
+- Prismic's street address has a space after the hyphen in the stall numbers; footer and JSON-LD show it as typed.
+
+### Deployed 2026-11-06 (owner's go)
+- From `5e643f9`: `firebase deploy --only hosting,functions:ssr --project prod`, 05:34:26 → 05:36:17 UTC, exit 0. Both
+  hooks ran (`.env.lojaiyanifa` checked and copied; robots.txt written), `ssr` updated, hosting released, no invoker
+  warning. No Firestore change.
+- Live on both hosts: `/llms.txt` 200 `text/plain; charset=utf-8`, `public, max-age=0, s-maxage=3600`, 32 products,
+  the same differences from the paste as on dev (custom domain: `cf-cache-status: DYNAMIC`, no stale 404). Home page:
+  the LocalBusiness block with the address, `url` `https://lojaiyanifa.com.br/` and the paste's phone; no Organization
+  block. The standard checks pass on both: `/products/alaka`, `/sitemap.xml`, `/health`, `/robots.txt` 200; `/admin`
+  302 to the sign-in; `/favicon.ico` 301; an asset `immutable`; a made-up asset 404 `no-store`; an unknown path 404 with
+  `nosniff` and the CSP.
+- Not checked: the function log (no gcloud on this machine). Logs Explorer:
+  `resource.type="cloud_run_revision" AND resource.labels.service_name="ssr" AND timestamp>="2026-11-06T05:34:00Z"`.
+- Not pushed: the owner asked for commit + deploy. The branch is still not merged into master.
+
+### Opening hours (the owner's ask, after that deploy)
+- `localBusinessJsonLd` adds `openingHoursSpecification` from the Prismic business hours (the footer's): one entry per
+  distinct time slot, its days Monday first (as the footer lists them), times as hh:mm:ss (Google's stated format; the
+  settings keep hh:mm). A split shift becomes two entries; no hours, no property.
+- Tests: 6 unit, 20 of 20 mutations caught. Totals: unit 253 (32 files), typecheck 0 errors, lint 0 errors, build OK.
+  Dev server (:5173, GET only): Monday–Saturday 10:00:00–18:00:00, as the footer shows it ("segunda a sábado,
+  10:00–18:00").
+- **Deployed** from `e48aec3`: `firebase deploy --only hosting,functions:ssr --project prod`, 06:23:14 → 06:25:03 UTC,
+  exit 0; both hooks ran, `ssr` updated, hosting released, no invoker warning. Live on both hosts: the LocalBusiness
+  block has Monday–Saturday 10:00:00–18:00:00, with the address, phone and profiles as before; `/llms.txt` and the
+  standard checks unchanged and passing (same list as above). Function log not checked (no gcloud; same query, from
+  `2026-11-06T06:23:00Z`). Not pushed.
+
 ## Handoff for the next session (read this first)
 
+**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD (store address, opening hours), deployed at 05:36
+and 06:25 UTC (last from `e48aec3`, `ssr` + hosting; not pushed); see "Session 7" above.**
+
 **Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
-production on 2026-11-05 (04:17 UTC, from `41e6cf8`); not merged into master yet** (pull request:
+production on 2026-11-05 (04:17 UTC, from `41e6cf8`; `ssr` + hosting again at 05:08 UTC, from `a099e30`); not
+merged into master yet** (pull request:
 `https://github.com/ayodkay/lojaiyanifa/pull/new/feat/accounts-support-promos-legal`).
 Commits on top of master `1b17582`: `d7129be` texts → Prismic, `9c734eb` Brevo e-mail, `33ff768` accounts, `68c6d1f`
 support, `b2fd334` discounts, `3db05c5` reviews, `20fb352` cookie consent, then the afternoon's mail fixes and notes
@@ -919,12 +986,10 @@ typecheck clean, lint 0 errors, build OK.
    **Status 2026-11-04:** account, sender domain and DNS done (Zoho MX; Brevo code; DKIM `brevo1`/`brevo2`; DMARC
    `p=reject`); settings in `.env.local` (dev) and `.env.lojaiyanifa` (production, without the key). Sending works
    from the owner's machine since the owner authorized its IP in Brevo (`npm run test:mail-live` passed; it sends one
-   fake order's 2 e-mails to `MAIL_STORE_TO` only). **Open before deploying `sendMailOutbox`:** Brevo now accepts
-   only authorized IPs, and Cloud Functions have no fixed IP, so production would be refused (`525 5.7.1
-   Unauthorized IP address`; the e-mails then wait, and every run logs "SMTP refused"). Either turn Brevo's IP
-   blocking off (Security → Authorized IPs; the first attempt didn't take effect, so check with
-   `npm run test:mail-live` from a non-authorized network, or watch the function's logs after deploying), or give the
-   functions a fixed outgoing IP (VPC connector + Cloud NAT, a monthly cost) and authorize it. The production secret
+   fake order's 2 e-mails to `MAIL_STORE_TO` only). Production sends too: Brevo
+   accepted the deployed function's first e-mails on 2026-11-05 (step 5). If it ever refuses (`[mail] SMTP refused …
+   525 5.7.1 Unauthorized IP address` in the log; the e-mails wait up to 72 hours), check Brevo → Security →
+   Authorized IPs: Cloud Functions have no fixed IP. The production secret
    was set on 2026-11-05 (version 1; create it with `--project prod`: the repo's default project is the demo one).
 5. **Deployed 2026-11-05** from `41e6cf8`, on the owner's go (the branch is not merged into master yet):
    - Firestore: indexes `mail` and `tickets` deployed and READY; the rules were unchanged.
@@ -939,8 +1004,14 @@ typecheck clean, lint 0 errors, build OK.
      `/.env` (404). `firebase functions:log --only ssr` showed a stale slice again, while `--only sendMailOutbox` (a
      new function, little history) was current.
    - The updated cookie policy (dated 2026-11-05) is in the Migration Release: **the owner publishes it**.
-   - **Not proven yet: an e-mail from production.** The first real order or contact message shows `[mail] sent …` or
-     `[mail] SMTP refused …` in the `sendmailoutbox` log (Brevo's IP setting, step 4).
+   - **E-mail from production works.** A test contact message on `lojaiyanifa.com.br/contact` (ticket 1001,
+     2026-11-05 04:50 UTC, the store inbox as the customer address, on the owner's go): the next run logged
+     `[mail] sent 2` at 04:51:02 UTC (the auto-reply and the store notice); no errors. Read it in the Logs Explorer
+     (search `"[mail]"`): `firebase functions:log --only sendMailOutbox` went stale within the hour, like `--only ssr`.
+     The owner closes ticket 1001 in `/admin/support`.
+   - Then the store phone's formatting (`9514e39`: contact page and footer show `(DDD) number` and link `tel:+55…`;
+     they printed the Prismic text as typed) went out from `a099e30` at 05:08 UTC (`--only hosting,functions:ssr`);
+     checked on both hosts.
    The procedure, for next time:
    `firebase deploy --only firestore --project prod` (new indexes `tickets (status, number desc)` and
    `mail (status, nextAttemptAt)`; wait for READY), then `npm run build` from a committed tree, then

@@ -13,6 +13,7 @@ import { useRecentlyViewed } from "~/lib/client-store";
 import { publicCacheUntil } from "~/lib/http";
 import { seoMeta } from "~/lib/seo";
 import { categoryHref } from "~/lib/shell";
+import { localBusinessJsonLd } from "~/lib/store-profile";
 
 import type { Route } from "./+types/home";
 
@@ -39,9 +40,11 @@ export async function loader() {
   const categories = (curatedCategories.length ? curatedCategories : topLevelCategories(catalog)).slice(0, 6);
   const { active, nextChangeSeconds } = activeBanners(homepage?.banners ?? [], Date.now());
 
+  const siteUrl = env().SITE_URL;
   const payload = {
-    siteUrl: env().SITE_URL,
+    siteUrl,
     storeName: settings.storeName,
+    localBusiness: localBusinessJsonLd(settings, siteUrl),
     tagline: settings.tagline,
     seo: homepage?.seo ?? settings.seo,
     hero: homepage?.hero ?? null,
@@ -83,7 +86,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
           "query-input": "required name=search_term_string",
         },
       },
-      { "@context": "https://schema.org", "@type": "Organization", name: loaderData.storeName, url: loaderData.siteUrl },
+      // A LocalBusiness is an Organization: one block describes the store, not two.
+      loaderData.localBusiness,
     ],
   });
 }

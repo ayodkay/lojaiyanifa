@@ -194,7 +194,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Privacy policy acceptance where required — _same checkbox_; the privacy policy text is in Prismic's Migration Release (2026-11-04): /privacy goes live when the owner publishes it
 - [x] Place order button — disabled while submitting; double submit returns the same order (verified 2026-11-01 (browser + live action on the dev server))
 - [ ] Payment processing — Pix code generated per order (session 2) and payment confirmed by hand in the admin (session 3), both verified on the dev server; production checkout still closed (settings/payment absent)
-- [ ] Payment confirmation — the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; the payment-confirmed e-mail is built, integration-tested and deployed (2026-11-05) but none has gone out from production yet; not exercised in production
+- [ ] Payment confirmation — the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; the payment-confirmed e-mail is built, integration-tested and deployed (2026-11-05), and production e-mail works (2026-11-05), but this e-mail hasn't been sent for real yet; not exercised in production
 - [x] Error handling — per-field Portuguese errors + focus (browser), changed cart → 409 with review link, store not configured → 503 notice (verified 2026-11-01 (browser + live action on the dev server) + integration tests)
 - [x] Order confirmation page — QR + copia e cola + copy button + summary; guest secret link, wrong secret → 404 (verified 2026-11-01 (browser + live action on the dev server))
 
@@ -259,7 +259,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Order history
 - [x] Order tracking number — carrier + code + https link, editable after shipping, shown on the customer's order page (verified 2026-11-02: Chrome on the dev server + emulator integration tests)
 - [ ] Shipping carrier integration
-- [ ] Order notifications — _built and integration-tested 2026-11-04, deployed 2026-11-05_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail). Order placed + store notice went through Brevo from a dev machine (received); none sent from production yet (Brevo accepts only authorized IPs unless the owner turned that off; the sendmailoutbox log shows it)
+- [ ] Order notifications — _built and integration-tested 2026-11-04, deployed 2026-11-05_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail). Order placed + store notice went through Brevo for real (2026-11-04, received) and production sending works (2026-11-05); the other order e-mails haven't been sent for real yet
 - [ ] Invoice generation
 - [ ] Return management — _partial_: return requests arrive as tickets (reason, preference, items; withdrawals flagged) and refunds are recorded on the order (§7); no return status tracking or reverse-shipping labels
 - [ ] Exchange management — _partial_: exchange requests arrive as tickets (preference "troca"); the exchange itself is handled by hand (no exchange order flow)
@@ -282,7 +282,7 @@ One of the most important parts of an e-commerce website.
 - [ ] Delivery estimates — needs the owner's flat-rate transit days
 - [ ] Tracking integration — _manual tracking built_: carrier + code + link typed by the team and shown to the customer (2026-11-02); carrier API tracking waits for Melhor Envio
 - [ ] Shipping labels
-- [ ] Delivery notifications — _built and integration-tested 2026-11-04, deployed 2026-11-05_ (shipped, ready for pickup, delivered, tracking changed); none sent from production yet
+- [ ] Delivery notifications — _built and integration-tested 2026-11-04, deployed 2026-11-05_ (shipped, ready for pickup, delivered, tracking changed); production e-mail works, these haven't been sent for real yet
 - [x] Local pickup (optional) — Mercadão de Madureira – Anexo, Galeria K, Lojas 219-220 (verified order 1002)
 - [ ] International shipping (if applicable)
 - [ ] Shipping restrictions — _pickup-only products enforced (integration-tested)_; other restrictions not defined
@@ -339,7 +339,7 @@ One of the most important parts of an e-commerce website.
 - [x] Shipping support — topic "Entrega" in the contact form; tracking on the order page (verified 2026-11-04 on a dev stack)
 - [x] Complaint management — topic "Reclamação" in the contact form → ticket handled in /admin/support (verified 2026-11-04 on a dev stack); tickets waiting more than 5 days for an answer are flagged in the list (Decreto 7.962 art. 4, parágrafo único) — that flag has no test yet
 - [x] Support ticket system — /admin/support (tabs by status with counts, thread, reply by e-mail, close/reopen, audited; owner/admin/staff) and /account/support for customers (verified 2026-11-04: Chrome on a dev stack + 8 integration tests)
-- [ ] Automated responses — _built 2026-11-04, deployed 2026-11-05_: the protocol number on screen at once (verified) and an automatic confirmation e-mail queued in the same transaction (integration-tested); none sent from production yet
+- [x] Automated responses — the protocol number on screen at once and an automatic confirmation e-mail queued with the ticket (verified in production 2026-11-05: ticket 1001, [mail] sent 2 a minute later)
 - [ ] Business hours — _implemented_ (open-now in São Paulo time); needs hours in Prismic settings
 
 ### 14. Admin Dashboard / Back Office
@@ -407,7 +407,7 @@ The administrative system is what allows the business owner to manage the entire
 - [ ] Email marketing integration
 - [ ] Abandoned cart emails
 - [ ] Welcome emails
-- [ ] Order confirmation emails — _built and integration-tested 2026-11-04_: pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; sent for real from a dev machine (2026-11-04, received); deployed 2026-11-05, not yet seen from production
+- [x] Order confirmation emails — pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; sent for real (2026-11-04, received); deployed 2026-11-05, production sending verified the same day
 - [ ] Promotional emails
 - [ ] Product recommendation engine
 - [ ] Upselling
@@ -434,7 +434,7 @@ The administrative system is what allows the business owner to manage the entire
 - [x] XML sitemap — products, categories, pages, lastmod from Prismic (verified 34 URLs)
 - [x] Robots.txt — _deployed 2026-11-03_: the app can't serve it in production (the Cloud Functions Framework answers /robots.txt and /favicon.ico itself with an empty 404; verified from its source), so the hosting predeploy hook scripts/robots-txt.mjs writes build/client/robots.txt from SITE_URL and Hosting serves it before the rewrite. Verified live: 200 text/plain, identical to the deployed file. Rules: private areas blocked; everything blocked on non-production sites
 - [x] Canonical URLs — filters/sort dropped, pagination kept (verified)
-- [x] Structured data / Schema.org — WebSite+SearchAction, Organization, CollectionPage (verified)
+- [x] Structured data / Schema.org — WebSite+SearchAction, LocalBusiness on the home page (description, phone, store address, opening hours, social profiles, all from the Prismic settings; 2026-11-06), CollectionPage (verified)
 - [x] Product structured data — Offer/AggregateOffer only when a price exists (verified)
 - [x] Review structured data — AggregateRating + up to 5 Review on the Product JSON-LD, only when approved reviews exist (verified 2026-11-04 on a dev stack)
 - [x] Breadcrumb structured data
@@ -568,7 +568,7 @@ These aren't necessary for every store, but can make it significantly more power
 | Manage business operations |
 - [ ] CRM
 | Manage customer relationships |
-- [ ] Email service — _Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested; a refused login or connection keeps e-mails waiting instead of failing them). The owner's Brevo account, sender domain (DKIM, DMARC), settings and the SMTP_PASSWORD secret are in place; sendMailOutbox deployed 2026-11-05; e-mails went through Brevo from the owner's machine (IP authorized). Production not proven yet: Brevo accepts only authorized IPs unless the owner turned that off, and Cloud Functions have no fixed IP; the first real e-mail shows [mail] sent or SMTP refused in the sendmailoutbox log
+- [x] Email service — Brevo SMTP (smtp-relay.brevo.com:587, STARTTLS), sender domain authenticated (DKIM, DMARC), key in Secret Manager; outbox written in the business transaction, sent by the scheduled sendMailOutbox every 2 minutes; a refused login or connection keeps e-mails waiting instead of failing them. Verified in production 2026-11-05 ([mail] sent 2 for a test ticket); npm run test:mail-live checks it from a dev machine
 | Send transactional emails |
 - [ ] WhatsApp
 | Customer communication |
@@ -651,8 +651,8 @@ This is how I would organize the actual website's pages and routes.
 - [ ] Order management
 - [ ] Inventory management
 #### Admin dashboard
-- [ ] Transactional emails — _built 2026-11-04, deployed 2026-11-05_ (Brevo SMTP outbox: 9 order e-mails and the support e-mails; secret set); sent for real from a dev machine; none from production yet (Brevo IP restriction to confirm)
-- [ ] Customer support — contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; deployed 2026-11-05 (/contact answers on both hosts); automatic e-mails: none sent from production yet
+- [x] Transactional emails — Brevo SMTP outbox: 9 order e-mails and the support e-mails, deployed 2026-11-05; production sending verified the same day (test ticket)
+- [ ] Customer support — contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; deployed 2026-11-05; a test message in production opened ticket 1001 and its e-mails went out
 - [ ] Refund and return system — _refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built
 - [ ] Security
 - [ ] Legal pages and compliance — texts in Prismic's Migration Release (2026-11-04); cookie consent, data requests and accounts' privacy tools in progress

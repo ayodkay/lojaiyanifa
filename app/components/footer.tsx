@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 
+import { phoneLink } from "~/lib/br";
 import { openConsentPreferences } from "~/lib/consent";
 import { formatHours, isOpenNow, type Shell, whatsappHref } from "~/lib/shell";
 
@@ -58,6 +59,7 @@ export function TrustStrip({ shell }: { shell: Shell }) {
 export function Footer({ shell }: { shell: Shell }) {
   const { company, contact } = shell;
   const hours = formatHours(contact.hours);
+  const phone = contact.phone ? phoneLink(contact.phone) : null;
   const address = [
     company.addressLine,
     [company.city, company.state].filter(Boolean).join(" – "),
@@ -130,10 +132,10 @@ export function Footer({ shell }: { shell: Shell }) {
                   </a>
                 </p>
               )}
-              {contact.phone && (
+              {phone && (
                 <p>
-                  <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="hover:underline">
-                    {contact.phone}
+                  <a href={phone.href} className="hover:underline">
+                    {phone.text}
                   </a>
                 </p>
               )}

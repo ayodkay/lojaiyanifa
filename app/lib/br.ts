@@ -56,6 +56,15 @@ export function formatBrPhone(e164: string): string {
   return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
 }
 
+/**
+ * A phone typed by hand (the store's, in Prismic) for display and for its tel: link: "5521987654321" →
+ * "(21) 98765-4321" and "tel:+5521987654321". Anything else (e.g. a 0800 number) is shown as typed.
+ */
+export function phoneLink(input: string): { text: string; href: string } {
+  const e164 = normalizeBrPhone(input);
+  return e164 ? { text: formatBrPhone(e164), href: `tel:${e164}` } : { text: input.trim(), href: `tel:${input.replace(/[^\d+]/g, "")}` };
+}
+
 /** CEP → 8 digits, or null. */
 export function normalizeCep(input: string): string | null {
   const digits = onlyDigits(input);

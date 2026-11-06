@@ -66,6 +66,7 @@ export default [
   // Functions Framework does, with an empty 404), so Firebase Hosting serves them. The hosting predeploy hook writes
   // robots.txt (scripts/robots-txt.mjs); /favicon.ico is a redirect to /favicon.svg in firebase.json.
   route("sitemap.xml", "routes/sitemap-xml.ts"),
+  route("llms.txt", "routes/llms-txt.ts"),
   route("api/search/suggest", "routes/api.search.suggest.ts"),
   route("api/products", "routes/api.products.ts"),
   route("api/cart/quote", "routes/api.cart.quote.ts"),

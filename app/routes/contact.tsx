@@ -13,6 +13,7 @@ import { Field, focusFirstError, INPUT_CLASS } from "~/components/form";
 import { WhatsAppIcon } from "~/components/icons";
 import { Breadcrumbs, Button, cx, Notice } from "~/components/ui";
 import { fieldErrors } from "~/lib/account";
+import { phoneLink } from "~/lib/br";
 import { NO_STORE, PUBLIC_CACHE } from "~/lib/http";
 import { seoMeta } from "~/lib/seo";
 import { formatHours, isOpenNow, whatsappHref } from "~/lib/shell";
@@ -98,6 +99,7 @@ export default function Contact({ loaderData, actionData }: Route.ComponentProps
   const { contact, company, storeName } = loaderData;
   const hours = formatHours(contact.hours);
   const open = isOpenNow(contact.hours);
+  const phone = contact.phone ? phoneLink(contact.phone) : null;
   const hasChannel = Boolean(contact.whatsappNumber || contact.email || contact.phone);
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-8">
@@ -142,11 +144,11 @@ export default function Contact({ loaderData, actionData }: Route.ComponentProps
                   </a>
                 </li>
               )}
-              {contact.phone && (
+              {phone && (
                 <li>
                   <p className="eyebrow">Telefone</p>
-                  <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="text-lg underline underline-offset-4">
-                    {contact.phone}
+                  <a href={phone.href} className="text-lg underline underline-offset-4">
+                    {phone.text}
                   </a>
                 </li>
               )}

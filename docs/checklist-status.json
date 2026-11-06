@@ -494,7 +494,7 @@
     },
     "Payment confirmation": {
       "status": "todo",
-      "note": "the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; the payment-confirmed e-mail is built, integration-tested and deployed (2026-11-05) but none has gone out from production yet; not exercised in production"
+      "note": "the admin confirms a Pix payment by hand (built and verified on the dev server, session 3); the customer's order page after a confirmation not verified; the payment-confirmed e-mail is built, integration-tested and deployed (2026-11-05), and production e-mail works (2026-11-05), but this e-mail hasn't been sent for real yet; not exercised in production"
     },
     "Error handling": {
       "status": "done",
@@ -712,7 +712,7 @@
     },
     "Order notifications": {
       "status": "todo",
-      "note": "_built and integration-tested 2026-11-04, deployed 2026-11-05_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail). Order placed + store notice went through Brevo from a dev machine (received); none sent from production yet (Brevo accepts only authorized IPs unless the owner turned that off; the sendmailoutbox log shows it)"
+      "note": "_built and integration-tested 2026-11-04, deployed 2026-11-05_: e-mails for order placed (customer + store inbox), Pix confirmed, cancelled (store / expiry), shipped, ready for pickup, delivered, tracking changed and refunded, queued in the same transaction as the change (app/.server/mail). Order placed + store notice went through Brevo for real (2026-11-04, received) and production sending works (2026-11-05); the other order e-mails haven't been sent for real yet"
     },
     "Return management": {
       "status": "todo",
@@ -778,7 +778,7 @@
     },
     "Delivery notifications": {
       "status": "todo",
-      "note": "_built and integration-tested 2026-11-04, deployed 2026-11-05_ (shipped, ready for pickup, delivered, tracking changed); none sent from production yet"
+      "note": "_built and integration-tested 2026-11-04, deployed 2026-11-05_ (shipped, ready for pickup, delivered, tracking changed); production e-mail works, these haven't been sent for real yet"
     }
   },
   "11": {
@@ -959,8 +959,8 @@
       "note": "/admin/support (tabs by status with counts, thread, reply by e-mail, close/reopen, audited; owner/admin/staff) and /account/support for customers (verified 2026-11-04: Chrome on a dev stack + 8 integration tests)"
     },
     "Automated responses": {
-      "status": "todo",
-      "note": "_built 2026-11-04, deployed 2026-11-05_: the protocol number on screen at once (verified) and an automatic confirmation e-mail queued in the same transaction (integration-tested); none sent from production yet"
+      "status": "done",
+      "note": "the protocol number on screen at once and an automatic confirmation e-mail queued with the ticket (verified in production 2026-11-05: ticket 1001, [mail] sent 2 a minute later)"
     }
   },
   "14": {
@@ -1019,8 +1019,8 @@
   },
   "15": {
     "Order confirmation emails": {
-      "status": "todo",
-      "note": "_built and integration-tested 2026-11-04_: pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; sent for real from a dev machine (2026-11-04, received); deployed 2026-11-05, not yet seen from production"
+      "status": "done",
+      "note": "pt-BR HTML + text e-mail with the Pix copia e cola, items, delivery and the order link, queued with the order and sent by sendMailOutbox through Brevo SMTP; sent for real (2026-11-04, received); deployed 2026-11-05, production sending verified the same day"
     }
   },
   "16": {
@@ -1057,7 +1057,7 @@
     },
     "Structured data / Schema.org": {
       "status": "done",
-      "note": "WebSite+SearchAction, Organization, CollectionPage (verified)"
+      "note": "WebSite+SearchAction, LocalBusiness on the home page (description, phone, store address, opening hours, social profiles, all from the Prismic settings; 2026-11-06), CollectionPage (verified)"
     },
     "Product structured data": {
       "status": "done",
@@ -1212,8 +1212,8 @@
   },
   "22": {
     "Email service": {
-      "status": "todo",
-      "note": "_Brevo SMTP integration built 2026-11-04_ (outbox + scheduled sender, integration-tested; a refused login or connection keeps e-mails waiting instead of failing them). The owner's Brevo account, sender domain (DKIM, DMARC), settings and the SMTP_PASSWORD secret are in place; sendMailOutbox deployed 2026-11-05; e-mails went through Brevo from the owner's machine (IP authorized). Production not proven yet: Brevo accepts only authorized IPs unless the owner turned that off, and Cloud Functions have no fixed IP; the first real e-mail shows [mail] sent or SMTP refused in the sendmailoutbox log"
+      "status": "done",
+      "note": "Brevo SMTP (smtp-relay.brevo.com:587, STARTTLS), sender domain authenticated (DKIM, DMARC), key in Secret Manager; outbox written in the business transaction, sent by the scheduled sendMailOutbox every 2 minutes; a refused login or connection keeps e-mails waiting instead of failing them. Verified in production 2026-11-05 ([mail] sent 2 for a test ticket); npm run test:mail-live checks it from a dev machine"
     }
   },
   "23": {
@@ -1334,8 +1334,8 @@
       "note": "_refunds done_ (full/partial, stock per item, 2026-11-02); return requests by customers and exchanges not built"
     },
     "Transactional emails": {
-      "status": "todo",
-      "note": "_built 2026-11-04, deployed 2026-11-05_ (Brevo SMTP outbox: 9 order e-mails and the support e-mails; secret set); sent for real from a dev machine; none from production yet (Brevo IP restriction to confirm)"
+      "status": "done",
+      "note": "Brevo SMTP outbox: 9 order e-mails and the support e-mails, deployed 2026-11-05; production sending verified the same day (test ticket)"
     },
     "Legal pages and compliance": {
       "status": "todo",
@@ -1351,7 +1351,7 @@
     },
     "Customer support": {
       "status": "todo",
-      "note": "contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; deployed 2026-11-05 (/contact answers on both hosts); automatic e-mails: none sent from production yet"
+      "note": "contact form, tickets, return requests, inbox and customer view built and verified 2026-11-04 on a dev stack; deployed 2026-11-05; a test message in production opened ticket 1001 and its e-mails went out"
     }
   }
 }
