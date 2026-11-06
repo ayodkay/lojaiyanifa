@@ -1004,14 +1004,35 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - The verify stack after `TaskStop`: :5176 answered 000, but 8 processes were alive (the Firestore java, the firebase
   node holding Auth and the hub, and 5 of the `react-router dev` chain). `taskkill /PID <the sh.exe root> /T /F` ended
   them all; ports 000 after; :5173 untouched (200).
-- Not deployed yet.
+
+### Deployed 2026-11-06 (owner's go)
+- Committed `bf78e71` on the branch `fix/client-navigation-urls` (from master `51022c0`). Owner-data gate on the staged
+  diff and the message: 19 values + the phone pattern, controls all detected, 0 hits. Built from that tree, then
+  `firebase deploy --only hosting,functions:ssr --project prod`, 07:33:38 → 07:35:11 UTC, exit 0. Both hooks ran,
+  `ssr` updated, hosting released, no invoker warning. No Firestore change.
+- Before, on both hosts: `/shipping` 200, `/shipping.data` 404 with `Cache-Control: max-age=600` (Firebase's value
+  for a function response without one; see `app/routes/missing-asset.ts`). A browser that fetched such a 404 just
+  before the deploy may show it for up to 10 more minutes.
+- After, on both hosts: the 7 pages and `/faq` answer the document and the `.data` request with 200 (`x-cache: MISS`;
+  custom domain `cf-cache-status: DYNAMIC`); `/shipping.data?_routes=root%2Cpage-shipping` 200 with the pages' public
+  cache header. Signed out: `/account.data` → `/login?redirectTo=%2Faccount`; `/admin/orders.data?status=open` →
+  `/admin/login?redirectTo=%2Fadmin%2Forders%3Fstatus%3Dopen`. The standard checks pass on both: `/`,
+  `/products/alaka`, `/sitemap.xml`, `/llms.txt`, `/robots.txt` 200; `/health` 200 JSON; `/admin` 302 to the sign-in;
+  `/favicon.ico` 301; an asset `immutable`; a made-up asset 404 `no-store`; an unknown path 404 with `nosniff` and
+  the CSP.
+- Chrome on `https://lojaiyanifa.com.br`: a real click on the footer's Entregas, then the other 6 footer links → each
+  page, no 404, every navigation client-side; the 7 `.data` requests 200.
+- Not checked: the function log (no gcloud here). Logs Explorer:
+  `resource.type="cloud_run_revision" AND resource.labels.service_name="ssr" AND timestamp>="2026-11-06T07:33:00Z"`.
+- Not pushed; the branch is not merged into master.
 
 ## Handoff for the next session (read this first)
 
 **Session 8 (2026-11-06): four places read `request.url`, which on a client-side navigation is React Router 8's raw
 `.data` request: the content pages (a 404 on every click from the footer or the cookie notice), the account and admin
 sign-in `redirectTo`, and the reviews moderation redirect. All four read `url` now (+ 6 unit tests), verified on dev
-and in Chrome; not deployed yet. See "Session 8" above.**
+and in Chrome. Deployed at 07:35 UTC from `bf78e71` (`ssr` + hosting) and verified live on both hosts; branch
+`fix/client-navigation-urls`, not pushed, not merged into master. See "Session 8" above.**
 
 **Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD (store address, opening hours), deployed at 05:36
 and 06:25 UTC (last from `e48aec3`, `ssr` + hosting; not pushed); see "Session 7" above.**
@@ -1248,12 +1269,13 @@ checklist item "Two-factor authentication for administrators" is done.
 
 **Needed before launch but not on this list:**
 - `/admin/inventory`: stock adjustments.
-- Terms/privacy pages: Prismic content the owner must publish (checkout links to them). Urgent since 2026-11-04:
-  checkout is open and these pages still 404.
+- Terms/privacy pages: **done** (published 2026-11-04, owner's step 1 above). On 2026-11-06 the 7 pages and `/faq`
+  answer 200 on both hosts, on a click too (Session 8).
 
 **Known issues:**
 - Production (2026-11-04, early morning): checkout is open while `/terms`, `/privacy`, `/returns`, `/shipping`,
-  `/cookies`, `/about` and `/faq` answer 404 (Prismic pages not published).
+  `/cookies`, `/about` and `/faq` answer 404 (Prismic pages not published). **Resolved** the same day (published). On
+  2026-11-06 a click on these pages was a 404 for another reason; fixed and deployed in Session 8.
 - Production (2026-11-04, "Found"): a page loaded during a deploy loses its files; since `6a5d29a` (deployed) a
   reload fixes it. The 404 page's missing security headers were fixed and deployed the same day (`58d92bd`).
 - The custom domain `https://lojaiyanifa.com.br` goes through Cloudflare (Browser Cache TTL "Respect Existing
