@@ -24,6 +24,8 @@ function settings(
 }
 
 const ADDRESS = { addressLine: "Rua Exemplo, 100, Loja 1", city: "São Paulo", state: "SP", postalCode: "01001-000" };
+// As mapSettings keeps them: day 0 = Sunday … 6 = Saturday, hh:mm.
+const hours = (days: number[], opens: string, closes: string) => days.map((day) => ({ day, opens, closes }));
 
 const PROFILES = [
   { network: "Instagram", href: "https://www.instagram.com/exemplo/" },
@@ -31,8 +33,12 @@ const PROFILES = [
 ];
 
 describe("localBusinessJsonLd", () => {
-  it("describes the store with its phone in international format, its address and its social profiles", () => {
-    const s = settings({ contact: { phone: "(21) 98765-4321" }, company: ADDRESS, socialLinks: PROFILES });
+  it("describes the store with its phone in international format, its address, its hours and its social profiles", () => {
+    const s = settings({
+      contact: { phone: "(21) 98765-4321", hours: [...hours([1, 2, 3, 4, 5], "09:00", "18:00"), ...hours([6], "09:00", "13:00")] },
+      company: ADDRESS,
+      socialLinks: PROFILES,
+    });
     expect(localBusinessJsonLd(s, "https://loja.example")).toEqual({
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
@@ -48,16 +54,40 @@ describe("localBusinessJsonLd", () => {
         postalCode: "01001-000",
         addressCountry: "BR",
       },
+      openingHoursSpecification: [
+        {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          opens: "09:00:00",
+          closes: "18:00:00",
+        },
+        { "@type": "OpeningHoursSpecification", dayOfWeek: ["Saturday"], opens: "09:00:00", closes: "13:00:00" },
+      ],
       sameAs: ["https://www.instagram.com/exemplo/", "https://www.tiktok.com/@exemplo"],
     });
   });
 
-  it("leaves telephone, address and sameAs out while the settings have no phone, street address or profiles", () => {
+  it("leaves telephone, address, hours and sameAs out while the settings have none of them", () => {
     // A city and state alone don't locate a store.
     const data = localBusinessJsonLd(settings({ company: { city: "São Paulo", state: "SP" } }), "https://loja.example");
     expect(data).not.toHaveProperty("telephone");
     expect(data).not.toHaveProperty("address");
+    expect(data).not.toHaveProperty("openingHoursSpecification");
     expect(data).not.toHaveProperty("sameAs");
+  });
+
+  it("lists the hours Monday first, Sunday last, and a split shift as two slots", () => {
+    const rows = [
+      ...hours([0], "10:00", "14:00"),
+      ...hours([6], "10:00", "14:00"),
+      ...hours([1], "09:00", "12:00"),
+      ...hours([1], "14:00", "18:00"),
+    ];
+    expect(localBusinessJsonLd(settings({ contact: { hours: rows } }), "https://loja.example").openingHoursSpecification).toEqual([
+      { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday"], opens: "09:00:00", closes: "12:00:00" },
+      { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday"], opens: "14:00:00", closes: "18:00:00" },
+      { "@type": "OpeningHoursSpecification", dayOfWeek: ["Saturday", "Sunday"], opens: "10:00:00", closes: "14:00:00" },
+    ]);
   });
 
   it("writes only the address parts the settings have", () => {

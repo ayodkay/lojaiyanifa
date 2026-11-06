@@ -5,7 +5,7 @@
 import { normalizeBrPhone } from "~/lib/br";
 import { pagePath } from "~/lib/catalog/links";
 import type { Catalog } from "~/lib/catalog/query";
-import type { ContentPage, Homepage, StoreSettings } from "~/lib/catalog/types";
+import type { BusinessHours, ContentPage, Homepage, StoreSettings } from "~/lib/catalog/types";
 import { whatsappHref } from "~/lib/shell";
 
 export const STORE_DESCRIPTION =
@@ -21,6 +21,27 @@ const OFFERINGS = [
 
 /** A page's `<title>`, written the way seoMeta writes it (app/lib/seo.ts). */
 const pageTitle = (title: string, storeName: string) => (title === storeName ? title : `${title} | ${storeName}`);
+
+/** Indexed by BusinessHours.day (0 = Sunday), the only values mapSettings keeps. */
+const SCHEMA_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** One OpeningHoursSpecification per distinct time slot, its days Monday first (as the footer lists them). */
+function openingHoursSpecification(hours: BusinessHours[]) {
+  const slots = new Map<string, { opens: string; closes: string; days: number[] }>();
+  for (const h of [...hours].sort((a, b) => ((a.day + 6) % 7) - ((b.day + 6) % 7))) {
+    const key = `${h.opens}-${h.closes}`;
+    const slot = slots.get(key) ?? { opens: h.opens, closes: h.closes, days: [] };
+    slot.days.push(h.day);
+    slots.set(key, slot);
+  }
+  // Google states hh:mm:ss for opens and closes; the settings keep hh:mm.
+  return [...slots.values()].map((s) => ({
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: s.days.map((d) => SCHEMA_DAYS[d]!),
+    opens: `${s.opens}:00`,
+    closes: `${s.closes}:00`,
+  }));
+}
 
 export function localBusinessJsonLd(settings: StoreSettings, siteUrl: string) {
   const phone = settings.contact.phone;
@@ -41,6 +62,7 @@ export function localBusinessJsonLd(settings: StoreSettings, siteUrl: string) {
         addressCountry: "BR",
       }
     : null;
+  const openingHours = openingHoursSpecification(settings.contact.hours);
   return {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -49,6 +71,7 @@ export function localBusinessJsonLd(settings: StoreSettings, siteUrl: string) {
     url: `${siteUrl}/`,
     ...(telephone ? { telephone } : {}),
     ...(address ? { address } : {}),
+    ...(openingHours.length ? { openingHoursSpecification: openingHours } : {}),
     ...(sameAs.length ? { sameAs } : {}),
   };
 }

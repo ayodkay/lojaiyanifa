@@ -919,7 +919,6 @@ checkout → order confirmation → auth/session → admin → shipping → emai
 - The LocalBusiness address is the company address, the same one the footer shows. Should the registered (legal)
   address ever differ from the store's, the store needs fields of its own (comment in `app/lib/store-profile.ts`).
 - Prismic's street address has a space after the hyphen in the stall numbers; footer and JSON-LD show it as typed.
-- Offered, not built: `openingHoursSpecification` from the Prismic business hours.
 
 ### Deployed 2026-11-06 (owner's go)
 - From `5e643f9`: `firebase deploy --only hosting,functions:ssr --project prod`, 05:34:26 → 05:36:17 UTC, exit 0. Both
@@ -935,10 +934,19 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   `resource.type="cloud_run_revision" AND resource.labels.service_name="ssr" AND timestamp>="2026-11-06T05:34:00Z"`.
 - Not pushed: the owner asked for commit + deploy. The branch is still not merged into master.
 
+### Opening hours (the owner's ask, after that deploy)
+- `localBusinessJsonLd` adds `openingHoursSpecification` from the Prismic business hours (the footer's): one entry per
+  distinct time slot, its days Monday first (as the footer lists them), times as hh:mm:ss (Google's stated format; the
+  settings keep hh:mm). A split shift becomes two entries; no hours, no property.
+- Tests: 6 unit, 20 of 20 mutations caught. Totals: unit 253 (32 files), typecheck 0 errors, lint 0 errors, build OK.
+  Dev server (:5173, GET only): Monday–Saturday 10:00:00–18:00:00, as the footer shows it ("segunda a sábado,
+  10:00–18:00").
+- Deploy: `ssr` + hosting, from the commit that adds this entry; results in the next docs commit.
+
 ## Handoff for the next session (read this first)
 
-**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD with the store's address, deployed 05:36 UTC from
-`5e643f9` (`ssr` + hosting; not pushed); see "Session 7" above.**
+**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD (store address, opening hours), deployed from
+`5e643f9` at 05:36 UTC; opening hours: see "Session 7" above.**
 
 **Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
 production on 2026-11-05 (04:17 UTC, from `41e6cf8`; `ssr` + hosting again at 05:08 UTC, from `a099e30`); not
