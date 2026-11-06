@@ -31,7 +31,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-export async function action({ request, context }: Route.ActionArgs) {
+export async function action({ request, url, context }: Route.ActionArgs) {
   const user = context.get(adminUserContext);
   requireCapability(user, "reviews.moderate");
   const form = await request.formData();
@@ -48,7 +48,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (error instanceof ReviewNotFoundError) return data({ error: "Esta avaliação não existe mais." }, { status: 404, headers: ADMIN_HEADERS });
     throw error;
   }
-  return redirect(new URL(request.url).pathname + new URL(request.url).search, { headers: ADMIN_HEADERS });
+  // `url`, not `request.url`: the <Form>s post to /admin/reviews.data (tests/unit/admin-reviews-action.test.ts).
+  return redirect(url.pathname + url.search, { headers: ADMIN_HEADERS });
 }
 
 export const meta = () => adminMeta("Avaliações");

@@ -11,12 +11,12 @@ export const customerContext = createContext<CustomerUser>();
 /** Every account response: personal, never cached anywhere, never indexed. */
 export const ACCOUNT_HEADERS = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" };
 
-export const requireCustomer: MiddlewareFunction<Response> = async ({ request, context }, next) => {
+export const requireCustomer: MiddlewareFunction<Response> = async ({ request, url, context }, next) => {
   const session = await readCustomerSession(request);
   if (session.status === "signed_out") {
-    const url = new URL(request.url);
     const headers = new Headers(ACCOUNT_HEADERS);
     if (session.staleCookie) headers.append("Set-Cookie", expiredSessionCookie());
+    // `url`, not `request.url`: a click on a link runs this for /account.data (tests/unit/auth-guards.test.ts).
     throw redirect(`/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`, { headers });
   }
   context.set(customerContext, session.user);

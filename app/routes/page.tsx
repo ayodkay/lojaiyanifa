@@ -15,8 +15,10 @@ import type { Route } from "./+types/page";
 
 const UID_BY_PATH = Object.fromEntries(Object.entries(PAGE_PATHS).map(([uid, path]) => [path, uid]));
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { pathname } = new URL(request.url);
+export async function loader({ url, params }: Route.LoaderArgs) {
+  // `url`, not `request.url`: a click on a link runs this loader for /shipping.data, and React Router 8 passes that raw
+  // request; `url` is the page's own address (tests/unit/content-page.test.ts).
+  const { pathname } = url;
   const uid = params.uid ?? UID_BY_PATH[pathname];
   const { pages, settings } = await getContent();
   const page = uid ? pages.get(uid) : undefined;

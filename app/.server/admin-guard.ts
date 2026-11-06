@@ -21,12 +21,12 @@ export const REFUSAL_MESSAGE: Record<AdminRefusal, string> = {
   mfa_required: "O painel exige verificação em duas etapas (código de um app autenticador). Entre novamente para configurá-la ou digitar o código.",
 };
 
-export const requireAdmin: MiddlewareFunction<Response> = async ({ request, context }, next) => {
+export const requireAdmin: MiddlewareFunction<Response> = async ({ request, url, context }, next) => {
   const session = await readAdminSession(request);
   if (session.status === "signed_out") {
-    const url = new URL(request.url);
     const headers = new Headers(ADMIN_HEADERS);
     if (session.staleCookie) headers.append("Set-Cookie", expiredSessionCookie());
+    // `url`, not `request.url`: a click on a link runs this for /admin/orders.data (tests/unit/auth-guards.test.ts).
     throw redirect(`/admin/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`, { headers });
   }
   if (session.status === "forbidden") {

@@ -947,7 +947,71 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   standard checks unchanged and passing (same list as above). Function log not checked (no gcloud; same query, from
   `2026-11-06T06:23:00Z`). Not pushed.
 
+## Session 8 — 2026-11-06: the content pages were a 404 on a click
+
+### Owner's report
+- A click on Entregas, Trocas e devoluções, Política de privacidade, Termos de uso, Política de cookies or Garantia (in
+  the footer), or on the cookie notice's "Política de cookies", showed the 404 page; a reload showed the page. Dev and
+  production.
+
+### Cause (verified)
+- Not the links: the loader of `app/routes/page.tsx`. A click loads no document: React Router fetches the loader data
+  from `/shipping.data`. React Router 8 (8.5.1) gives loaders that raw request (`request.url` =
+  `/shipping.data?_routes=…`) and, separately, `url`: the page's own address, without `.data` and `_routes`
+  (`callLoaderOrAction` in `node_modules/react-router/dist/development/lib/router/router.js`; documented on
+  `DataFunctionArgs.url` in `lib/router/utils.d.ts`). The loader looked the uid up by `new URL(request.url).pathname`,
+  so `/shipping.data` found no page and threw the 404. On :5173 before the fix: `/shipping` 200, `/shipping.data` 404
+  (`page-shipping` matched; its loader threw).
+- The same line had a second effect: a generic page at `/pages/:uid` answered a click with a 301 to its own address
+  (`/pages/x.data` ≠ `/pages/x`).
+
+### Fix (done and verified)
+- `app/routes/page.tsx` reads `url` instead of `request.url`.
+- Tests: 3 unit (`tests/unit/content-page.test.ts`: the loader called with the arguments a click produces). Tests 1 and
+  2 failed before the fix (the 404; the 301 to itself) and pass after; test 3 pins `/pages/privacy` → 301 `/privacy`.
+  Totals: unit 256 (33 files), typecheck 0 errors, lint 0 errors, build OK.
+- :5173 (GET only): the 7 pages answer both the document and the `.data` request with 200.
+- Chrome on the verify stack (:5176, emulators 8480/9095/4410, no seed: these pages come from Prismic): a real click
+  on the footer's Entregas, then the other 6 footer links (`a.click()`), then a real click on the cookie notice's link
+  (the notice was shown by removing `li.consent.v1` for :5176; the value was restored byte for byte afterwards). Each
+  showed its page title and no 404; every navigation was client-side (a `window` marker survived); each
+  `/<page>.data?_routes=root,page-<uid>` answered 200.
+
+### The same cause in three more places (fixed the same day, on the owner's go)
+- `app/.server/account-guard.ts`, `app/.server/admin-guard.ts`: a signed-out click on a link to a protected page put
+  the `.data` address in `redirectTo` (`/login?redirectTo=%2Faccount.data`, seen on :5173; the document request gave
+  `%2Faccount`). `safeAccountRedirect` let it through, so signing in sent the visitor to the `.data` address. Both
+  build `redirectTo` from `url` now (middleware receives it too: `runMiddlewarePipeline` in `router.js`).
+- `app/routes/admin.reviews.tsx` action: the moderation buttons are React Router `<Form>`s, which post to
+  `/admin/reviews.data`; the action redirected to `request.url`'s path, so each approve/reject/delete/reply was saved
+  and then sent the admin to `/admin/reviews.data?…` (from the code and the test; not run in a browser). It redirects
+  to `url` now.
+- Tests: 3 unit (`tests/unit/auth-guards.test.ts`: 2; `tests/unit/admin-reviews-action.test.ts`: 1), each failing
+  before its fix (`redirectTo=%2Faccount%2Forders.data%3Fpagina%3D2%26_routes%3Droot`, the admin's alike;
+  `/admin/reviews.data?status=reported`) and passing after. Totals: unit 259 (35 files), typecheck 0 errors, lint 0
+  errors (warnings unchanged).
+- :5173 (GET only, signed out): `/account.data` → `/login?redirectTo=%2Faccount`;
+  `/account/orders.data?pagina=2&_routes=root` → `redirectTo=%2Faccount%2Forders%3Fpagina%3D2`;
+  `/admin/orders.data?status=open&_routes=root` → `/admin/login?redirectTo=%2Fadmin%2Forders%3Fstatus%3Dopen`. The
+  document requests are unchanged.
+- Fine by accident, left as they are (prefix checks that `.data` doesn't break): `categories.tsx`, `category.tsx`,
+  `security.ts`. The other `request.url` readers use only `searchParams`.
+- Not checked in a browser: the moderation redirect (it needs an admin sign-in and a review to moderate).
+
+### Notes
+- One real click on the cookie notice's link made two `/cookies.data` requests (both 200); the footer clicks made one
+  each. That link has no `prefetch`, and `app/` has no revalidation hook. Cause unknown; not investigated.
+- The verify stack after `TaskStop`: :5176 answered 000, but 8 processes were alive (the Firestore java, the firebase
+  node holding Auth and the hub, and 5 of the `react-router dev` chain). `taskkill /PID <the sh.exe root> /T /F` ended
+  them all; ports 000 after; :5173 untouched (200).
+- Not deployed yet.
+
 ## Handoff for the next session (read this first)
+
+**Session 8 (2026-11-06): four places read `request.url`, which on a client-side navigation is React Router 8's raw
+`.data` request: the content pages (a 404 on every click from the footer or the cookie notice), the account and admin
+sign-in `redirectTo`, and the reviews moderation redirect. All four read `url` now (+ 6 unit tests), verified on dev
+and in Chrome; not deployed yet. See "Session 8" above.**
 
 **Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD (store address, opening hours), deployed at 05:36
 and 06:25 UTC (last from `e48aec3`, `ssr` + hosting; not pushed); see "Session 7" above.**
