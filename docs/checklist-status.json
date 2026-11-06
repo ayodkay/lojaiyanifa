@@ -1057,7 +1057,7 @@
     },
     "Structured data / Schema.org": {
       "status": "done",
-      "note": "WebSite+SearchAction, Organization, CollectionPage (verified)"
+      "note": "WebSite+SearchAction, LocalBusiness on the home page (description, phone, store address, social profiles, all from the Prismic settings; 2026-11-06), CollectionPage (verified)"
     },
     "Product structured data": {
       "status": "done",

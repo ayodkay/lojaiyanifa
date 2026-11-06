@@ -884,7 +884,51 @@ checkout → order confirmation → auth/session → admin → shipping → emai
   integration test (an hour-long login outage, then recovery); mutation check: each of 5 mutations caught by the unit
   or the integration tests. Seen live: the refused runs left both e-mails pending with no attempt used.
 
+## Session 7 — 2026-11-06: `/llms.txt` and LocalBusiness JSON-LD
+
+### Owner's request
+- Add an `llms.txt` and a LocalBusiness JSON-LD, both pasted by the owner (generated elsewhere). Both carried the store
+  phone (the WhatsApp link, `telephone`), so neither is a static file: both are built from the Prismic settings at
+  request time, like the footer.
+- Then the owner's choice (the pasted JSON-LD had no address, which Google requires for a LocalBusiness): keep
+  LocalBusiness, with the physical store's address, the store at Mercadão de Madureira. The Prismic company address
+  (Street address, City, State, CEP) already holds exactly that address, so the JSON-LD reads it. Commit and deploy.
+
+### Done and verified
+- `app/lib/store-profile.ts`: the owner's description and four offerings as fixed text (the paste's "Panas tradicionais"
+  corrected to "Panos"); `localBusinessJsonLd(settings, siteUrl)` (`telephone` = `contact.phone` normalized to +55…,
+  `address` = a PostalAddress from the company address with country BR, only when a street address is set and without
+  the parts that are empty, `sameAs` = the social links; each left out when empty); `llmsTxt(...)` (home + about +
+  every catalog product under its page title, sorted pt-BR; profiles = the social links, network lowercased, + the
+  WhatsApp link with its message; a closing `Website:` line).
+- `/llms.txt` (`app/routes/llms-txt.ts`, registered after `sitemap.xml`): `text/plain; charset=utf-8`,
+  `public, max-age=0, s-maxage=3600`. A route works in production: on 2026-11-06 the live `/llms.txt` 404 was the
+  store's own 404 page, so the request reaches the app (unlike `/robots.txt`, which the Functions Framework answers).
+- Home page: the bare `Organization` block is replaced by the LocalBusiness block (a LocalBusiness is an Organization;
+  one entity, not two). `WebSite` unchanged.
+- Tests: 5 unit (`tests/unit/store-profile.test.ts`), 13 of 13 mutations caught. Totals: unit 252 (32 files),
+  typecheck 0 errors, lint 0 errors, build OK.
+- Against the live Prismic content (GET requests to the :5173 dev server only): `/llms.txt` differs from the paste only
+  by one blank line, "Panos", and the product list: all 32 catalog products (the sitemap's set) instead of 10. The
+  profile lines, phone included, are identical. The home JSON-LD has the paste's fields and values (dev origin aside),
+  plus the address exactly as typed in Prismic (street, Rio de Janeiro, RJ, CEP, BR).
+- Owner-data scan: 0 hits (the changed files: phone, owner e-mail, 13 env values; 259 committable files: phone).
+- Checklist: the note of "Structured data / Schema.org" now says LocalBusiness (was Organization).
+
+### Notes
+- The LocalBusiness address is the company address, the same one the footer shows. Should the registered (legal)
+  address ever differ from the store's, the store needs fields of its own (comment in `app/lib/store-profile.ts`).
+- Prismic's street address has a space after the hyphen in the stall numbers; footer and JSON-LD show it as typed.
+- Offered, not built: `openingHoursSpecification` from the Prismic business hours.
+
+### Deploy
+- `ssr` + hosting (no Firestore change), from the commit that adds this entry. Results: see the next docs commit.
+  Afterwards check `/llms.txt` and the home JSON-LD on both hosts. The custom domain may serve an earlier cached 404 for
+  up to 10 minutes (the 404 page sends `max-age=600`).
+
 ## Handoff for the next session (read this first)
+
+**Session 7 (2026-11-06): `/llms.txt` + the LocalBusiness JSON-LD with the store's address; see "Session 7" above.**
 
 **Session 6 (2026-11-04 and 05) — branch `feat/accounts-support-promos-legal`: pushed to origin and deployed to
 production on 2026-11-05 (04:17 UTC, from `41e6cf8`; `ssr` + hosting again at 05:08 UTC, from `a099e30`); not
